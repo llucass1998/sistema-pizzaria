@@ -1,0 +1,76 @@
+# Dependências
+node_modules/
+mobile-app/node_modules/
+
+# Build / dist
+dist/
+build/
+
+# Variáveis de ambiente sensíveis
+.env
+.env.*
+!.env.example
+
+# Banco de dados local (SQLite de dev)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+dev.db
+
+# Prisma gerados
+generated/
+
+# Backups SQL temporários
+backup_*.sql
+*.sql
+
+# Logs e arquivos de depuração temporários
+*.log
+db_output.txt
+out.js
+temp.js
+check-db*.js
+check-db*.ts
+check_admin.js
+test_admin.js
+test_api.js
+test_checkout.js
+test_erp.js
+test_pos_api.js
+seed_admin.js
+seed_tenant.js
+seed_test_data.js
+verify_admin.js
+backend-src/check.js
+backend-src/audit.ts
+query.sh
+git_diff.txt
+diff_home.txt
+pup.cjs
+fix-theme.cjs
+
+# Playwright / testes
+playwright-report/
+test-results/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache
+.cache/
+.agents/
+.chrome-test/
+.docker-config/
+.gemini/
+
+# Deploy zip temporário
+deploy-pizzaria.zip

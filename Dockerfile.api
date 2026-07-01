@@ -1,0 +1,62 @@
+# Estagio de build
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copiar arquivos de configuracao e instalacao
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copiar o restante do projeto (backend, prisma, configs)
+COPY . .
+
+# Gerar o Prisma Client e compilar o TypeScript
+RUN npx prisma generate
+RUN npm run build:api
+
+# Estagio final
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Variaveis de ambiente padrao (sobrescritas no docker-compose)
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Copiar dependencias prontas (podemos otimizar futuramente para apenas prod)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# Copiar diretorios de build e schemas necessarios
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/backend-src/seed.ts ./backend-src/seed.ts
+COPY --from=builder /app/backend-src/config/loadEnv.ts ./backend-src/config/loadEnv.ts
+COPY --from=builder /app/backend-src/utils/password.ts ./backend-src/utils/password.ts
+
+# Script de entrada para migracao e inicializacao
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# A API salva imagens enviadas em /app/public/uploads. Como o runtime usa
+# usuario nao-root, a pasta precisa existir com permissao de escrita.
+RUN mkdir -p \
+  /app/public/uploads/products \
+  /app/public/uploads/identity/logos \
+  /app/public/uploads/identity/favicons \
+  /app/public/uploads/identity/apple-touch-icons \
+  /app/public/uploads/identity/open-graph \
+  && chown -R node:node /app/public
+
+# Porta exposta internamente
+EXPOSE 3000
+
+# Usuario nao-root por seguranca (comum em ERPs profissionais)
+# O container ira trocar para o usuario 'node' apos algumas operacoes de setup se necessario, 
+# mas aqui usaremos o default ou especificaremos no docker-compose.
+USER node
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["node", "dist/server.js"]

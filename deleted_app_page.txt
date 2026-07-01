@@ -1,0 +1,818 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  LogOut,
+  LogIn,
+  Menu,
+  Moon,
+  ShoppingCart,
+  Sun,
+  User,
+  X
+} from 'lucide-react';
+import AccountPage from './pages/AccountPage.jsx';
+import CartPage from './pages/CartPage.jsx';
+import CategoryPage from './pages/CategoryPage.jsx';
+import HomePage from './pages/HomePage.jsx';
+import AdminPage from './pages/AdminPage.jsx';
+import pizzariaLogo from './assets/rio-pizzas-logo.png';
+import {
+  formatCurrency,
+  getStoreFromSettings,
+  products,
+  store
+} from './data/menuData.js';
+
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const savedCustomerKey = 'pizzaria-customer';
+const savedThemeKey = 'pizzaria-theme';
+const savedCartKey = 'pizzaria-cart';
+const addonOptions = [
+  {
+    id: 'borda-catupiry',
+    name: 'Borda recheada de catupiry',
+    price: 6,
+  },
+  {
+    id: 'extra-cheese',
+    name: 'Queijo extra',
+    price: 4,
+  },
+];
+
+function getAddonTotal(addons) {
+  return addons.reduce((total, addon) => total + addon.price, 0);
+}
+
+function getCartItemId(product, addons) {
+  const productId = product.productId ?? product.id;
+  const addonKey = addons.map((addon) => addon.id).sort().join('-') || 'sem-adicional';
+  return `${productId}__${addonKey}`;
+}
+
+function getCustomizationText(addons) {
+  return addons
+    .map((addon) => `${addon.name} (+${formatCurrency(addon.price)})`)
+    .join(', ');
+}
+
+const routes = {
+  '/': { Component: HomePage },
+  '/conta': { Component: AccountPage },
+  '/carrinho': { Component: CartPage },
+  '/pizzas': { Component: CategoryPage, categoryId: 'pizzas' },
+  '/pizzas-especiais': { Component: CategoryPage, categoryId: 'especiais' },
+  '/promocoes': { Component: CategoryPage, categoryId: 'promocoes' },
+  '/bebidas': { Component: CategoryPage, categoryId: 'bebidas' },
+  '/sobremesas': { Component: CategoryPage, categoryId: 'sobremesas' },
+  '/combos': { Component: CategoryPage, categoryId: 'combos' },
+  '/admin': { Component: AdminPage, hideNav: true }
+};
+
+function getHashPath() {
+  const path = window.location.hash.replace('#', '');
+  return path || '/';
+}
+
+function getInitialDarkMode() {
+  const savedTheme = window.localStorage.getItem(savedThemeKey);
+
+  if (savedTheme) {
+    return savedTheme === 'dark';
+  }
+
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
+function getSavedCartItems() {
+  try {
+    const savedCart = JSON.parse(window.localStorage.getItem(savedCartKey) ?? '[]');
+
+    if (!Array.isArray(savedCart)) {
+      return [];
+    }
+
+    return savedCart
+      .map((item) => ({
+        ...item,
+        price: Number(item.price ?? 0),
+        basePrice: Number(item.basePrice ?? item.price ?? 0),
+        qty: Math.max(1, Number(item.qty ?? 1)),
+      }))
+      .filter((item) => item.id && item.name && Number.isFinite(item.price));
+  } catch {
+    return [];
+  }
+}
+
+export default function PizzariaApp() {
+  const [path, setPath] = useState(getHashPath);
+  const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [authError, setAuthError] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [registerName, setRegisterName] = useState('');
+  const [registerPhone, setRegisterPhone] = useState('');
+  const [registerCpf, setRegisterCpf] = useState('');
+  const [registerStreet, setRegisterStreet] = useState('');
+  const [registerNeighborhood, setRegisterNeighborhood] = useState('');
+  const [registerCity, setRegisterCity] = useState('');
+  const [registerCep, setRegisterCep] = useState('');
+  const [currentCustomer, setCurrentCustomer] = useState(() => {
+    const savedCustomer = window.localStorage.getItem(savedCustomerKey);
+    return savedCustomer ? JSON.parse(savedCustomer) : null;
+  });
+  const [cartItems, setCartItems] = useState(getSavedCartItems);
+  const [catalogProducts, setCatalogProducts] = useState(products);
+  const [storeSettings, setStoreSettings] = useState(null);
+  const [productToCustomize, setProductToCustomize] = useState(null);
+  const [selectedAddonIds, setSelectedAddonIds] = useState([]);
+
+  const currentStore = useMemo(
+    () => getStoreFromSettings(storeSettings ?? store),
+    [storeSettings]
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    window.localStorage.setItem(savedThemeKey, isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    const hasSavedCart = Boolean(window.localStorage.getItem(savedCartKey));
+    const isLegacyDemoCart =
+      !hasSavedCart &&
+      cartItems.length === 2 &&
+      cartItems.every((item) =>
+        ['Pizza Margherita', 'Coca-Cola lata 350ml'].includes(item.name),
+      );
+
+    if (isLegacyDemoCart) {
+      setCartItems([]);
+      window.localStorage.removeItem(savedCartKey);
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      window.localStorage.removeItem(savedCartKey);
+      return;
+    }
+
+    window.localStorage.setItem(savedCartKey, JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  useEffect(() => {
+    function handleHashChange() {
+      setPath(getHashPath());
+      setIsMenuOpen(false);
+      setIsAccountMenuOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCatalogProducts() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/pizzas`);
+        const data = await response.json().catch(() => []);
+
+        if (isMounted && response.ok && Array.isArray(data) && data.length > 0) {
+          setCatalogProducts(
+            data
+              .filter((product) => product.isAvailable)
+              .map((product) => ({
+                id: product.id,
+                productId: product.id,
+                name: product.name,
+                category: product.category ?? 'pizzas',
+                description: product.description ?? '',
+                price: Number(product.price ?? 0),
+                image: '🍕',
+                imageUrl: product.imageUrl,
+              }))
+          );
+        }
+      } catch {
+        // Mantem o cardapio local quando a API ainda nao estiver aberta.
+      }
+    }
+
+    loadCatalogProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStoreSettings() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/configuracoes`);
+        const data = await response.json().catch(() => null);
+
+        if (isMounted && response.ok && data) {
+          setStoreSettings(data);
+        }
+      } catch {
+        // Mantem os dados padrao quando a API ainda nao estiver aberta.
+      }
+    }
+
+    loadStoreSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const cartTotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.price * item.qty, 0),
+    [cartItems]
+  );
+  const selectedAddons = useMemo(
+    () => addonOptions.filter((addon) => selectedAddonIds.includes(addon.id)),
+    [selectedAddonIds]
+  );
+  const customizationBasePrice = Number(productToCustomize?.price ?? 0);
+  const customizationTotal = customizationBasePrice + getAddonTotal(selectedAddons);
+
+  const route = routes[path] ?? routes['/'];
+  const Page = route.Component;
+  const isLoggedIn = Boolean(currentCustomer);
+
+  function openAuthModal(mode = 'login') {
+    setAuthMode(mode);
+    setAuthError('');
+    setShowLoginModal(true);
+  }
+
+  async function submitAuthRequest(pathname, body) {
+    const response = await fetch(`${API_BASE_URL}${pathname}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message ?? 'Nao foi possivel concluir a operacao.');
+    }
+
+    return data;
+  }
+
+  function finishAuth(customer) {
+    setCurrentCustomer(customer);
+    window.localStorage.setItem(savedCustomerKey, JSON.stringify(customer));
+    setShowLoginModal(false);
+    setIsAccountMenuOpen(false);
+    setAuthError('');
+    setEmail('');
+    setPassword('');
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+
+    try {
+      setIsAuthLoading(true);
+      setAuthError('');
+      const result = await submitAuthRequest('/login', { email, password });
+      
+      if (result.role === 'ADMIN') {
+        // Salva a sessao do administrador e redireciona
+        window.localStorage.setItem('pizzaria-admin', JSON.stringify({ admin: result.admin, token: result.token }));
+        setShowLoginModal(false);
+        setIsAccountMenuOpen(false);
+        setAuthError('');
+        setEmail('');
+        setPassword('');
+        window.location.hash = '/admin';
+      } else {
+        finishAuth(result);
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Erro ao entrar.');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }
+
+  async function handleRegister(event) {
+    event.preventDefault();
+
+    try {
+      setIsAuthLoading(true);
+      setAuthError('');
+      const customer = await submitAuthRequest('/register', {
+        name: registerName,
+        email,
+        password,
+        phone: registerPhone,
+        cpf: registerCpf,
+        address: {
+          street: registerStreet,
+          neighborhood: registerNeighborhood,
+          city: registerCity,
+          cep: registerCep,
+        },
+      });
+
+      finishAuth(customer);
+      setRegisterName('');
+      setRegisterPhone('');
+      setRegisterCpf('');
+      setRegisterStreet('');
+      setRegisterNeighborhood('');
+      setRegisterCity('');
+      setRegisterCep('');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Erro ao cadastrar.');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    setCurrentCustomer(null);
+    window.localStorage.removeItem(savedCustomerKey);
+    setIsAccountMenuOpen(false);
+
+    if (getHashPath() === '/conta') {
+      window.location.hash = '/';
+    }
+  }
+
+  function addToCart(product) {
+    setProductToCustomize(product);
+    setSelectedAddonIds([]);
+  }
+
+  function toggleAddon(addonId) {
+    setSelectedAddonIds((currentIds) =>
+      currentIds.includes(addonId)
+        ? currentIds.filter((id) => id !== addonId)
+        : [...currentIds, addonId]
+    );
+  }
+
+  function closeCustomizationModal() {
+    setProductToCustomize(null);
+    setSelectedAddonIds([]);
+  }
+
+  function confirmAddToCart() {
+    if (!productToCustomize) {
+      return;
+    }
+
+    const itemId = getCartItemId(productToCustomize, selectedAddons);
+    const customizations = getCustomizationText(selectedAddons);
+
+    setCartItems((items) => {
+      const existingItem = items.find((item) => item.id === itemId);
+
+      if (existingItem) {
+        return items.map((item) =>
+          item.id === itemId ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+
+      return [
+        ...items,
+        {
+          id: itemId,
+          productId: productToCustomize.productId ?? productToCustomize.id,
+          name: productToCustomize.name,
+          basePrice: productToCustomize.price,
+          price: customizationTotal,
+          qty: 1,
+          category: productToCustomize.category,
+          image: productToCustomize.image,
+          imageUrl: productToCustomize.imageUrl,
+          addons: selectedAddons,
+          customizations,
+        },
+      ];
+    });
+
+    closeCustomizationModal();
+  }
+
+  function updateCartItemQuantity(itemId, nextQuantity) {
+    setCartItems((items) =>
+      items
+        .map((item) =>
+          item.id === itemId ? { ...item, qty: Math.max(1, nextQuantity) } : item
+        )
+        .filter((item) => item.qty > 0)
+    );
+  }
+
+  function removeCartItem(itemId) {
+    setCartItems((items) => items.filter((item) => item.id !== itemId));
+  }
+
+  function handleOrderCreated(order) {
+    setCartItems([]);
+    window.localStorage.removeItem(savedCartKey);
+
+    if (!currentCustomer) {
+      return;
+    }
+
+    const updatedCustomer = {
+      ...currentCustomer,
+      orders: [order, ...(currentCustomer.orders ?? [])],
+    };
+
+    setCurrentCustomer(updatedCustomer);
+    window.localStorage.setItem(savedCustomerKey, JSON.stringify(updatedCustomer));
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-red-50">
+      {!route.hideNav && (
+        <header className="sticky top-0 z-50 border-b-4 border-orange-600 bg-gradient-to-r from-orange-500 to-red-600">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4">
+            <a href="#/" className="flex items-center gap-3">
+              <img
+                src={pizzariaLogo}
+                alt="Pizzaria"
+                className="site-logo h-12 w-12 rounded-full bg-slate-950 shadow-[3px_3px_0_#111827]"
+              />
+              <div className="text-xl font-black uppercase leading-none text-white sm:text-2xl">
+                {currentStore.name}
+              </div>
+            </a>
+
+            <button
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm transition hover:shadow-lg md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              type="button"
+              aria-label="Abrir menu"
+            >
+              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            <div
+              className={`${
+                isMenuOpen ? 'flex' : 'hidden'
+              } nav-actions-menu absolute left-4 right-4 top-20 flex-col gap-3 rounded-lg border-2 border-orange-200 bg-white p-4 shadow-2xl md:static md:flex md:flex-row md:items-center md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
+            >
+              <button
+                onClick={() => setIsDarkMode((current) => !current)}
+                className="nav-icon-button flex h-12 w-full items-center justify-center rounded-lg bg-orange-50 text-orange-600 transition hover:shadow-lg md:w-12 md:rounded-full md:bg-white"
+                title={isDarkMode ? 'Usar cores' : 'Usar preto e branco'}
+                type="button"
+                aria-label={isDarkMode ? 'Usar cores' : 'Usar preto e branco'}
+              >
+                {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
+              </button>
+
+              <div className="relative">
+                <a
+                  href="#/carrinho"
+                  className="nav-icon-button relative flex h-12 w-full items-center justify-center rounded-lg bg-orange-50 text-orange-600 transition hover:shadow-lg md:w-12 md:rounded-full md:bg-white"
+                  title="Ver carrinho"
+                >
+                  <ShoppingCart size={24} />
+                  {cartItems.length > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                      {cartItems.length}
+                    </span>
+                  )}
+                </a>
+              </div>
+
+              {isLoggedIn ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
+                    className="nav-icon-button flex h-12 w-full items-center justify-center rounded-lg bg-orange-50 text-orange-600 transition hover:shadow-lg md:w-12 md:rounded-full md:bg-white"
+                    title="Abrir menu da conta"
+                    type="button"
+                  >
+                    <User size={22} />
+                  </button>
+
+                  {isAccountMenuOpen && (
+                    <div className="absolute right-0 top-14 z-50 w-44 overflow-hidden rounded-lg border-2 border-orange-200 bg-white py-2 shadow-2xl">
+                      <a
+                        href="#/conta"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-orange-50 hover:text-orange-600"
+                      >
+                        <User size={18} />
+                        Ver conta
+                      </a>
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+                        type="button"
+                      >
+                        <LogOut size={18} />
+                        Sair
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => openAuthModal('login')}
+                  className="login-action flex items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-600 transition hover:shadow-lg md:bg-white"
+                  type="button"
+                >
+                  <LogIn size={18} />
+                  <span className="text-sm">Login</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+      )}
+
+      <Page
+        categoryId={route.categoryId}
+        isLoggedIn={isLoggedIn}
+        customer={currentCustomer}
+        apiBaseUrl={API_BASE_URL}
+        store={currentStore}
+        storeSettings={storeSettings}
+        products={catalogProducts}
+        cartItems={cartItems}
+        cartTotal={cartTotal}
+        onAddToCart={addToCart}
+        onLoginClick={() => openAuthModal('login')}
+        onLogout={handleLogout}
+        onUpdateCartItemQuantity={updateCartItemQuantity}
+        onRemoveCartItem={removeCartItem}
+        onOrderCreated={handleOrderCreated}
+        onStoreSettingsChange={setStoreSettings}
+      />
+
+      {productToCustomize && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 p-4">
+          <section className="w-full max-w-md overflow-hidden rounded-xl border-2 border-orange-300 bg-white shadow-2xl">
+            <div className="flex items-start gap-4 border-b border-orange-100 p-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-orange-50 text-4xl">
+                {productToCustomize.imageUrl ? (
+                  <img
+                    src={productToCustomize.imageUrl}
+                    alt={productToCustomize.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{productToCustomize.image}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-black text-slate-900">
+                  {productToCustomize.name}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Escolha os adicionais antes de colocar no carrinho.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCustomizationModal}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-red-50 hover:text-red-600"
+                aria-label="Fechar adicionais"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-4">
+              <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
+                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                  <span>Preco base</span>
+                  <span>{formatCurrency(customizationBasePrice)}</span>
+                </div>
+              </div>
+
+              {addonOptions.map((addon) => (
+                <label
+                  key={addon.id}
+                  className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border-2 border-orange-100 bg-white p-3 transition hover:border-orange-300 hover:bg-orange-50"
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedAddonIds.includes(addon.id)}
+                      onChange={() => toggleAddon(addon.id)}
+                      className="h-4 w-4 accent-orange-600"
+                    />
+                    <span className="font-bold text-slate-800">{addon.name}</span>
+                  </span>
+                  <span className="font-black text-orange-600">
+                    + {formatCurrency(addon.price)}
+                  </span>
+                </label>
+              ))}
+
+              <div className="flex items-center justify-between border-t border-orange-100 pt-4 text-lg font-black text-slate-900">
+                <span>Total do item</span>
+                <span className="text-orange-600">{formatCurrency(customizationTotal)}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={confirmAddToCart}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 py-3 font-black text-white transition hover:shadow-lg"
+              >
+                <ShoppingCart size={20} />
+                Adicionar ao carrinho
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border-2 border-orange-300 bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-orange-600">
+                {authMode === 'login' ? 'Entrar 🍕' : 'Cadastrar 🍕'}
+              </h2>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="text-slate-600 hover:text-slate-900"
+                type="button"
+                aria-label="Fechar login"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={authMode === 'login' ? handleLogin : handleRegister}
+              className="space-y-4"
+            >
+              {authMode === 'register' && (
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">Nome</label>
+                  <input
+                    type="text"
+                    value={registerName}
+                    onChange={(event) => setRegisterName(event.target.value)}
+                    placeholder="Seu nome completo"
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="seu@email.com"
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Senha</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {authMode === 'register' && (
+                <>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">
+                        Telefone
+                      </label>
+                      <input
+                        type="tel"
+                        value={registerPhone}
+                        onChange={(event) => setRegisterPhone(event.target.value)}
+                        placeholder="(11) 99999-9999"
+                        className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">CPF</label>
+                      <input
+                        type="text"
+                        value={registerCpf}
+                        onChange={(event) => setRegisterCpf(event.target.value)}
+                        placeholder="000.000.000-00"
+                        className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">Rua</label>
+                    <input
+                      type="text"
+                      value={registerStreet}
+                      onChange={(event) => setRegisterStreet(event.target.value)}
+                      placeholder="Rua e numero"
+                      className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">
+                        Bairro
+                      </label>
+                      <input
+                        type="text"
+                        value={registerNeighborhood}
+                        onChange={(event) => setRegisterNeighborhood(event.target.value)}
+                        placeholder="Centro"
+                        className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">
+                        Cidade
+                      </label>
+                      <input
+                        type="text"
+                        value={registerCity}
+                        onChange={(event) => setRegisterCity(event.target.value)}
+                        placeholder="Sao Paulo"
+                        className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-slate-700">CEP</label>
+                      <input
+                        type="text"
+                        value={registerCep}
+                        onChange={(event) => setRegisterCep(event.target.value)}
+                        placeholder="00000-000"
+                        className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {authError && (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                  {authError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-600 py-2 font-bold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isAuthLoading
+                  ? 'Aguarde...'
+                  : authMode === 'login'
+                    ? 'Entrar'
+                    : 'Cadastrar'}
+              </button>
+
+              <div className="text-center text-sm text-slate-600">
+                {authMode === 'login' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === 'login' ? 'register' : 'login');
+                    setAuthError('');
+                  }}
+                  className="font-bold text-orange-600 hover:text-red-600"
+                >
+                  {authMode === 'login' ? 'Cadastre-se' : 'Entrar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

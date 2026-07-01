@@ -1,0 +1,32 @@
+import { prisma } from '../lib/prisma.js';
+import { getTenantId } from '../core/context/TenantContext.js';
+
+const DEFAULT_NAVBAR_COLOR = '#970F0F';
+
+// Busca as configuracoes da loja. Se ainda nao existir, cria com valores padrao.
+export async function getStoreSettings() {
+  const tenantId = getTenantId();
+
+  const existing = await prisma.storeSetting.findUnique({ where: { tenantId } });
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.storeSetting.create({
+    data: {
+      tenantId,
+      storeName: 'Pizzaria',
+      hours: '18:00 - 23:30',
+      address: 'Av. Principal, 123',
+      phone: '(11) 9999-9999',
+      whatsappNumber: '5511999999999',
+      pixKey: 'sua-chave-pix-aqui',
+      pixMerchantName: 'Pizzaria',
+      pixCity: 'Rio de Janeiro',
+      deliveryFee: '0.00',
+      serviceFee: '2.00',
+      navbarColor: DEFAULT_NAVBAR_COLOR,
+      brandColor: DEFAULT_NAVBAR_COLOR,
+    } as any,
+  });
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+generated
+.docker-config
+.chrome-test
+mobile-app/node_modules
+mobile-app/.expo

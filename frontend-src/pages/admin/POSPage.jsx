@@ -1,0 +1,461 @@
+import { useState, useEffect, useMemo } from 'react';
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Package,
+  DollarSign,
+  LogOut,
+} from 'lucide-react';
+import { useToast } from '../../components/ui/ToastProvider.jsx';
+import { formatCurrency } from '../../data/menuData.js';
+import {
+  OpenShiftModal,
+  CloseShiftModal,
+  CashTransactionModal,
+} from '../../components/admin/ShiftModals.jsx';
+
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+
+export function POSPage() {
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
+  const [error, setError] = useState('');
+  const { showSuccess, showError } = useToast();
+
+  // Shift Management
+  const [currentShift, setCurrentShift] = useState(null);
+  const [isShiftLoading, setIsShiftLoading] = useState(true);
+  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+
+  // Modal State for Product Options
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState('');
+  const [selectedAddons, setSelectedAddons] = useState([]);
+  const [selectedCrust, setSelectedCrust] = useState('');
+
+  // Authentication
+  const adminDataStr = window.localStorage.getItem('pizzaria-admin');
+  const adminData = adminDataStr ? JSON.parse(adminDataStr) : null;
+  const isShiftOpen = !!currentShift;
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const headers = { Authorization: `Bearer ${adminData?.token}` };
+
+        // Fetch current shift
+        const shiftRes = await fetch(`${API_BASE_URL}/admin/pos/shift/current`, { headers });
+        if (shiftRes.ok) {
+          const shiftData = await shiftRes.json();
+          setCurrentShift(shiftData);
+        }
+        setIsShiftLoading(false);
+
+        const [catRes, prodRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/categorias?includeInactive=true`, { headers }),
+          fetch(`${API_BASE_URL}/produtos`, { headers }),
+        ]);
+
+        if (!catRes.ok || !prodRes.ok) throw new Error('Erro ao carregar cardápio');
+
+        const catData = await catRes.json();
+        const prodData = await prodRes.json();
+
+        const activeCats = Array.isArray(catData) ? catData.filter((c) => c.isActive) : [];
+        setCategories(activeCats);
+        if (activeCats.length > 0) setActiveCategory(activeCats[0].id);
+
+        setProducts(Array.isArray(prodData) ? prodData.filter((p) => p.isAvailable) : []);
+      } catch (err) {
+        setError('Falha ao carregar cardápio. Tente novamente.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const displayedProducts = useMemo(() => {
+    if (!activeCategory) return [];
+    return products.filter((p) => p.categoryId === activeCategory);
+  }, [products, activeCategory]);
+
+  const getProductDisplayPrice = (product) => {
+    const firstVariant = product.variants?.[0];
+    return Number(firstVariant?.price ?? product.price);
+  };
+
+  const handleProductClick = (product) => {
+    if (product.calculatedAvailability && !product.calculatedAvailability.available) {
+      showError(product.calculatedAvailability.reasons?.[0] || 'Produto indisponivel por estoque.');
+      return;
+    }
+
+    if (product.variants?.length > 0 || product.allowSizes) {
+      setSelectedProduct(product);
+      setSelectedVariant(product.variants?.[0]?.id || '');
+      setSelectedAddons([]);
+      setSelectedCrust('');
+    } else {
+      addToCart(product, null, [], null);
+    }
+  };
+
+  const addToCart = (product, variantId, addonIds, crustId) => {
+    const selectedVariantData = variantId
+      ? product.variants?.find((v) => v.id === variantId)
+      : null;
+
+    const newItem = {
+      cartId: crypto.randomUUID(),
+      productId: product.id,
+      name: product.name,
+      variantId,
+      addonIds: addonIds || [],
+      crustId,
+      quantity: 1,
+      // Just for display:
+      price: Number(selectedVariantData?.price ?? product.price),
+      variantName: selectedVariantData?.name ?? '',
+    };
+
+    setCart((prev) => [...prev, newItem]);
+    setSelectedProduct(null);
+  };
+
+  const updateQuantity = (cartId, delta) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.cartId === cartId) {
+          const newQty = item.quantity + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : item;
+        }
+        return item;
+      }),
+    );
+  };
+
+  const removeFromCart = (cartId) => {
+    setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+  };
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [cart]);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const payload = {
+        fulfillmentType: 'PICKUP',
+        items: cart.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId || null,
+          quantity: item.quantity,
+          optionIds: [...item.addonIds, item.crustId].filter(Boolean),
+          notes: '',
+        })),
+        notes: 'Pedido via Balcão',
+      };
+
+      const response = await fetch(`${API_BASE_URL}/admin/pos/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminData?.token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Erro ao finalizar pedido');
+      }
+
+      setCart([]);
+      setCustomerInfo({ name: '', phone: '' });
+      showSuccess('Pedido gerado com sucesso! Já foi enviado para a cozinha.');
+    } catch (err) {
+      showError(err.message || 'Erro ao gerar pedido');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex justify-center">
+        <div className="w-8 h-8 border-4 border-slate-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)] lg:h-full flex-col lg:flex-row overflow-hidden bg-slate-100 dark:bg-slate-900">
+      {/* Esquerda: Cardápio */}
+      <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-200 dark:border-slate-800">
+        {/* Categorias */}
+        <div className="flex gap-2 overflow-x-auto p-4 bg-white dark:bg-slate-950 shadow-sm shrink-0 no-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${
+                activeCategory === cat.id
+                  ? 'bg-red-600 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid de Produtos */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {displayedProducts.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center opacity-60">
+              <Package size={48} className="mb-4 text-slate-400" />
+              <p className="text-slate-600 dark:text-slate-400 font-medium">
+                Nenhum produto cadastrado nesta categoria.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {displayedProducts.map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductClick(product)}
+                  disabled={
+                    product.calculatedAvailability && !product.calculatedAvailability.available
+                  }
+                  className="flex flex-col bg-white dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-red-500 dark:hover:border-red-500 transition hover:shadow-lg text-left group disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-slate-200"
+                >
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="w-full h-24 object-cover rounded-xl mb-3"
+                    />
+                  ) : (
+                    <div className="w-full h-24 bg-slate-100 dark:bg-slate-800 rounded-xl mb-3 flex items-center justify-center">
+                      <span className="text-slate-400 text-xs">Sem foto</span>
+                    </div>
+                  )}
+                  <span className="font-bold text-slate-800 dark:text-slate-100 truncate w-full text-sm">
+                    {product.name}
+                  </span>
+                  <span className="text-red-600 dark:text-red-400 font-black mt-1 text-sm">
+                    {formatCurrency(getProductDisplayPrice(product))}
+                  </span>
+                  {product.calculatedAvailability ? (
+                    <span
+                      className={`mt-1 line-clamp-2 text-xs font-bold ${
+                        product.calculatedAvailability.available
+                          ? 'text-emerald-600'
+                          : 'text-rose-600'
+                      }`}
+                    >
+                      {product.calculatedAvailability.available
+                        ? product.calculatedAvailability.diagnostics?.some(
+                            (item) => item.code === 'NO_RECIPE',
+                          )
+                          ? 'Sem ficha tecnica'
+                          : 'Estoque OK'
+                        : (product.calculatedAvailability.reasons?.[0] ?? 'Sem estoque')}
+                    </span>
+                  ) : null}
+                  <div className="mt-2 text-xs text-slate-500 flex justify-between w-full opacity-0 group-hover:opacity-100 transition">
+                    <span>Adicionar +</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Direita: Carrinho */}
+      <div className="w-full lg:w-96 bg-white dark:bg-slate-950 flex flex-col shrink-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.1)] z-10">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black flex items-center gap-2 text-slate-800 dark:text-white">
+              <ShoppingCart size={20} className="text-red-600" />
+              Carrinho PDV
+            </h2>
+          </div>
+
+          {isShiftOpen && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsTransactionModalOpen(true)}
+                className="flex-1 px-2 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+              >
+                Sangria / Suprimento
+              </button>
+              <button
+                onClick={() => setIsCloseShiftModalOpen(true)}
+                className="flex-1 px-2 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-md hover:bg-red-100 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400 transition"
+              >
+                Fechar Caixa
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+              <ShoppingCart size={48} className="mb-4 opacity-20" />
+              <p>Carrinho vazio</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {cart.map((item) => (
+                <div
+                  key={item.cartId}
+                  className="flex gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800"
+                >
+                  <div className="flex flex-col flex-1">
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                      {item.name}
+                    </span>
+                    {item.variantName && (
+                      <span className="text-xs text-slate-500">Tamanho: {item.variantName}</span>
+                    )}
+                    <span className="text-red-600 font-black text-sm mt-1">
+                      {formatCurrency(item.price)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end justify-between">
+                    <button
+                      onClick={() => removeFromCart(item.cartId)}
+                      className="text-slate-400 hover:text-red-600 p-1"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700 mt-2">
+                      <button
+                        onClick={() => updateQuantity(item.cartId, -1)}
+                        className="p-1 text-slate-600 dark:text-slate-400 hover:text-red-600"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-4 text-center font-bold text-sm">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.cartId, 1)}
+                        className="p-1 text-slate-600 dark:text-slate-400 hover:text-green-600"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
+          {error && (
+            <div className="mb-3 p-3 bg-red-100 text-red-700 rounded-lg text-sm flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-end mb-4">
+            <span className="text-slate-500 font-bold uppercase text-xs tracking-wider">Total</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">
+              {formatCurrency(cartTotal)}
+            </span>
+          </div>
+
+          <button
+            onClick={handleCheckout}
+            disabled={cart.length === 0 || isSubmitting}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-black py-4 rounded-xl text-lg transition flex items-center justify-center gap-2 shadow-lg hover:shadow-green-600/20 active:scale-[0.98]"
+          >
+            {isSubmitting ? 'Processando...' : 'Finalizar Pedido (Balcão)'}
+          </button>
+        </div>
+      </div>
+
+      {/* Modal Simples de Variações */}
+      {selectedProduct && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setSelectedProduct(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="font-black text-lg">Opções: {selectedProduct.name}</h3>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1">
+              {selectedProduct.variants?.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-bold text-sm text-slate-500 mb-2 uppercase">
+                    Selecione o Tamanho
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedProduct.variants.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setSelectedVariant(v.id)}
+                        className={`p-3 rounded-xl border-2 text-left transition ${selectedVariant === v.id ? 'border-red-600 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-700'}`}
+                      >
+                        <div className="font-bold">{v.name}</div>
+                        <div className="text-red-600 text-sm font-black mt-1">
+                          {formatCurrency(v.price)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex gap-3">
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="flex-1 py-3 font-bold text-slate-600 bg-slate-100 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() =>
+                  addToCart(selectedProduct, selectedVariant, selectedAddons, selectedCrust)
+                }
+                disabled={selectedProduct.variants?.length > 0 && !selectedVariant}
+                className="flex-1 py-3 font-black text-white bg-red-600 rounded-xl disabled:opacity-50"
+              >
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,7 @@
+pizzarialucas.istigestao.com.br {
+    encode gzip zstd
+
+    # O container web/Nginx serve o SPA e tambem encaminha /api para a API.
+    # Ajuste o host abaixo apenas se o web estiver em outro IP/porta no servidor.
+    reverse_proxy 127.0.0.1:80
+}

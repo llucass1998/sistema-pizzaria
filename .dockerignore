@@ -1,0 +1,9 @@
+node_modules
+dist
+generated
+.git
+.agents
+.chrome-test
+.docker-config
+dev.db
+*.log

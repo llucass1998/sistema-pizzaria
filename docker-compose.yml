@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Banco de Dados PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: pizzaria_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-pizzaria}
+    # Porta exposta apenas para debug local. Em produção, a API acessa via rede Docker.
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pizzaria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sgbi
+
+  # Backend Node.js API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: lucas_pizarria_api:latest
+    container_name: pizzaria_api
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/pizzaria?schema=public
+      - PORT=3000
+      - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET:-minha-chave-secreta-erp-prod}
+      - NODE_ENV=production
+      - WAHA_URL=${WAHA_URL:-http://waha:3000/api}
+    # A API depende do banco estar saudavel
+    depends_on:
+      db:
+        condition: service_healthy
+    # A porta da API nao precisa ser exposta para fora (o Nginx faz o proxy), mas deixamos para debug
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/status').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - sgbi
+
+  # WAHA WhatsApp API
+  waha:
+    image: devlikeapro/waha
+    container_name: pizzaria_waha
+    restart: always
+    environment:
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+    # Porta exposta apenas para debug local.
+    # ports:
+    #   - "3001:3000"
+    networks:
+      - sgbi
+
+  # Frontend Nginx Web Server
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: pizzaria_web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - sgbi
+
+volumes:
+  pgdata:
+    driver: local
+  uploads:
+    driver: local
+
+networks:
+  sgbi:
+    driver: bridge

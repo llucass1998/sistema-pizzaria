@@ -1,0 +1,940 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FulfillmentType {
+  PICKUP
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELED
+}
+
+enum ProductOptionType {
+  ADDON
+  CRUST
+}
+
+enum OrderOrigin {
+  SITE_PROPRIO
+  IFOOD
+  FOOD_99      @map("99FOOD")
+}
+
+enum IntegrationProvider {
+  IFOOD
+  FOOD_99 @map("99FOOD")
+}
+
+enum IntegrationEventStatus {
+  RECEIVED
+  PROCESSED
+  ACKNOWLEDGED
+  FAILED
+}
+
+enum KdsItemStatus {
+  WAITING
+  PREPARING
+  READY
+}
+
+enum OptionStockImpactType {
+  NO_STOCK_IMPACT
+  ADD_INGREDIENT
+  REMOVE_INGREDIENT
+  REPLACE_INGREDIENT
+}
+
+model Tenant {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique @default("demo")
+  subdomain    String?  @unique
+  customDomain String?  @unique
+  isActive     Boolean  @default(true)
+  cnpj         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products               Product[]
+  menuCategories         MenuCategory[]
+  productOptions         ProductOption[]
+  productOptionGroups    ProductOptionGroup[]
+  productVariants        ProductVariant[]
+  customers              Customer[]
+  admins                 Admin[]
+  orders                 Order[]
+  orderStatusEvents      OrderStatusEvent[]
+  storeSettings          StoreSetting[]
+  integrationCredentials IntegrationCredential[]
+  integrationEvents      IntegrationEventLog[]
+  ingredients            Ingredient[]
+  inventoryTransactions  InventoryTransaction[]
+  invoices               Invoice[]
+  shifts                 Shift[]
+  cashRegisters          CashRegister[]
+  cashTransactions       CashTransaction[]
+
+  // CRM & Marketing
+  coupons         Coupon[]
+  campaignRules   CampaignRule[]
+  loyaltyPrograms LoyaltyProgram[]
+  abandonedCarts  AbandonedCart[]
+
+  // ERP & Financials
+  suppliers        Supplier[]
+  inboundInvoices  InboundInvoice[]
+  quotes           Quote[]
+  purchaseRequests PurchaseRequest[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseReceipts PurchaseReceipt[]
+  manufacturingOrders ManufacturingOrder[]
+  wasteRecords     WasteRecord[]
+
+  // Delivery
+  deliveryZones       DeliveryZone[]
+  deliveryRadiusRules DeliveryRadiusRule[]
+  drivers             Driver[]
+
+  // Fiscal
+  fiscalSettings  FiscalSettings?
+  fiscalDocuments FiscalDocument[]
+}
+
+model MenuCategory {
+  id               String    @id @default(uuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug             String
+  name             String
+  description      String?
+  icon             String?
+  imageUrl         String?
+  sortOrder        Int       @default(0)
+  isActive         Boolean   @default(true)
+  allowSizes       Boolean   @default(false)
+  allowHalfAndHalf Boolean   @default(false)
+  halfAndHalfGroup String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  products         Product[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, sortOrder])
+}
+
+model Product {
+  id            String               @id @default(uuid())
+  tenantId      String
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  menuCategory  MenuCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name          String
+  description   String?
+  category      String               @default("pizzas")
+  price         Decimal
+  imageUrl      String?
+  isAvailable   Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  orderItems    OrderItem[]
+  recipes       Recipe[]
+  variants      ProductVariant[]
+  optionGroups  ProductOptionGroup[]
+  storeSettings StoreSetting[]       @relation("StoreFeaturedProduct")
+  manufacturingOrders ManufacturingOrder[]
+}
+
+model ProductVariant {
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  price       Decimal
+  sortOrder   Int         @default(0)
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@unique([productId, code])
+  @@index([tenantId, productId])
+}
+
+model ProductOptionGroup {
+  id          String              @id @default(uuid())
+  tenantId    String
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isRequired  Boolean             @default(false)
+  minChoices  Int                 @default(0)
+  maxChoices  Int                 @default(1)
+  sortOrder   Int                 @default(0)
+  options     ProductOptionItem[]
+
+  @@index([tenantId, productId])
+}
+
+model ProductOptionItem {
+  id                      String                @id @default(uuid())
+  groupId                 String
+  group                   ProductOptionGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name                    String
+  price                   Decimal               @default(0)
+  isAvailable             Boolean               @default(true)
+  sortOrder               Int                   @default(0)
+  stockImpactType         OptionStockImpactType @default(NO_STOCK_IMPACT)
+  ingredientId            String?
+  ingredient              Ingredient?           @relation("ProductOptionItemIngredient", fields: [ingredientId], references: [id], onDelete: SetNull)
+  ingredientQuantity      Decimal?
+  replacementIngredientId String?
+  replacementIngredient   Ingredient?           @relation("ProductOptionItemReplacementIngredient", fields: [replacementIngredientId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([ingredientId])
+  @@index([replacementIngredientId])
+}
+
+model ProductOption {
+  id                      String                @id @default(uuid())
+  tenantId                String
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type                    ProductOptionType
+  name                    String
+  description             String?
+  price                   Decimal
+  sortOrder               Int                   @default(0)
+  isAvailable             Boolean               @default(true)
+  stockImpactType         OptionStockImpactType @default(NO_STOCK_IMPACT)
+  ingredientId            String?
+  ingredient              Ingredient?           @relation("ProductOptionIngredient", fields: [ingredientId], references: [id], onDelete: SetNull)
+  ingredientQuantity      Decimal?
+  replacementIngredientId String?
+  replacementIngredient   Ingredient?           @relation("ProductOptionReplacementIngredient", fields: [replacementIngredientId], references: [id], onDelete: SetNull)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+
+  @@unique([tenantId, type, name])
+  @@index([tenantId, type, sortOrder])
+  @@index([ingredientId])
+  @@index([replacementIngredientId])
+}
+
+model Customer {
+  id           String  @id @default(uuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  passwordHash String?
+  phone        String?
+  cpf          String?
+  street       String?
+  neighborhood String?
+  city         String?
+  cep          String?
+
+  // CRM
+  birthDate      DateTime?
+  totalOrders    Int       @default(0)
+  totalSpent     Decimal   @default(0)
+  lastOrderDate  DateTime?
+  segment        String    @default("NOVO") // NOVO, ATIVO, EM_RISCO, VIP
+  loyaltyBalance Decimal   @default(0)
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  orders         Order[]
+  abandonedCarts AbandonedCart[]
+
+  @@unique([tenantId, email])
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  passwordHash String?
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shifts       Shift[]
+  closedShifts Shift[]  @relation("ClosedShifts")
+
+  @@unique([tenantId, email])
+}
+
+model Order {
+  id                 String             @id @default(uuid())
+  tenantId           String
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId         String
+  customer           Customer           @relation(fields: [customerId], references: [id])
+  fulfillmentType    String
+  origin             OrderOrigin        @default(SITE_PROPRIO)
+  externalId         String?
+  externalMerchantId String?
+  status             String             @default("PENDING")
+  paymentProvider    String?
+  paymentExternalId  String?
+  paymentUrl         String?
+  driverId           String?
+  driver             Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  street             String?
+  number             String?
+  neighborhood       String?
+  complement         String?
+  deliveryFee        Decimal            @default(0)
+  subtotal           Decimal
+  total              Decimal
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  items              OrderItem[]
+  statusEvents       OrderStatusEvent[]
+  invoice            Invoice?
+  fiscalDocument     FiscalDocument?
+
+  @@unique([tenantId, origin, externalId])
+  @@index([tenantId, origin, createdAt])
+}
+
+model IntegrationCredential {
+  id           String              @id @default(uuid())
+  tenantId     String
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider     IntegrationProvider
+  merchantId   String?
+  clientId     String
+  clientSecret String
+  accessToken  String?
+  refreshToken String?
+  tokenType    String              @default("Bearer")
+  scopes       String?
+  expiresAt    DateTime?
+  isActive     Boolean             @default(true)
+  metadata     Json?
+  lastSyncAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([tenantId, provider, merchantId])
+  @@index([tenantId, provider, isActive])
+}
+
+model IntegrationEventLog {
+  id              String                 @id @default(uuid())
+  tenantId        String
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider        IntegrationProvider
+  eventId         String
+  eventType       String?
+  externalOrderId String?
+  payload         Json
+  status          IntegrationEventStatus @default(RECEIVED)
+  error           String?
+  processedAt     DateTime?
+  acknowledgedAt  DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([tenantId, provider, eventId])
+  @@index([tenantId, provider, status])
+}
+
+model OrderItem {
+  id              String          @id @default(uuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id])
+  variantId       String?
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  displayName     String?
+  customizations  String?
+  variantName     String?
+  halfAndHalfData Json?
+  optionsSnapshot String?
+  imageUrl        String?
+  quantity        Int
+  basePrice       Decimal?
+  optionsTotal    Decimal         @default(0)
+  unitPrice       Decimal
+  total           Decimal
+  kdsStatus       KdsItemStatus   @default(WAITING)
+  kdsStartedAt    DateTime?
+  kdsReadyAt      DateTime?
+}
+
+model OrderStatusEvent {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actorId        String?
+  source         String
+  previousStatus String?
+  newStatus      String
+  note           String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, orderId, createdAt])
+  @@index([actorId])
+}
+
+model StoreSetting {
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isOpen             Boolean  @default(true)
+  isMaintenance      Boolean  @default(false)
+  maintenanceMessage String?  @default("Voltamos em breve!")
+  storeName          String   @default("Pizzaria")
+  hours              String   @default("18:00 - 23:30")
+  address            String   @default("Av. Principal, 123")
+  phone              String   @default("(11) 9999-9999")
+  whatsappNumber     String   @default("5511999999999")
+  pixKey             String   @default("sua-chave-pix-aqui")
+  pixMerchantName    String   @default("Pizzaria")
+  pixCity            String   @default("Rio de Janeiro")
+  deliveryFeeMode    String   @default("FIXED") // FIXED, NEIGHBORHOOD, DISTANCE
+  deliveryFee        Decimal  @default(0)
+  serviceFee         Decimal  @default(2)
+  logoUrl            String?
+  faviconUrl         String?
+  appleTouchIconUrl  String?
+  openGraphImageUrl  String?
+  navbarColor        String   @default("#970F0F")
+  brandColor         String   @default("#970F0F")
+  featuredProductId  String?
+  featuredProduct    Product? @relation("StoreFeaturedProduct", fields: [featuredProductId], references: [id])
+  updatedAt          DateTime @updatedAt
+}
+
+model Ingredient {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  unit      String
+  cost      Decimal
+  stock     Decimal  @default(0)
+  minStock  Decimal  @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipes                       Recipe[]
+  inventoryTransactions         InventoryTransaction[]
+  inboundInvoiceItems           InboundInvoiceItem[]
+  productOptionImpacts          ProductOption[]        @relation("ProductOptionIngredient")
+  productOptionReplacements     ProductOption[]        @relation("ProductOptionReplacementIngredient")
+  productOptionItemImpacts      ProductOptionItem[]    @relation("ProductOptionItemIngredient")
+  productOptionItemReplacements ProductOptionItem[]    @relation("ProductOptionItemReplacementIngredient")
+  purchaseRequestItems          PurchaseRequestItem[]
+  purchaseOrderItems            PurchaseOrderItem[]
+  purchaseReceiptLines          PurchaseReceiptLine[]
+  manufacturingOutputs          ManufacturingOrder[]   @relation("ManufacturingOutput")
+  wasteRecords                  WasteRecord[]
+}
+
+model Recipe {
+  id           String     @id @default(uuid())
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantity     Decimal
+
+  @@unique([productId, ingredientId])
+}
+
+model InventoryTransaction {
+  id             String     @id @default(uuid())
+  tenantId       String
+  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredientId   String
+  ingredient     Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  type           String
+  quantity       Decimal
+  cost           Decimal?
+  notes          String?
+  referenceType  String?
+  referenceId    String?
+  idempotencyKey String?
+  createdAt      DateTime   @default(now())
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, referenceType, referenceId])
+}
+
+model Invoice {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId     String?   @unique
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  totalAmount Decimal
+  issueDate   DateTime  @default(now())
+  dueDate     DateTime?
+  status      String    @default("PENDING")
+  payments    Payment[]
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount      Decimal
+  method      String
+  status      String   @default("COMPLETED")
+  paymentDate DateTime @default(now())
+}
+
+model CashRegister {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shifts    Shift[]
+}
+
+model Shift {
+  id                  String       @id @default(uuid())
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cashRegisterId      String
+  cashRegister        CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: Restrict)
+  adminId             String
+  admin               Admin        @relation(fields: [adminId], references: [id], onDelete: Restrict)
+  startTime           DateTime     @default(now())
+  endTime             DateTime?
+  openingCash         Decimal      @default(0)
+  expectedClosingCash Decimal?
+  actualClosingCash   Decimal?
+  difference          Decimal?
+  closedById          String?
+  closedBy            Admin?       @relation("ClosedShifts", fields: [closedById], references: [id], onDelete: SetNull)
+  status              String       @default("OPEN")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  transactions CashTransaction[]
+}
+
+model CashTransaction {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shiftId         String
+  shift           Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  type            String // OPENING, CLOSING, SALE, REFUND, SANGRIA, SUPRIMENTO
+  amount          Decimal  @default(0)
+  description     String?
+  paymentMethodId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// MARKETING & CRM
+// ────────────────────────────────────────────────────────────────────────────
+
+model Coupon {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code           String
+  type           String // PERCENTAGE, FIXED, FREE_DELIVERY
+  value          Decimal
+  minOrderValue  Decimal?
+  expirationDate DateTime?
+  maxUses        Int?
+  currentUses    Int       @default(0)
+  triggerEvent   String    @default("MANUAL") // MANUAL, BIRTHDAY, WINBACK, ABANDONED_CART
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  @@unique([tenantId, code])
+}
+
+model CampaignRule {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  conditions Json // ex: {"dayOfWeek": 2, "requiredProductId": "uuid"}
+  actions    Json // ex: {"discount": 50, "target": "second_item"}
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model LoyaltyProgram {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type           String // CASHBACK, POINTS
+  conversionRate Decimal // ex: 0.05 para 5%
+  pointsGoal     Int? // Meta para pontos
+  rewardValue    Decimal? // Valor dado ao atingir meta
+  isActive       Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+}
+
+model AbandonedCart {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  items Json // snapshot dos itens do carrinho
+  total Decimal @default(0)
+
+  status       String   @default("PENDING") // PENDING, RECOVERED, LOST
+  lastActiveAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, customerId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────────────────────
+// DELIVERY & LOGISTICS
+// ────────────────────────────────────────────────────────────────────────────
+
+model Driver {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  vehicle   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@unique([tenantId, phone])
+}
+
+model DeliveryZone {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  fee           Decimal
+  minOrderValue Decimal?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, name])
+}
+
+model DeliveryRadiusRule {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  maxKm         Decimal
+  fee           Decimal
+  minOrderValue Decimal?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, maxKm])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// FISCAL (NFC-e / NF-e)
+// ────────────────────────────────────────────────────────────────────────────
+
+model FiscalSettings {
+  id                  String   @id @default(uuid())
+  tenantId            String   @unique
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  environment         String   @default("HOMOLOGACAO") // HOMOLOGACAO, PRODUCAO
+  certificateUrl      String?
+  certificatePassword String?
+  tokenSefaz          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model FiscalDocument {
+  id       String @id @default(uuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  accessKey String? @unique
+  status    String  @default("PENDING") // PENDING, ISSUED, REJECTED, CANCELED
+  xmlUrl    String?
+  pdfUrl    String?
+
+  environment String  @default("HOMOLOGACAO")
+  message     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ERP & FINANCIALS (Notas de Entrada, Orcamentos, Contas a Receber)
+// ────────────────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  cnpj      String?
+  email     String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inboundInvoices  InboundInvoice[]
+  purchaseRequests PurchaseRequest[]
+  purchaseOrders   PurchaseOrder[]
+}
+
+model InboundInvoice {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  number      String? // Numero da NF
+  issueDate   DateTime @default(now())
+  totalAmount Decimal
+  notes       String?
+  status      String   @default("PENDING") // PENDING, COMPLETED, CANCELED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items            InboundInvoiceItem[]
+  purchaseReceipts PurchaseReceipt[]
+}
+
+model InboundInvoiceItem {
+  id               String         @id @default(uuid())
+  inboundInvoiceId String
+  inboundInvoice   InboundInvoice @relation(fields: [inboundInvoiceId], references: [id], onDelete: Cascade)
+  ingredientId     String
+  ingredient       Ingredient     @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity         Decimal
+  unitCost         Decimal
+  totalCost        Decimal
+}
+
+model Quote {
+  id            String    @id @default(uuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerEmail String?
+  customerPhone String?
+  eventDate     DateTime?
+  validUntil    DateTime?
+  status        String    @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, CONVERTED
+  totalAmount   Decimal   @default(0)
+  items         Json // Snapshot dos itens orcados
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// ERP — Compras: RFQ -> PO -> Recebimento
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Solicitacao de Cotacao (RFQ) enviada a um fornecedor.
+/// Status: DRAFT | SENT | APPROVED | CONVERTED | REJECTED
+model PurchaseRequest {
+  id         String    @id @default(uuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  status     String    @default("DRAFT")
+  notes      String?
+  expectedDate DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  items          PurchaseRequestItem[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, supplierId])
+}
+
+model PurchaseRequestItem {
+  id                String          @id @default(uuid())
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  ingredientId      String
+  ingredient        Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantityRequested Decimal
+  unitCostEstimate  Decimal?
+
+  @@index([purchaseRequestId])
+  @@index([ingredientId])
+}
+
+/// Pedido de Compra (PO) aprovado para um fornecedor.
+/// Status: DRAFT | APPROVED | PARTIALLY_RECEIVED | RECEIVED | CANCELED
+model PurchaseOrder {
+  id                String           @id @default(uuid())
+  tenantId          String
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId        String
+  supplier          Supplier         @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseRequestId String?
+  purchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  status            String           @default("APPROVED")
+  notes             String?
+  expectedDate      DateTime?
+  totalAmount       Decimal          @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  items    PurchaseOrderItem[]
+  receipts PurchaseReceipt[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, purchaseRequestId])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredientId    String
+  ingredient      Ingredient    @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantityOrdered Decimal
+  unitCost        Decimal
+  totalCost       Decimal
+
+  @@index([purchaseOrderId])
+  @@index([ingredientId])
+}
+
+/// Registro de recebimento (total ou parcial) de um PO.
+/// Cada recibo pode ser vinculado opcionalmente a uma NF de entrada.
+model PurchaseReceipt {
+  id               String          @id @default(uuid())
+  tenantId         String
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  inboundInvoiceId String?
+  inboundInvoice   InboundInvoice? @relation(fields: [inboundInvoiceId], references: [id], onDelete: SetNull)
+  receivedAt       DateTime        @default(now())
+  notes            String?
+  createdAt        DateTime        @default(now())
+
+  lines PurchaseReceiptLine[]
+
+  @@index([tenantId, purchaseOrderId])
+}
+
+model PurchaseReceiptLine {
+  id               String          @id @default(uuid())
+  receiptId        String
+  receipt          PurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  ingredientId     String
+  ingredient       Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantityReceived Decimal
+  unitCost         Decimal
+
+  @@index([receiptId])
+  @@index([ingredientId])
+}
+
+// ERP — Producao Interna (Manufacturing Order)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Ordem de Producao interna de massas, molhos ou produtos semiacabados.
+/// Status: DRAFT | IN_PROGRESS | DONE | CANCELED
+model ManufacturingOrder {
+  id       String @id @default(uuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  quantity Decimal
+  status   String @default("DRAFT")
+  notes    String?
+
+  outputIngredientId    String?
+  outputIngredient      Ingredient? @relation("ManufacturingOutput", fields: [outputIngredientId], references: [id], onDelete: SetNull)
+  outputQuantityPerUnit Decimal?
+
+  completedAt DateTime?
+  canceledAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, productId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ERP — Registro de Perdas (Waste)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Registro de perda (waste) de ingredientes
+model WasteRecord {
+  id           String     @id @default(uuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity     Decimal
+  reason       String     // EXPIRED, DAMAGED, MISTAKE, QUALITY_REJECT, OTHER
+  registeredBy String     // Nome do funcionario
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, reason])
+  @@index([tenantId, ingredientId])
+}

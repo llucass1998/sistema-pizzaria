@@ -1,0 +1,1413 @@
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardList,
+  ImagePlus,
+  LogOut,
+  PackagePlus,
+  Pencil,
+  RefreshCw,
+  Save,
+  Settings,
+  ShieldCheck,
+  Store,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { categories, formatCurrency } from '../data/menuData.js';
+
+const savedAdminKey = 'pizzaria-admin';
+const maxProductImageBytes = 4 * 1024 * 1024;
+
+const emptyStoreForm = {
+  storeName: '',
+  hours: '',
+  address: '',
+  phone: '',
+  whatsappNumber: '',
+  pixKey: '',
+  pixMerchantName: '',
+  pixCity: '',
+  deliveryFee: '',
+  serviceFee: '',
+};
+
+const statusOptions = [
+  { value: 'PENDING', label: 'Pedido feito' },
+  { value: 'PREPARING', label: 'Pagamento confirmado' },
+  { value: 'READY', label: 'Pronto para retirada' },
+  { value: 'OUT_FOR_DELIVERY', label: 'Saiu para entrega' },
+  { value: 'DELIVERED', label: 'Entregue' },
+  { value: 'CANCELED', label: 'Cancelado' },
+];
+
+const adminSections = [
+  {
+    id: 'orders',
+    label: 'Pedidos',
+    description: 'Status e detalhes',
+    Icon: ClipboardList,
+  },
+  {
+    id: 'products',
+    label: 'Produtos',
+    description: 'Cardapio e imagens',
+    Icon: Store,
+  },
+  {
+    id: 'store',
+    label: 'Loja',
+    description: 'PIX, endereco e taxa',
+    Icon: Settings,
+  },
+];
+
+function getSavedAdminSession() {
+  try {
+    return JSON.parse(window.localStorage.getItem(savedAdminKey) ?? 'null');
+  } catch {
+    return null;
+  }
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function normalizeProduct(product) {
+  return {
+    ...product,
+    category: product.category ?? 'pizzas',
+    description: product.description ?? '',
+    imageUrl: product.imageUrl ?? '',
+    priceInput: String(product.price ?? '').replace('.', ','),
+  };
+}
+
+function getCategoryName(categoryId) {
+  return categories.find((category) => category.id === categoryId)?.name ?? 'Pizzas';
+}
+
+function getProductPriceLabel(product) {
+  const price = Number(String(product.priceInput ?? product.price ?? 0).replace(',', '.'));
+  return Number.isFinite(price) ? formatCurrency(price) : formatCurrency(0);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Nao foi possivel ler a imagem.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Nao foi possivel carregar a imagem.'));
+    image.src = dataUrl;
+  });
+}
+
+async function buildProductImageDataUrl(file) {
+  if (!file) {
+    return '';
+  }
+
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Escolha um arquivo de imagem valido.');
+  }
+
+  if (file.size > maxProductImageBytes) {
+    throw new Error('Escolha uma imagem de ate 4 MB.');
+  }
+
+  const dataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(dataUrl);
+  const maxSide = 900;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+export default function AdminPage({ apiBaseUrl, onStoreSettingsChange }) {
+  const [session, setSession] = useState(getSavedAdminSession);
+  const [authMode, setAuthMode] = useState('login');
+  const [name, setName] = useState('Administrador');
+  const [email, setEmail] = useState('admin@pizzaria.com');
+  const [password, setPassword] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [storeForm, setStoreForm] = useState(emptyStoreForm);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    category: 'pizzas',
+    price: '',
+    description: '',
+    imageUrl: '',
+  });
+  const [activeAdminSection, setActiveAdminSection] = useState('orders');
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [productPendingRemoval, setProductPendingRemoval] = useState(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const authHeaders = useMemo(
+    () => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.token ?? ''}`,
+    }),
+    [session],
+  );
+
+  function saveSession(nextSession) {
+    setSession(nextSession);
+    window.localStorage.setItem(savedAdminKey, JSON.stringify(nextSession));
+  }
+
+  function logout() {
+    setSession(null);
+    window.localStorage.removeItem(savedAdminKey);
+  }
+
+  async function request(path, options = {}) {
+    const response = await fetch(`${apiBaseUrl}${path}`, options);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message ?? 'Nao foi possivel concluir a operacao.');
+    }
+
+    return data;
+  }
+
+  async function handleAuth(event) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    try {
+      setIsLoading(true);
+      const data = await request(authMode === 'setup' ? '/admin/setup' : '/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          authMode === 'setup' ? { name, email, password } : { email, password },
+        ),
+      });
+
+      saveSession(data);
+      setPassword('');
+      setMessage(
+        authMode === 'setup'
+          ? 'Administrador criado com sucesso.'
+          : 'Administrador conectado.',
+      );
+    } catch (authError) {
+      setError(
+        authError instanceof Error
+          ? authError.message
+          : 'Nao foi possivel entrar como administrador.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadDashboardData() {
+    if (!session?.token) {
+      return;
+    }
+
+    setError('');
+
+    try {
+      setIsLoading(true);
+      const [nextOrdersRes, nextProducts, settings] = await Promise.all([
+        request('/pedidos', { headers: authHeaders }),
+        request('/pizzas'),
+        request('/configuracoes'),
+      ]);
+
+      // GET /pedidos agora retorna { data, pagination } — compativel com resposta direta tambem.
+      const nextOrders = Array.isArray(nextOrdersRes)
+        ? nextOrdersRes
+        : (nextOrdersRes?.data ?? []);
+
+      setOrders(nextOrders);
+      setProducts(nextProducts.filter((product) => product.isAvailable).map(normalizeProduct));
+      setStoreForm({
+        storeName: settings.storeName ?? '',
+        hours: settings.hours ?? '',
+        address: settings.address ?? '',
+        phone: settings.phone ?? '',
+        whatsappNumber: settings.whatsappNumber ?? '',
+        pixKey: settings.pixKey ?? '',
+        pixMerchantName: settings.pixMerchantName ?? settings.storeName ?? '',
+        pixCity: settings.pixCity ?? '',
+        deliveryFee: String(settings.deliveryFee ?? '0').replace('.', ','),
+        serviceFee: String(settings.serviceFee ?? '2').replace('.', ','),
+      });
+      onStoreSettingsChange?.(settings);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Nao foi possivel carregar o painel.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [session?.token]);
+
+  useEffect(() => {
+    if (!message && !error) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setMessage('');
+      setError('');
+    }, 4000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [message, error]);
+
+  async function updateOrderStatus(orderId, status) {
+    setError('');
+    setMessage('');
+
+    try {
+      const updatedOrder = await request(`/pedidos/${orderId}/status`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ status }),
+      });
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => (order.id === orderId ? updatedOrder : order)),
+      );
+      setMessage('Status do pedido atualizado.');
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : 'Nao foi possivel atualizar o pedido.',
+      );
+    }
+  }
+
+  async function saveStoreSettings() {
+    setError('');
+    setMessage('');
+
+    try {
+      const settings = await request('/configuracoes/loja', {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(storeForm),
+      });
+
+      setStoreForm({
+        storeName: settings.storeName ?? '',
+        hours: settings.hours ?? '',
+        address: settings.address ?? '',
+        phone: settings.phone ?? '',
+        whatsappNumber: settings.whatsappNumber ?? '',
+        pixKey: settings.pixKey ?? '',
+        pixMerchantName: settings.pixMerchantName ?? settings.storeName ?? '',
+        pixCity: settings.pixCity ?? '',
+        deliveryFee: String(settings.deliveryFee ?? '0').replace('.', ','),
+        serviceFee: String(settings.serviceFee ?? '2').replace('.', ','),
+      });
+      onStoreSettingsChange?.(settings);
+      setMessage('Dados da loja atualizados.');
+    } catch (settingsError) {
+      setError(
+        settingsError instanceof Error
+          ? settingsError.message
+          : 'Nao foi possivel atualizar os dados da loja.',
+      );
+    }
+  }
+
+  async function saveProduct(product) {
+    setError('');
+    setMessage('');
+
+    try {
+      const updatedProduct = await request(`/pizzas/${product.id}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          imageUrl: product.imageUrl,
+          price: product.priceInput,
+          isAvailable: product.isAvailable,
+        }),
+      });
+
+      setProducts((currentProducts) =>
+        currentProducts.map((item) =>
+          item.id === product.id ? normalizeProduct(updatedProduct) : item,
+        ),
+      );
+      setEditingProductId(null);
+      setMessage('Produto atualizado.');
+    } catch (productError) {
+      setError(
+        productError instanceof Error
+          ? productError.message
+          : 'Nao foi possivel atualizar o produto.',
+      );
+    }
+  }
+
+  async function removeProduct(product = productPendingRemoval) {
+    if (!product) {
+      return;
+    }
+
+    setError('');
+    setMessage('');
+
+    try {
+      await request(`/pizzas/${product.id}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+
+      setProducts((currentProducts) =>
+        currentProducts.filter((item) => item.id !== product.id),
+      );
+      setEditingProductId((currentId) => (currentId === product.id ? null : currentId));
+      setProductPendingRemoval(null);
+      setMessage('Produto removido do cardapio.');
+    } catch (productError) {
+      setProductPendingRemoval(null);
+      setError(
+        productError instanceof Error
+          ? productError.message
+          : 'Nao foi possivel remover o produto.',
+      );
+    }
+  }
+
+  async function createProduct(event) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    try {
+      const createdProduct = await request('/pizzas', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          ...newProduct,
+          isAvailable: true,
+        }),
+      });
+
+      setProducts((currentProducts) => [
+        normalizeProduct(createdProduct),
+        ...currentProducts,
+      ]);
+      setNewProduct({
+        name: '',
+        category: 'pizzas',
+        price: '',
+        description: '',
+        imageUrl: '',
+      });
+      setMessage('Produto criado no cardapio.');
+    } catch (productError) {
+      setError(
+        productError instanceof Error
+          ? productError.message
+          : 'Nao foi possivel criar o produto.',
+      );
+    }
+  }
+
+  async function handleProductImageUpload(file, onImageReady) {
+    setError('');
+
+    try {
+      const imageUrl = await buildProductImageDataUrl(file);
+      if (imageUrl) {
+        onImageReady(imageUrl);
+      }
+    } catch (imageError) {
+      setError(
+        imageError instanceof Error
+          ? imageError.message
+          : 'Nao foi possivel adicionar a imagem.',
+      );
+    }
+  }
+
+  const notice = error
+    ? { type: 'error', text: error }
+    : message
+      ? { type: 'success', text: message }
+      : null;
+  const noticeClasses =
+    notice?.type === 'error'
+      ? 'border-red-300 bg-red-50 text-red-700'
+      : 'border-green-300 bg-green-50 text-green-700';
+  const noticeAccentClasses =
+    notice?.type === 'error' ? 'bg-red-600' : 'bg-green-600';
+
+  if (!session?.token) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        {notice ? (
+          <div className="fixed left-1/2 top-4 z-[300] w-[min(92vw,520px)] -translate-x-1/2">
+            <div className={`overflow-hidden rounded-xl border-2 shadow-2xl ${noticeClasses}`}>
+              <div className={`h-1.5 ${noticeAccentClasses}`} />
+              <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-black">
+                <span>{notice.text}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError('');
+                    setMessage('');
+                  }}
+                  className="rounded-full p-1 transition hover:bg-black/10"
+                  aria-label="Fechar aviso"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <a
+          href="#/"
+          className="mb-6 inline-flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100"
+        >
+          <ArrowLeft size={18} />
+          Voltar ao cardapio
+        </a>
+
+        <section className="rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+              <ShieldCheck size={26} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Administrador</h1>
+              <p className="text-slate-600">
+                Entre para gerenciar pedidos, taxa e cardapio.
+              </p>
+            </div>
+          </div>
+
+          {authMode === 'setup' ? (
+            <form onSubmit={handleAuth} className="space-y-4 mt-6">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Nome</label>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Nome do administrador"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Email</label>
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="admin@loja.com"
+                  type="email"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Senha</label>
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Minimo 6 caracteres"
+                  type="password"
+                />
+              </div>
+
+              <button
+                disabled={isLoading}
+                className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-600 py-3 font-bold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                type="submit"
+              >
+                {isLoading ? 'Aguarde...' : 'Criar admin'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className="mt-2 w-full text-sm font-bold text-slate-500 underline"
+              >
+                Voltar
+              </button>
+            </form>
+          ) : (
+            <div className="rounded-lg border-2 border-orange-200 bg-orange-50 p-6 text-center text-orange-800">
+              <h2 className="mb-2 text-xl font-bold">Acesso restrito</h2>
+              <p className="mb-4 text-slate-700">
+                O login foi unificado! Volte para a página principal, clique em "Entrar 🍕" e use suas credenciais de administrador. Você será redirecionado para cá automaticamente.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <a href="#/" className="inline-block rounded-lg bg-orange-600 px-6 py-2 font-bold text-white transition hover:bg-orange-700">
+                  Ir para a tela inicial
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('setup')}
+                  className="inline-block rounded-lg border-2 border-orange-200 bg-white px-6 py-2 font-bold text-orange-600 transition hover:bg-orange-50"
+                >
+                  Modo Setup (1º Admin)
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-10">
+      {notice ? (
+        <div className="fixed left-1/2 top-4 z-[300] w-[min(92vw,560px)] -translate-x-1/2">
+          <div className={`overflow-hidden rounded-xl border-2 shadow-2xl ${noticeClasses}`}>
+            <div className={`h-1.5 ${noticeAccentClasses}`} />
+            <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm font-black">
+              <span>{notice.text}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setMessage('');
+                }}
+                className="rounded-full p-1 transition hover:bg-black/10"
+                aria-label="Fechar aviso"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <a
+          href="#/"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100"
+        >
+          <ArrowLeft size={18} />
+          Voltar ao cardapio
+        </a>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={loadDashboardData}
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 font-bold text-orange-700 shadow-sm transition hover:bg-orange-50"
+            type="button"
+          >
+            <RefreshCw size={18} />
+            Atualizar painel
+          </button>
+          <button
+            onClick={logout}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 font-bold text-red-700 transition hover:bg-red-100"
+            type="button"
+          >
+            <LogOut size={18} />
+            Sair
+          </button>
+        </div>
+      </div>
+
+      <section className="mb-8 rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+            <ShieldCheck size={26} />
+          </div>
+          <div>
+            <p className="text-sm font-bold uppercase text-orange-600">Area administrativa</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {session.admin?.name ?? 'Administrador'}
+            </h1>
+            <p className="text-slate-600">{session.admin?.email}</p>
+          </div>
+        </div>
+      </section>
+
+      <nav className="mb-8 grid gap-3 md:grid-cols-3">
+        {adminSections.map(({ id, label, description, Icon }) => {
+          const isActive = activeAdminSection === id;
+
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveAdminSection(id)}
+              className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left font-black uppercase transition ${
+                isActive
+                  ? 'border-slate-950 bg-slate-950 text-white shadow-[5px_5px_0_#ea580c]'
+                  : 'border-orange-200 bg-white text-slate-900 hover:border-slate-950 hover:shadow-[4px_4px_0_#111827]'
+              }`}
+            >
+              <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
+                  isActive ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600'
+                }`}
+              >
+                <Icon size={22} />
+              </span>
+              <span>
+                <span className="block">{label}</span>
+                <span className={`block text-xs ${isActive ? 'text-orange-100' : 'text-slate-500'}`}>
+                  {description}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <section className="mb-8 grid gap-6">
+        {activeAdminSection === 'orders' ? (
+        <div className="rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+          <div className="mb-5 flex items-center gap-3">
+            <ClipboardList className="text-orange-600" size={24} />
+            <h2 className="text-2xl font-bold text-slate-900">Pedidos</h2>
+          </div>
+
+          {orders.length === 0 ? (
+            <p className="rounded-lg bg-orange-50 p-4 text-slate-600">
+              Nenhum pedido encontrado.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <article
+                  key={order.id}
+                  className="rounded-xl border border-orange-100 bg-orange-50 p-4"
+                >
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">
+                        Pedido #{String(order.id).slice(0, 8)}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {formatDate(order.createdAt)} - {order.customer?.name}
+                      </p>
+                      <p className="text-sm font-semibold text-orange-700">
+                        {order.fulfillmentType === 'PICKUP'
+                          ? 'Retirada na loja'
+                          : 'Entrega / envio'}
+                      </p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-xl font-bold text-orange-600">
+                        {formatCurrency(Number(order.total))}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {order.items?.length ?? 0} item(ns)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 grid gap-2">
+                    {(order.items ?? []).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                      >
+                        <span>
+                          <span className="block font-semibold">
+                            {item.displayName ?? item.product?.name ?? 'Item'} x{item.quantity}
+                          </span>
+                          {item.customizations ? (
+                            <span className="block text-xs font-semibold text-orange-700">
+                              {item.customizations}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="font-semibold">{formatCurrency(Number(item.total))}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <select
+                      value={order.status}
+                      onChange={(event) => updateOrderStatus(order.id, event.target.value)}
+                      className="rounded-lg border-2 border-orange-200 bg-white px-4 py-2 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      {statusOptions.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-green-700">
+                      <CheckCircle2 size={16} />
+                      Status editavel
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+        ) : null}
+
+        {activeAdminSection === 'store' || activeAdminSection === 'products' ? (
+        <div className="space-y-6">
+          {activeAdminSection === 'store' ? (
+          <section className="rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center gap-3">
+              <Settings className="text-orange-600" size={24} />
+              <h2 className="text-2xl font-bold text-slate-900">Loja</h2>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Nome da loja
+                </label>
+                <input
+                  value={storeForm.storeName}
+                  onChange={(event) =>
+                    setStoreForm((settings) => ({
+                      ...settings,
+                      storeName: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Nome da loja"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Endereco da loja
+                </label>
+                <input
+                  value={storeForm.address}
+                  onChange={(event) =>
+                    setStoreForm((settings) => ({
+                      ...settings,
+                      address: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Rua, numero, bairro, cidade"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Telefone
+                  </label>
+                  <input
+                    value={storeForm.phone}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        phone: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="(21) 99999-9999"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    WhatsApp
+                  </label>
+                  <input
+                    value={storeForm.whatsappNumber}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        whatsappNumber: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="5521999999999"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Horário de funcionamento
+                  </label>
+                  <input
+                    value={storeForm.hours}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        hours: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="18:00 - 02:00"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Taxa de entrega (R$)
+                  </label>
+                  <input
+                    value={storeForm.deliveryFee}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        deliveryFee: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Ex: 5,00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Taxa de serviço (R$)
+                </label>
+                <input
+                  value={storeForm.serviceFee}
+                  onChange={(event) =>
+                    setStoreForm((settings) => ({
+                      ...settings,
+                      serviceFee: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Ex: 2,00"
+                />
+              </div>
+
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Chave PIX
+                </label>
+                <input
+                  value={storeForm.pixKey}
+                  onChange={(event) =>
+                    setStoreForm((settings) => ({
+                      ...settings,
+                      pixKey: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="CPF, CNPJ, email, telefone ou chave aleatoria"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Nome no PIX
+                  </label>
+                  <input
+                    value={storeForm.pixMerchantName}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        pixMerchantName: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Nome que aparece no PIX"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Cidade PIX
+                  </label>
+                  <input
+                    value={storeForm.pixCity}
+                    onChange={(event) =>
+                      setStoreForm((settings) => ({
+                        ...settings,
+                        pixCity: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Rio de Janeiro"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={saveStoreSettings}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 font-bold text-white transition hover:bg-red-600"
+                type="button"
+              >
+                <Save size={18} />
+                Salvar dados da loja
+              </button>
+            </div>
+          </section>
+          ) : null}
+
+          {activeAdminSection === 'products' ? (
+          <section className="rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center gap-3">
+              <PackagePlus className="text-orange-600" size={24} />
+              <h2 className="text-2xl font-bold text-slate-900">Novo produto</h2>
+            </div>
+            <form onSubmit={createProduct} className="space-y-3">
+              <input
+                value={newProduct.name}
+                onChange={(event) =>
+                  setNewProduct((product) => ({ ...product, name: event.target.value }))
+                }
+                className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Nome do produto"
+              />
+              <select
+                value={newProduct.category}
+                onChange={(event) =>
+                  setNewProduct((product) => ({
+                    ...product,
+                    category: event.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border-2 border-orange-200 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={newProduct.price}
+                onChange={(event) =>
+                  setNewProduct((product) => ({ ...product, price: event.target.value }))
+                }
+                className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Preco"
+              />
+              <input
+                value={newProduct.description}
+                onChange={(event) =>
+                  setNewProduct((product) => ({
+                    ...product,
+                    description: event.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border-2 border-orange-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Descricao"
+              />
+              <div className="rounded-xl border-2 border-dashed border-orange-200 bg-orange-50 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white text-orange-600">
+                    {newProduct.imageUrl ? (
+                      <img
+                        src={newProduct.imageUrl}
+                        alt="Previa do produto"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <ImagePlus size={28} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-slate-800">Imagem do produto</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white transition hover:bg-orange-600">
+                        <ImagePlus size={16} />
+                        Escolher imagem
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            event.target.value = '';
+                            handleProductImageUpload(file, (imageUrl) =>
+                              setNewProduct((product) => ({
+                                ...product,
+                                imageUrl,
+                              })),
+                            );
+                          }}
+                        />
+                      </label>
+                      {newProduct.imageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewProduct((product) => ({
+                              ...product,
+                              imageUrl: '',
+                            }))
+                          }
+                          className="rounded-lg border border-orange-200 px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-red-300 hover:text-red-600"
+                        >
+                          Remover
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button
+                className="w-full rounded-lg bg-orange-600 py-2 font-bold text-white transition hover:bg-red-600"
+                type="submit"
+              >
+                Criar produto
+              </button>
+            </form>
+          </section>
+          ) : null}
+        </div>
+        ) : null}
+      </section>
+
+      {activeAdminSection === 'products' ? (
+      <section className="rounded-2xl border-2 border-orange-200 bg-white p-6 shadow-xl">
+        <div className="mb-5 flex items-center gap-3">
+          <Store className="text-orange-600" size={24} />
+          <h2 className="text-2xl font-bold text-slate-900">Produtos do banco</h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {products.map((product) => {
+            const isEditing = editingProductId === product.id;
+
+            return (
+              <article
+                key={product.id}
+                className="rounded-xl border border-orange-100 bg-orange-50 p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white text-orange-600">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <ImagePlus size={28} />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="break-words text-base font-black text-slate-900">
+                          {product.name}
+                        </h3>
+                        <p className="mt-1 text-sm font-bold text-orange-700">
+                          {getCategoryName(product.category)} - {getProductPriceLabel(product)}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${
+                          product.isAvailable
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {product.isAvailable ? 'Disponivel' : 'Indisponivel'}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 break-words text-sm text-slate-600">
+                      {product.description || 'Sem descricao cadastrada.'}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingProductId(isEditing ? null : product.id)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white transition hover:bg-orange-600"
+                      >
+                        {isEditing ? <X size={16} /> : <Pencil size={16} />}
+                        {isEditing ? 'Fechar edicao' : 'Editar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProductPendingRemoval(product)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-700 transition hover:bg-red-600 hover:text-white"
+                      >
+                        <Trash2 size={16} />
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {isEditing ? (
+                  <div className="mt-4 space-y-3 border-t border-orange-200 pt-4">
+                    <div className="rounded-xl border-2 border-dashed border-orange-200 bg-white p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-600">
+                          <ImagePlus size={14} />
+                          Trocar imagem
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = '';
+                              handleProductImageUpload(file, (imageUrl) =>
+                                setProducts((currentProducts) =>
+                                  currentProducts.map((item) =>
+                                    item.id === product.id
+                                      ? { ...item, imageUrl }
+                                      : item,
+                                  ),
+                                ),
+                              );
+                            }}
+                          />
+                        </label>
+                        {product.imageUrl ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setProducts((currentProducts) =>
+                                currentProducts.map((item) =>
+                                  item.id === product.id
+                                    ? { ...item, imageUrl: '' }
+                                    : item,
+                                ),
+                              )
+                            }
+                            className="rounded-lg border border-orange-200 px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-red-300 hover:text-red-600"
+                          >
+                            Remover imagem
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={product.isAvailable}
+                        onChange={(event) =>
+                          setProducts((currentProducts) =>
+                            currentProducts.map((item) =>
+                              item.id === product.id
+                                ? { ...item, isAvailable: event.target.checked }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      Produto disponivel no cardapio
+                    </label>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+                          Nome
+                        </label>
+                        <input
+                          value={product.name}
+                          onChange={(event) =>
+                            setProducts((currentProducts) =>
+                              currentProducts.map((item) =>
+                                item.id === product.id
+                                  ? { ...item, name: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                          className="w-full rounded-lg border-2 border-orange-200 px-3 py-2 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+                          Categoria
+                        </label>
+                        <select
+                          value={product.category ?? 'pizzas'}
+                          onChange={(event) =>
+                            setProducts((currentProducts) =>
+                              currentProducts.map((item) =>
+                                item.id === product.id
+                                  ? { ...item, category: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                          className="w-full rounded-lg border-2 border-orange-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+                        Preco
+                      </label>
+                      <input
+                        value={product.priceInput}
+                        onChange={(event) =>
+                          setProducts((currentProducts) =>
+                            currentProducts.map((item) =>
+                              item.id === product.id
+                                ? { ...item, priceInput: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-lg border-2 border-orange-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Preco"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+                        Descricao
+                      </label>
+                      <textarea
+                        value={product.description ?? ''}
+                        onChange={(event) =>
+                          setProducts((currentProducts) =>
+                            currentProducts.map((item) =>
+                              item.id === product.id
+                                ? { ...item, description: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="min-h-20 w-full rounded-lg border-2 border-orange-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Descricao do produto"
+                      />
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <button
+                        onClick={() => saveProduct(product)}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 font-bold text-white transition hover:bg-red-600"
+                        type="button"
+                      >
+                        <Save size={18} />
+                        Salvar alteracoes
+                      </button>
+                      <button
+                        onClick={() => setProductPendingRemoval(product)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-50 px-4 py-2 font-bold text-red-700 transition hover:bg-red-600 hover:text-white"
+                        type="button"
+                      >
+                        <Trash2 size={18} />
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      ) : null}
+
+      {productPendingRemoval ? (
+        <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/75 p-4">
+          <section className="w-full max-w-lg overflow-hidden rounded-2xl border-2 border-orange-500 bg-slate-950 text-white shadow-[10px_10px_0_#ea580c]">
+            <div className="border-b border-orange-500/40 bg-[linear-gradient(135deg,#111827_0%,#111827_60%,#7c2d12_100%)] p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white shadow-[4px_4px_0_#111827]">
+                  <AlertTriangle size={30} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black uppercase tracking-[0.28em] text-orange-300">
+                    Confirmar remocao
+                  </p>
+                  <h2 className="mt-1 break-words text-2xl font-black uppercase">
+                    Tirar do cardapio?
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProductPendingRemoval(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                  aria-label="Fechar confirmacao"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-5 p-5">
+              <div className="rounded-xl border border-orange-500/40 bg-white/5 p-4">
+                <p className="break-words text-lg font-black text-orange-200">
+                  {productPendingRemoval.name}
+                </p>
+                <p className="mt-2 text-sm text-slate-300">
+                  Esse produto some do cardapio do cliente, mas os pedidos antigos continuam guardados.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setProductPendingRemoval(null)}
+                  className="rounded-xl border-2 border-white/20 px-4 py-3 font-black uppercase text-white transition hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeProduct()}
+                  className="rounded-xl border-2 border-red-500 bg-red-600 px-4 py-3 font-black uppercase text-white shadow-[4px_4px_0_#7f1d1d] transition hover:bg-red-700"
+                >
+                  Remover produto
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </main>
+  );
+}
