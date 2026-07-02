@@ -5,6 +5,7 @@ import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireRole } from '../middlewares/requireRole.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { getTenantId } from '../core/context/TenantContext.js';
+import { getOrderPaymentStatus, getPrimaryPaymentMethod } from '../services/orderFinancial.service.js';
 
 export const billingRoutes = Router();
 
@@ -15,24 +16,20 @@ function startOfDay(date = new Date()) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
 
-function getFinancialStatus(order: { status: string; invoice: { status: string } | null }) {
-  if (order.invoice?.status) {
-    return order.invoice.status;
-  }
-
-  if (order.status === 'CANCELED') {
-    return 'CANCELED';
-  }
-
-  return order.status === 'DELIVERED' ? 'PAID' : 'PENDING';
-}
-
-function getPaymentLabel(order: { invoice: { payments: Array<{ method: string }> } | null }) {
-  return order.invoice?.payments?.[0]?.method ?? 'A RECEBER';
-}
-
 function isPaidFinancialStatus(status: string) {
   return ['PAID', 'COMPLETED'].includes(status);
+}
+
+function getPaidAmount(order: {
+  status?: string | null;
+  total: unknown;
+  paymentStatus?: string | null;
+  invoice: { status?: string | null; payments: Array<{ amount: unknown }> } | null;
+}) {
+  const total = Number(order.total) || 0;
+  const paidFromInvoice =
+    order.invoice?.payments?.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0) ?? 0;
+  return getOrderPaymentStatus(order) === 'PAID' && paidFromInvoice === 0 ? total : paidFromInvoice;
 }
 
 billingRoutes.get(
@@ -56,19 +53,22 @@ billingRoutes.get(
 
     const billableOrders = orders.filter((order) => order.status !== 'CANCELED');
     const paidOrders = billableOrders.filter((order) =>
-      isPaidFinancialStatus(getFinancialStatus(order)),
+      isPaidFinancialStatus(getOrderPaymentStatus(order)),
     );
     const pendingOrders = billableOrders.filter((order) =>
-      !isPaidFinancialStatus(getFinancialStatus(order)),
+      !isPaidFinancialStatus(getOrderPaymentStatus(order)),
     );
     const totalBilled = billableOrders.reduce((sum, order) => sum + Number(order.total), 0);
-    const todayRevenue = paidOrders.reduce((sum, order) => sum + Number(order.total), 0);
-    const pendingAmount = pendingOrders.reduce((sum, order) => sum + Number(order.total), 0);
+    const todayRevenue = paidOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
+    const pendingAmount = pendingOrders.reduce(
+      (sum, order) => sum + Math.max(0, Number(order.total) - getPaidAmount(order)),
+      0,
+    );
     const averageTicket = billableOrders.length > 0 ? totalBilled / billableOrders.length : 0;
 
     const paymentMix = billableOrders.reduce<Record<string, number>>((acc, order) => {
-      const method = getPaymentLabel(order);
-      acc[method] = (acc[method] ?? 0) + Number(order.total);
+      const method = getPrimaryPaymentMethod(order);
+      acc[method] = (acc[method] ?? 0) + (getPaidAmount(order) || Number(order.total));
       return acc;
     }, {});
 
@@ -106,8 +106,8 @@ billingRoutes.get(
         customer: order.customer?.name ?? 'Cliente',
         date: order.createdAt,
         total: Number(order.total),
-        status: getFinancialStatus(order),
-        paymentMethod: getPaymentLabel(order),
+        status: getOrderPaymentStatus(order),
+        paymentMethod: getPrimaryPaymentMethod(order),
         items: order.items.reduce((sum, item) => sum + item.quantity, 0),
       })),
     });

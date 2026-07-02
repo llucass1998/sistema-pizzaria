@@ -98,6 +98,13 @@ function getStatusConfig(status) {
     };
   }
 
+  if (status === 'PARTIAL' || status === 'PARTIALLY_PAID') {
+    return {
+      label: 'Parcial',
+      className: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
+    };
+  }
+
   return {
     label: 'Pendente',
     className: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
@@ -110,6 +117,9 @@ function getPaymentMethodLabel(method) {
     CASH: 'Dinheiro',
     CREDIT: 'Credito',
     DEBIT: 'Debito',
+    CREDIT_CARD: 'Credito',
+    DEBIT_CARD: 'Debito',
+    ONLINE_CARD: 'Online',
     CARD: 'Cartao',
     'A RECEBER': 'A receber',
   };

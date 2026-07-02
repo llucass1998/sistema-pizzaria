@@ -10,7 +10,7 @@
 | Pedidos | Pendente | Sim | Parcial | Transicoes cobertas |
 | Pedidos Live/KDS | Pendente | Sim | OK backend | Specs existentes cobrem fila e transicoes KDS |
 | Admin login/dashboard | Pendente | Nao | Pendente | Requer credencial de teste/browser |
-| PDV | Pendente | Sim | Parcial | Regras de status cobertas; checkout API real pendente |
+| PDV | Pendente em browser real | Sim | Parcial | Caixa abre/fecha e venda por metodo implementados; falta Playwright dedicado |
 | Produtos | Pendente | Sim | Parcial | Listagem publica e tenant filter cobertos; alias `/api/products` passa na API direta, mas falha via proxy local |
 | Categorias | Pendente | Sim | Parcial | Listagem e bloqueio admin sem token cobertos |
 | Configuracoes | Pendente | Sim | Parcial | GET publico coberto |
@@ -19,6 +19,6 @@
 | Orcamentos | Pendente | Nao | Pendente | CRUD real pendente |
 | Contas a receber | Pendente | Nao | Pendente | Baixa parcial/total pendente |
 | Equipe/acessos | Pendente | Nao | Pendente | CRUD usuarios/OWNER pendente |
-| Backend/API | Sim via contrato local | Sim | Parcial | `test:api` passa |
+| Backend/API | Sim via contrato local | Sim | Parcial | `test:api` passa; pagamento/webhook agora tem auditoria/idempotencia |
 | Banco/Prisma | Nao destrutivo apenas | Sim | Parcial | Typecheck e specs sem DB real |
 | Docker/WSL2 | Pendente | Script criado | Pendente | `scripts/smoke-test.sh` criado |

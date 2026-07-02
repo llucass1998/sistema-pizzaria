@@ -1,67 +1,91 @@
 import { prisma } from '../lib/prisma.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 
-export class FiscalService {
-  /**
-   * MOCK de emissão de NFC-e. 
-   * Em produção, isso bateria numa API como WebmaniaBR, Focus NFe, ou Sefaz direta.
-   */
-  static async issueNfce(orderId: string) {
-    const tenantId = getTenantId();
+type FiscalIssueResult = {
+  tenantId: string;
+  orderId: string;
+  accessKey: string | null;
+  status: string;
+  environment: string;
+  xmlUrl: string | null;
+  pdfUrl: string | null;
+  message: string;
+};
 
+interface FiscalProvider {
+  issue(orderId: string): Promise<FiscalIssueResult>;
+}
+
+class MockFiscalProvider implements FiscalProvider {
+  async issue(orderId: string): Promise<FiscalIssueResult> {
+    const tenantId = getTenantId();
     const order = await prisma.order.findUnique({
       where: { id: orderId, tenantId },
-      include: { items: true, customer: true }
+      include: { items: true, customer: true },
     });
 
     if (!order) {
-      throw new Error('Pedido não encontrado.');
+      throw new Error('Pedido nao encontrado.');
     }
 
-    // Busca configuracao fiscal do tenant
     let fiscalConfig = await prisma.fiscalSettings.findUnique({
-      where: { tenantId }
+      where: { tenantId },
     });
 
     if (!fiscalConfig) {
-      // Cria config padrao se nao existir
       fiscalConfig = await prisma.fiscalSettings.create({
         data: {
           tenantId,
-          environment: 'HOMOLOGACAO'
-        }
+          environment: 'HOMOLOGACAO',
+        },
       });
     }
 
-    // Verifica se ja existe doc fiscal
-    const existingDoc = await prisma.fiscalDocument.findUnique({
-      where: { orderId }
-    });
-
-    if (existingDoc && existingDoc.status === 'ISSUED') {
-      throw new Error('NFC-e já emitida para este pedido.');
-    }
-
-    // Simula tempo de processamento da Sefaz
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const mockAccessKey = Array.from({ length: 44 }, () => Math.floor(Math.random() * 10)).join('');
-    
-    const data = {
+    return {
       tenantId,
       orderId,
-      accessKey: mockAccessKey,
-      status: 'ISSUED',
+      accessKey: null,
+      status: 'DEMO_ISSUED',
       environment: fiscalConfig.environment,
-      xmlUrl: `https://mock-sefaz.com/nfce/${mockAccessKey}.xml`,
-      pdfUrl: `https://mock-sefaz.com/nfce/${mockAccessKey}.pdf`,
-      message: 'Autorizado o uso da NFC-e'
+      xmlUrl: null,
+      pdfUrl: null,
+      message:
+        'Documento fiscal demonstrativo. Nenhuma NFC-e foi transmitida ou autorizada pela SEFAZ.',
     };
+  }
+}
+
+function getFiscalProvider(): FiscalProvider {
+  const provider = String(process.env.FISCAL_PROVIDER ?? 'MOCK').trim().toUpperCase();
+  if (provider !== 'MOCK') {
+    throw new Error('Provider fiscal real ainda nao configurado neste ambiente.');
+  }
+  return new MockFiscalProvider();
+}
+
+export class FiscalService {
+  static async issueNfce(orderId: string) {
+    const provider = getFiscalProvider();
+    const data = await provider.issue(orderId);
+
+    const existingDoc = await prisma.fiscalDocument.findUnique({
+      where: { orderId },
+    });
+
+    if (existingDoc && ['ISSUED', 'DEMO_ISSUED'].includes(existingDoc.status)) {
+      return {
+        ...existingDoc,
+        message:
+          existingDoc.status === 'DEMO_ISSUED'
+            ? 'Documento fiscal demonstrativo ja registrado para este pedido.'
+            : existingDoc.message,
+      };
+    }
 
     if (existingDoc) {
       return prisma.fiscalDocument.update({
         where: { id: existingDoc.id },
-        data
+        data,
       });
     }
 

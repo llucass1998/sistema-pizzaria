@@ -13,6 +13,7 @@ const ROLES = [
   { value: 'MANAGER', label: 'Gerente (Sem config/financeiro)' },
   { value: 'CASHIER', label: 'Caixa (Apenas PDV/Pedidos)' },
   { value: 'KITCHEN', label: 'Cozinha (Apenas Pedidos)' },
+  { value: 'DRIVER', label: 'Entregador (Apenas Despacho)' },
 ];
 
 export function AdminsPage() {

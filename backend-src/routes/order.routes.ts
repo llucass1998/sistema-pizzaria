@@ -16,6 +16,7 @@ import { basePrisma, prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireCustomer } from '../middlewares/requireCustomer.js';
+import { requireRole } from '../middlewares/requireRole.js';
 import { sendWhatsAppMessage } from '../utils/waha.js';
 import { getStoreSettings } from '../services/storeSettings.service.js';
 import type { OrderItemInput } from '../types/order.js';
@@ -36,8 +37,16 @@ import { FulfillmentType, OrderStatus } from '../../generated/prisma/index.js';
 import { InventoryService } from '../services/inventory.service.js';
 import { PaymentGatewayService } from '../services/PaymentGatewayService.js';
 import { ProductAvailabilityService } from '../services/ProductAvailabilityService.js';
+import {
+  createOrderInvoice,
+  FINANCIAL_STATUS,
+  normalizePaymentMethod,
+} from '../services/orderFinancial.service.js';
+import { addOrderEventClient, emitOrderEvent } from '../services/orderEvents.service.js';
 
 export const orderRoutes = Router();
+
+const ORDER_LIVE_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'];
 
 function getItemOptionIds(item: OrderItemInput) {
   const ids = new Set<string>();
@@ -121,6 +130,17 @@ function getDashboardDateRange(rawDate: unknown) {
   return { date, start, end };
 }
 
+orderRoutes.get(
+  '/admin/orders/events',
+  requireAdmin,
+  requireRole(ORDER_LIVE_ROLES),
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const removeClient = addOrderEventClient(tenantId, res);
+    req.on('close', removeClient);
+  }),
+);
+
 // ─── POST /pedidos ─────────────────────────────────────────────────────────────
 // Cria um pedido para retirada em loja ou entrega.
 orderRoutes.post(
@@ -157,6 +177,15 @@ orderRoutes.post(
 
     if (!customer || customer.tenantId !== tenantId) {
       res.status(401).json({ message: 'Sessao de cliente invalida.' });
+      return;
+    }
+
+    const settings = await getStoreSettings();
+    if (settings.isOpen === false) {
+      res.status(423).json({
+        message:
+          'A loja esta fechada no momento. Volte durante o horario de atendimento para fazer seu pedido.',
+      });
       return;
     }
 
@@ -453,7 +482,6 @@ orderRoutes.post(
       return;
     }
 
-    const settings = await getStoreSettings();
     const deliveryFeeBase =
       fulfillmentType === FulfillmentType.DELIVERY ? Number(settings.deliveryFee) : 0;
     const serviceFeeValue = Number(settings.serviceFee);
@@ -519,6 +547,13 @@ orderRoutes.post(
     }
 
     // 8. Criar o pedido, itens, abater cupom e fidelidade em transação atômica.
+    const paymentMethod = normalizePaymentMethod(req.body.paymentMethod, 'PIX');
+    const cardPaymentMode = normalizeText(req.body.cardPaymentMode).toUpperCase();
+    if (paymentMethod === 'ONLINE_CARD' && cardPaymentMode !== 'ONLINE') {
+      res.status(400).json({ message: 'Pagamento online exige confirmacao pelo gateway.' });
+      return;
+    }
+
     const address = (req.body.address ?? {}) as Record<string, unknown>;
 
     try {
@@ -543,13 +578,25 @@ orderRoutes.post(
             deliveryFee: totalFees.toFixed(2),
             subtotal: subtotal.toFixed(2),
             total: total.toFixed(2),
+            paymentMethod,
+            paymentStatus: FINANCIAL_STATUS.PENDING,
+            paidAt: null,
             notes,
             items: { create: orderItems },
           } as any,
           include: {
             customer: true,
             items: { include: { product: true } },
+            invoice: { include: { payments: true } },
           },
+        });
+
+        await createOrderInvoice(tx, {
+          tenantId,
+          orderId: createdOrder.id,
+          totalAmount: total,
+          paymentMethod,
+          paymentStatus: FINANCIAL_STATUS.PENDING,
         });
 
         if (appliedCoupon) {
@@ -569,8 +616,6 @@ orderRoutes.post(
         return createdOrder;
       });
 
-      const paymentMethod = req.body.paymentMethod as string | undefined;
-      const cardPaymentMode = req.body.cardPaymentMode as string | undefined;
 
       // Se for pagamento online (ex: PIX ou Cartão ONLINE), geramos o link de pagamento
       if (
@@ -594,8 +639,38 @@ orderRoutes.post(
           },
         });
 
+        await prisma.paymentTransaction.upsert({
+          where: {
+            tenantId_provider_externalId: {
+              tenantId,
+              provider: intent.provider,
+              externalId: intent.externalId,
+            },
+          },
+          update: {
+            amount: total.toFixed(2),
+            status: FINANCIAL_STATUS.PENDING,
+            rawStatus: intent.rawStatus ?? 'PENDING',
+            paymentUrl: intent.paymentUrl,
+            metadata: intent.metadata ?? {},
+          },
+          create: {
+            tenantId,
+            orderId: order.id,
+            provider: intent.provider,
+            externalId: intent.externalId,
+            amount: total.toFixed(2),
+            status: FINANCIAL_STATUS.PENDING,
+            rawStatus: intent.rawStatus ?? 'PENDING',
+            paymentUrl: intent.paymentUrl,
+            metadata: intent.metadata ?? {},
+          },
+        });
+
         order.paymentUrl = intent.paymentUrl;
       }
+
+      emitOrderEvent(tenantId, 'order-created', order as any);
 
       res.status(201).json(order);
 
@@ -781,9 +856,19 @@ orderRoutes.patch(
           await InventoryService.deductStockForOrderOrThrow(id, tenantId, tx);
         }
 
+        const orderUpdateData: Record<string, unknown> = { status: newStatus };
+        if (newStatus === OrderStatus.CANCELED) {
+          orderUpdateData.paymentStatus = FINANCIAL_STATUS.CANCELED;
+          orderUpdateData.paidAt = null;
+          await tx.invoice.updateMany({
+            where: { tenantId, orderId: id },
+            data: { status: FINANCIAL_STATUS.CANCELED },
+          });
+        }
+
         const updatedOrder = await tx.order.updateMany({
           where: { id, tenantId, status: existingOrder.status },
-          data: { status: newStatus },
+          data: orderUpdateData,
         });
         if (updatedOrder.count !== 1) {
           throw Object.assign(
@@ -838,6 +923,14 @@ orderRoutes.patch(
       res.status(404).json({ message: 'Pedido nao encontrado.' });
       return;
     }
+
+    emitOrderEvent(tenantId, 'order-status-changed', {
+      id: order.id,
+      status: order.status,
+      previousStatus: existingOrder.status,
+      updatedAt: order.updatedAt,
+    });
+    emitOrderEvent(tenantId, 'order-updated', order as any);
 
     IfoodService.syncOrderStatus(order.id, newStatus).catch((error) => {
       console.error('[iFood] Falha ao sincronizar status externo:', error);
@@ -934,6 +1027,8 @@ orderRoutes.post(
 
     // Para pedidos de balcão, usaremos PICKUP por padrão (ou o front pode mandar DELIVERY se preencher endereço)
     const fulfillmentType = req.body.fulfillmentType || FulfillmentType.PICKUP;
+    const paymentMethod = normalizePaymentMethod(req.body.paymentMethod, 'CASH');
+    const paidAt = new Date();
 
     const rawItems = Array.isArray(req.body.items) ? (req.body.items as OrderItemInput[]) : [];
     if (rawItems.length === 0) {
@@ -1083,10 +1178,23 @@ orderRoutes.post(
             deliveryFee: totalFees.toFixed(2),
             subtotal: subtotal.toFixed(2),
             total: total.toFixed(2),
+            paymentMethod,
+            paymentStatus: FINANCIAL_STATUS.PAID,
+            paidAt,
             notes: req.body.notes || null,
             items: { create: orderItems },
           },
           include: { customer: true, items: { include: { product: true } } },
+        });
+
+        await createOrderInvoice(tx, {
+          tenantId,
+          orderId: created.id,
+          totalAmount: total,
+          paymentMethod,
+          paymentStatus: FINANCIAL_STATUS.PAID,
+          paidAt,
+          createPayment: true,
         });
 
         await tx.orderItem.updateMany({
@@ -1108,11 +1216,30 @@ orderRoutes.post(
           },
         });
 
+        const activeShift = await tx.shift.findFirst({
+          where: { tenantId, status: 'OPEN' },
+        });
+
+        if (activeShift) {
+          await tx.cashTransaction.create({
+            data: {
+              tenantId,
+              shiftId: activeShift.id,
+              type: 'SALE',
+              amount: total.toFixed(2),
+              description: `Venda PDV Pedido #${created.id.slice(0, 8)}`,
+              paymentMethodId: paymentMethod,
+            },
+          });
+        }
+
         return tx.order.findFirst({
           where: { id: created.id, tenantId },
           include: { customer: true, items: { include: { product: true } } },
         });
       });
+
+      emitOrderEvent(tenantId, 'order-created', order as any);
 
       res.status(201).json(order);
     } catch (err: any) {

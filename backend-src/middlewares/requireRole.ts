@@ -5,14 +5,10 @@ export function requireRole(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        res.status(401).json({ message: 'Token não fornecido.' });
-        return;
-      }
+      const token = req.cookies?.token || authHeader?.replace('Bearer ', '');
 
-      const token = authHeader.split(' ')[1];
       if (!token) {
-        res.status(401).json({ message: 'Token inválido.' });
+        res.status(401).json({ message: 'Token nao fornecido.' });
         return;
       }
 
@@ -32,7 +28,7 @@ export function requireRole(allowedRoles: string[]) {
 
       next();
     } catch {
-      res.status(401).json({ message: 'Token expirado ou inválido.' });
+      res.status(401).json({ message: 'Token expirado ou invalido.' });
     }
   };
 }

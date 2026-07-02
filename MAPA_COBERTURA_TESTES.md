@@ -17,12 +17,15 @@
 | Login admin | Curl com `x-tenant-id` resolvido | Cobertura indireta em API protegida | OK | `/api/admin/login` retornou 200 com admin seedado. |
 | Dashboard admin | Nao navegado visualmente nesta rodada | Sem Playwright dedicado | Pendente documentado | Requer expansao de testes de UI admin. |
 | Produtos/categorias admin | API protegida testada parcialmente | `backend-src/routes/api-smoke.spec.ts` | OK parcial | Criacao admin bloqueia sem token; CRUD visual nao navegado. |
-| PDV | Regras/status e endpoints mapeados | Playwright nao dedicado | Pendente documentado | Tela existe; criar teste UI PDV em proxima rodada. |
+| PDV | Caixa abre/fecha, venda por metodo e resumo validados por build | Playwright nao dedicado | OK parcial | Falta teste visual dedicado navegando abertura, venda, sangria e fechamento. |
 | Configuracoes | Curl `/api/configuracoes` | `backend-src/routes/api-smoke.spec.ts` | OK | Endpoint responde 200; sem validacao visual de salvar. |
 | Delivery/taxa | Checkout entrega calcula taxa | Playwright checkout | OK | Fluxo exibiu taxa calculada. |
 | Financeiro | Utilitarios e rotas mapeadas | Vitest API/servicos existentes | OK parcial | Sem navegacao visual completa. |
-| Contas a receber | Rotas/controladores mapeados | Vitest existente em servicos | OK parcial | Fluxo visual nao executado. |
+| Contas a receber | Rotas/controladores mapeados | Vitest existente em servicos | OK parcial | Fluxo visual nao executado; filtros/exportacao ainda pendentes. |
 | Orcamentos | Rotas/controladores mapeados | Sem Playwright dedicado | Pendente documentado | Modulo existe; precisa teste CRUD visual dedicado. |
 | Estoque/fichas tecnicas | Servicos cobertos por Vitest | `inventory`, `manufacturing`, `waste` specs | OK parcial | Fluxo visual nao executado. |
 | Smoke HTTP | Curls obrigatorios | `scripts/smoke-test.sh`, `scripts/smoke-test-fullstack.sh` | OK | Sem 502; containers healthy. |
 | Docker/WSL | Build e compose local; copia WSL aplicada | Docker build/up | OK | Builds web/API tambem passaram a partir da pasta WSL. |
+| Pagamento online | Provider MOCK/Mercado Pago estruturado; webhook idempotente | Typecheck/build API | OK parcial | Mercado Pago depende de credenciais sandbox reais para teste externo. |
+| Fiscal | Fiscal mock separado como demonstrativo | Typecheck/build API | OK parcial | NFC-e real ainda nao implementada; sem XML/PDF SEFAZ falso. |
+| Entregadores | Cadastro/listagem/edicao/ativacao no admin | Typecheck/build frontend | OK parcial | Falta comissao e relatorio por entregador. |

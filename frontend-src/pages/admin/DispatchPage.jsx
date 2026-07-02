@@ -9,6 +9,10 @@ export function DispatchPage() {
   const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [showDriverModal, setShowDriverModal] = useState(false);
+  const adminSession = JSON.parse(window.localStorage.getItem('pizzaria-admin') || '{}');
+  const sessionToken = adminSession?.token;
+  const sessionRole = adminSession?.role || 'ADMIN';
+  const canManageDrivers = ['OWNER', 'ADMIN', 'MANAGER'].includes(sessionRole);
 
   useEffect(() => {
     fetchData();
@@ -19,8 +23,12 @@ export function DispatchPage() {
   async function fetchData() {
     try {
       const [ordersRes, driversRes] = await Promise.all([
-        fetch('/api/admin/dispatch/ready-orders'),
-        fetch('/api/admin/dispatch/drivers')
+        fetch('/api/admin/dispatch/ready-orders', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        }),
+        fetch('/api/admin/dispatch/drivers', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        })
       ]);
 
       if (ordersRes.ok) {
@@ -43,7 +51,7 @@ export function DispatchPage() {
     try {
       const res = await fetch('/api/admin/dispatch/assign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify({ orderId, driverId })
       });
       if (res.ok) {
@@ -58,6 +66,26 @@ export function DispatchPage() {
     }
   }
 
+  async function handleMarkDelivered(orderId) {
+    try {
+      const res = await fetch(`/api/admin/dispatch/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({ status: 'DELIVERED' }),
+      });
+      if (res.ok) {
+        fetchData();
+        showSuccess('Entrega finalizada!');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Erro ao finalizar entrega.');
+      }
+    } catch (err) {
+      console.error(err);
+      showError('Erro de conexao.');
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden">
       <div className="flex-none flex justify-between items-center bg-white dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 shadow-sm">
@@ -67,16 +95,20 @@ export function DispatchPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-800 dark:text-white">Painel de Despacho</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Atribua pedidos prontos aos entregadores.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {sessionRole === 'DRIVER' ? 'Acompanhe suas entregas em rota.' : 'Atribua pedidos prontos aos entregadores.'}
+            </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowDriverModal(true)}
-          className="bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition"
-        >
-          <User size={18} />
-          Gerenciar Motoboys
-        </button>
+        {canManageDrivers && (
+          <button
+            onClick={() => setShowDriverModal(true)}
+            className="bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition"
+          >
+            <User size={18} />
+            Gerenciar Motoboys
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-4">
@@ -97,16 +129,20 @@ export function DispatchPage() {
                 key={order.id} 
                 order={order} 
                 drivers={drivers}
+                canAssign={canManageDrivers}
+                canCompleteDelivery={sessionRole === 'DRIVER'}
                 onAssign={(driverId) => handleAssignDriver(order.id, driverId)} 
+                onDelivered={() => handleMarkDelivered(order.id)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {showDriverModal && (
+      {showDriverModal && canManageDrivers && (
         <DriverModal
           drivers={drivers}
+          sessionToken={sessionToken}
           onClose={() => setShowDriverModal(false)}
           onRefresh={fetchData}
         />
@@ -115,7 +151,7 @@ export function DispatchPage() {
   );
 }
 
-function DispatchCard({ order, drivers, onAssign }) {
+function DispatchCard({ order, drivers, canAssign, canCompleteDelivery, onAssign, onDelivered }) {
   const [selectedDriver, setSelectedDriver] = useState('');
   
   const isAssigned = order.status === 'OUT_FOR_DELIVERY';
@@ -155,7 +191,7 @@ function DispatchCard({ order, drivers, onAssign }) {
         </div>
       </div>
 
-      {!isAssigned ? (
+      {!isAssigned && canAssign ? (
         <div className="flex flex-col gap-2 mt-auto">
           <select
             value={selectedDriver}
@@ -185,13 +221,23 @@ function DispatchCard({ order, drivers, onAssign }) {
             <p className="text-emerald-700 dark:text-emerald-400 font-medium">Em rota de entrega</p>
             <p className="text-emerald-600/80 dark:text-emerald-500/80 text-xs font-bold">Por {order.driver?.name}</p>
           </div>
+          {canCompleteDelivery && (
+            <button
+              type="button"
+              onClick={onDelivered}
+              className="ml-auto rounded-lg bg-emerald-600 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-700"
+            >
+              Finalizar
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function DriverModal({ drivers, onClose, onRefresh }) {
+function DriverModal({ drivers, sessionToken, onClose, onRefresh }) {
+  const [editingDriver, setEditingDriver] = useState(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [vehicle, setVehicle] = useState('');
@@ -203,23 +249,61 @@ function DriverModal({ drivers, onClose, onRefresh }) {
     if (!name.trim()) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/admin/dispatch/drivers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, vehicle })
-      });
+      const res = await fetch(
+        editingDriver
+          ? `/api/admin/dispatch/drivers/${editingDriver.id}`
+          : '/api/admin/dispatch/drivers',
+        {
+          method: editingDriver ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+          body: JSON.stringify({ name, phone, vehicle }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        showSuccess('Entregador criado com sucesso!');
-        setName('');
-        setPhone('');
-        setVehicle('');
+        showSuccess(editingDriver ? 'Entregador atualizado!' : 'Entregador criado com sucesso!');
+        resetForm();
         onRefresh();
       } else {
-        showError('Erro ao criar entregador.');
+        showError(data.error || 'Erro ao salvar entregador.');
       }
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleToggleActive(driver) {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/dispatch/drivers/${driver.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({ isActive: !driver.isActive }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showError(data.error || 'Erro ao alterar status do entregador.');
+        return;
+      }
+      showSuccess(driver.isActive ? 'Entregador desativado.' : 'Entregador ativado.');
+      onRefresh();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function resetForm() {
+    setEditingDriver(null);
+    setName('');
+    setPhone('');
+    setVehicle('');
+  }
+
+  function startEdit(driver) {
+    setEditingDriver(driver);
+    setName(driver.name || '');
+    setPhone(driver.phone || '');
+    setVehicle(driver.vehicle || '');
   }
 
   return (
@@ -234,7 +318,20 @@ function DriverModal({ drivers, onClose, onRefresh }) {
 
         <div className="p-6 overflow-y-auto">
           <form onSubmit={handleCreate} className="mb-6 flex flex-col gap-3 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
-            <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">Novo Entregador</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">
+                {editingDriver ? 'Editar Entregador' : 'Novo Entregador'}
+              </h3>
+              {editingDriver && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-lg px-2 py-1 text-xs font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancelar edicao
+                </button>
+              )}
+            </div>
             <input 
               type="text" placeholder="Nome" value={name} onChange={e => setName(e.target.value)}
               className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2" required 
@@ -250,7 +347,7 @@ function DriverModal({ drivers, onClose, onRefresh }) {
               />
             </div>
             <button type="submit" disabled={isSubmitting} className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-lg mt-2">
-              Adicionar
+              {editingDriver ? 'Salvar Alteracoes' : 'Adicionar'}
             </button>
           </form>
 
@@ -267,7 +364,27 @@ function DriverModal({ drivers, onClose, onRefresh }) {
                     {d.phone || 'Sem telefone'} {d.vehicle ? `• ${d.vehicle}` : ''}
                   </p>
                 </div>
-                {/* No futuro: botao de editar/desativar */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(d)}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleToggleActive(d)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      d.isActive
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-300'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300'
+                    }`}
+                  >
+                    {d.isActive ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
               </div>
             ))}
             {drivers.length === 0 && (

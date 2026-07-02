@@ -6,6 +6,13 @@ const API_BASE_URL = import.meta.env.PROD
   ? '/api' 
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
 export function OpenShiftModal({ isOpen, onOpen, adminData }) {
   const [registers, setRegisters] = useState([]);
   const [selectedRegister, setSelectedRegister] = useState('');
@@ -113,8 +120,40 @@ export function OpenShiftModal({ isOpen, onOpen, adminData }) {
 
 export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onClosed }) {
   const [closingCash, setClosingCash] = useState(0);
+  const [summary, setSummary] = useState(currentShift?.summary || null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen || !currentShift?.id) return;
+    let isMounted = true;
+
+    async function loadSummary() {
+      setIsLoadingSummary(true);
+      setError('');
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/pos/shift/${currentShift.id}/summary`, {
+          headers: { Authorization: `Bearer ${adminData?.token}` },
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.message || 'Erro ao carregar resumo do caixa.');
+        if (isMounted) {
+          setSummary(data);
+          setClosingCash(Number(data.expectedClosingCash ?? 0).toFixed(2));
+        }
+      } catch (err) {
+        if (isMounted) setError(err.message);
+      } finally {
+        if (isMounted) setIsLoadingSummary(false);
+      }
+    }
+
+    loadSummary();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, currentShift?.id, adminData?.token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -147,6 +186,54 @@ export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onCl
             {error}
           </div>
         )}
+        {isLoadingSummary ? (
+          <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Carregando resumo do caixa...
+          </div>
+        ) : summary ? (
+          <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-400">Troco inicial</p>
+                <p className="font-black text-slate-900 dark:text-white">
+                  {formatMoney(summary.openingCash)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-slate-400">Esperado gaveta</p>
+                <p className="font-black text-emerald-700 dark:text-emerald-300">
+                  {formatMoney(summary.expectedClosingCash)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-slate-400">Sangrias</p>
+                <p className="font-black text-rose-600">{formatMoney(summary.sangria)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-slate-400">Suprimentos</p>
+                <p className="font-black text-sky-600">{formatMoney(summary.suprimento)}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
+              <p className="mb-2 text-xs font-black uppercase text-slate-400">Vendas por metodo</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.entries(summary.salesByMethod || {}).map(([method, amount]) => (
+                  <div
+                    key={method}
+                    className="flex items-center justify-between rounded-lg bg-white px-3 py-2 font-bold dark:bg-slate-900"
+                  >
+                    <span>{method}</span>
+                    <span>{formatMoney(amount)}</span>
+                  </div>
+                ))}
+                {Object.keys(summary.salesByMethod || {}).length === 0 && (
+                  <p className="col-span-2 text-sm font-bold text-slate-500">Sem vendas no caixa.</p>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
         <div>
           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
             Valor contado em Gaveta (R$)

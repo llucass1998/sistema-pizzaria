@@ -36,8 +36,10 @@ export function POSPage() {
   // Shift Management
   const [currentShift, setCurrentShift] = useState(null);
   const [isShiftLoading, setIsShiftLoading] = useState(true);
+  const [isOpenShiftModalOpen, setIsOpenShiftModalOpen] = useState(false);
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
 
   // Modal State for Product Options
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -60,6 +62,7 @@ export function POSPage() {
         if (shiftRes.ok) {
           const shiftData = await shiftRes.json();
           setCurrentShift(shiftData);
+          if (!shiftData) setIsOpenShiftModalOpen(true);
         }
         setIsShiftLoading(false);
 
@@ -157,6 +160,11 @@ export function POSPage() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (!isShiftOpen) {
+      showError('Abra o caixa antes de finalizar vendas no PDV.');
+      setIsOpenShiftModalOpen(true);
+      return;
+    }
     setIsSubmitting(true);
     setError('');
 
@@ -170,6 +178,7 @@ export function POSPage() {
           optionIds: [...item.addonIds, item.crustId].filter(Boolean),
           notes: '',
         })),
+        paymentMethod,
         notes: 'Pedido via Balcão',
       };
 
@@ -190,6 +199,10 @@ export function POSPage() {
       setCart([]);
       setCustomerInfo({ name: '', phone: '' });
       showSuccess('Pedido gerado com sucesso! Já foi enviado para a cozinha.');
+      const shiftRes = await fetch(`${API_BASE_URL}/admin/pos/shift/current`, {
+        headers: { Authorization: `Bearer ${adminData?.token}` },
+      });
+      if (shiftRes.ok) setCurrentShift(await shiftRes.json());
     } catch (err) {
       showError(err.message || 'Erro ao gerar pedido');
     } finally {
@@ -316,6 +329,21 @@ export function POSPage() {
               </button>
             </div>
           )}
+          {!isShiftOpen && !isShiftLoading && (
+            <button
+              type="button"
+              onClick={() => setIsOpenShiftModalOpen(true)}
+              className="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-black text-white transition hover:bg-red-700"
+            >
+              Abrir caixa para vender
+            </button>
+          )}
+          {isShiftOpen && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+              Caixa aberto: {currentShift.cashRegister?.name || 'Caixa'} | Gaveta esperada:{' '}
+              {formatCurrency(currentShift.summary?.expectedClosingCash || 0)}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
@@ -388,9 +416,31 @@ export function POSPage() {
             </span>
           </div>
 
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            {[
+              ['CASH', 'Dinheiro'],
+              ['PIX', 'PIX'],
+              ['DEBIT_CARD', 'Debito'],
+              ['CREDIT_CARD', 'Credito'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPaymentMethod(value)}
+                className={`h-10 rounded-lg border text-sm font-black transition ${
+                  paymentMethod === value
+                    ? 'border-green-600 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={handleCheckout}
-            disabled={cart.length === 0 || isSubmitting}
+            disabled={cart.length === 0 || isSubmitting || !isShiftOpen}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-black py-4 rounded-xl text-lg transition flex items-center justify-center gap-2 shadow-lg hover:shadow-green-600/20 active:scale-[0.98]"
           >
             {isSubmitting ? 'Processando...' : 'Finalizar Pedido (Balcão)'}
@@ -456,6 +506,41 @@ export function POSPage() {
           </div>
         </div>
       )}
+
+      <OpenShiftModal
+        isOpen={isOpenShiftModalOpen}
+        onOpen={(shift) => {
+          setCurrentShift(shift);
+          setIsOpenShiftModalOpen(false);
+        }}
+        adminData={adminData}
+      />
+      <CloseShiftModal
+        isOpen={isCloseShiftModalOpen}
+        onClose={() => setIsCloseShiftModalOpen(false)}
+        currentShift={currentShift}
+        adminData={adminData}
+        onClosed={(shift) => {
+          setCurrentShift(null);
+          setIsCloseShiftModalOpen(false);
+          showSuccess(
+            `Caixa fechado. Diferenca: ${formatCurrency(shift.summary?.difference || 0)}`,
+          );
+        }}
+      />
+      <CashTransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        currentShift={currentShift}
+        adminData={adminData}
+        onTransaction={async () => {
+          const shiftRes = await fetch(`${API_BASE_URL}/admin/pos/shift/current`, {
+            headers: { Authorization: `Bearer ${adminData?.token}` },
+          });
+          if (shiftRes.ok) setCurrentShift(await shiftRes.json());
+          showSuccess('Movimentacao registrada.');
+        }}
+      />
     </div>
   );
 }

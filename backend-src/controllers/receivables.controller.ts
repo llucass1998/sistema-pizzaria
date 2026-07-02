@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { getTenantId } from '../core/context/TenantContext.js';
+import { calculatePaymentState } from '../services/orderFinancial.service.js';
 
 const recordPaymentSchema = z.object({
   amount: z.number().min(0.01),
@@ -68,12 +69,24 @@ export const ReceivablesController = {
       });
 
       const totalPaid = totalPaidBefore + Number(payload.amount);
-      const newStatus = totalPaid >= totalAmount ? 'PAID' : 'PARTIAL';
+      const paymentState = calculatePaymentState(totalAmount, totalPaid);
+      const paidAt = paymentState.orderPaymentStatus === 'PAID' ? new Date() : null;
 
       await tx.invoice.updateMany({
         where: { id: invoiceId, tenantId },
-        data: { status: newStatus }
+        data: { status: paymentState.invoiceStatus }
       });
+
+      if (currentInvoice.orderId) {
+        await tx.order.updateMany({
+          where: { id: currentInvoice.orderId, tenantId },
+          data: {
+            paymentMethod: payload.method,
+            paymentStatus: paymentState.orderPaymentStatus,
+            ...(paidAt ? { paidAt } : {}),
+          },
+        });
+      }
 
       return tx.invoice.findFirstOrThrow({
         where: { id: invoiceId, tenantId },

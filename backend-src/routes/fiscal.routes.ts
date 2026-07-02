@@ -16,7 +16,7 @@ fiscalRoutes.post(
     const doc = await FiscalService.issueNfce(orderId);
     
     res.json({
-      message: 'NFC-e emitida com sucesso (MOCK)',
+      message: 'Fiscal demonstrativo registrado. Nenhuma NFC-e real foi emitida.',
       document: doc
     });
   })

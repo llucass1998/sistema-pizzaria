@@ -43,8 +43,12 @@ export function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [liveStatus, setLiveStatus] = useState('connecting');
   const [printingOrder, setPrintingOrder] = useState(null);
   const { showSuccess, showError } = useToast();
+  const eventSourceRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   function handlePrint(order) {
     setPrintingOrder(order);
@@ -60,8 +64,45 @@ export function OrdersPage() {
     setPrintingOrder(null);
   }
 
+  function getAdminSession() {
+    try {
+      return JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function stopPollingFallback() {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }
+
+  const mergeOrder = useCallback((incomingOrder) => {
+    if (!incomingOrder?.id) return;
+
+    setOrders((current) => {
+      const exists = current.some((order) => order.id === incomingOrder.id);
+      const nextOrders = exists
+        ? current.map((order) => (order.id === incomingOrder.id ? { ...order, ...incomingOrder } : order))
+        : [incomingOrder, ...current];
+
+      return nextOrders.sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0));
+    });
+
+    if (incomingOrder.status === 'PENDING' && !knownPendingIds.current.has(incomingOrder.id)) {
+      knownPendingIds.current.add(incomingOrder.id);
+      playBeep();
+    }
+
+    if (incomingOrder.status !== 'PENDING') {
+      knownPendingIds.current.delete(incomingOrder.id);
+    }
+  }, []);
+
   async function handleIssueNfce(order) {
-    if (!window.confirm('Emitir NFC-e para este pedido?')) return;
+    if (!window.confirm('Registrar fiscal demonstrativo para este pedido? Nenhuma NFC-e real sera emitida.')) return;
     try {
       const tenantId = window.localStorage.getItem('pizzaria-tenant-id') || '';
       const headers = { 'Content-Type': 'application/json' };
@@ -73,7 +114,7 @@ export function OrdersPage() {
         headers
       });
       if (res.ok) {
-        showSuccess('NFC-e emitida com sucesso (MOCK).');
+        showSuccess('Fiscal demonstrativo registrado. Nenhuma NFC-e real foi emitida.');
         fetchOrders();
       } else {
         const err = await res.json();
@@ -86,9 +127,8 @@ export function OrdersPage() {
 
   const fetchOrders = useCallback(async (isPolling = false) => {
     try {
-      const adminDataStr = window.localStorage.getItem('pizzaria-admin');
-      if (!adminDataStr) return;
-      const adminData = JSON.parse(adminDataStr);
+      const adminData = getAdminSession();
+      if (!adminData?.token) return;
       
       const response = await fetch(`${API_BASE_URL}/pedidos?limit=80`, {
         headers: {
@@ -136,31 +176,93 @@ export function OrdersPage() {
     }
   }, []);
 
-  // Initial load and polling setup
+  const startPollingFallback = useCallback(() => {
+    if (pollingIntervalRef.current) return;
+    fetchOrders(true);
+    pollingIntervalRef.current = setInterval(() => {
+      fetchOrders(true);
+    }, 20000);
+  }, [fetchOrders]);
+
+  const connectOrderEvents = useCallback(() => {
+    const adminData = getAdminSession();
+    if (!adminData?.token || typeof EventSource === 'undefined') {
+      setLiveStatus('polling');
+      startPollingFallback();
+      return;
+    }
+
+    eventSourceRef.current?.close();
+    setLiveStatus('connecting');
+
+    const source = new EventSource(`${API_BASE_URL}/orders/events`, {
+      withCredentials: true,
+    });
+    eventSourceRef.current = source;
+
+    source.addEventListener('connected', () => {
+      setLiveStatus('connected');
+      setError('');
+      stopPollingFallback();
+    });
+
+    source.addEventListener('order-created', (event) => {
+      mergeOrder(JSON.parse(event.data));
+    });
+
+    source.addEventListener('order-updated', (event) => {
+      mergeOrder(JSON.parse(event.data));
+    });
+
+    source.addEventListener('order-assigned', (event) => {
+      mergeOrder(JSON.parse(event.data));
+    });
+
+    source.addEventListener('order-status-changed', (event) => {
+      const payload = JSON.parse(event.data);
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === payload.id ? { ...order, status: payload.status, updatedAt: payload.updatedAt ?? order.updatedAt } : order,
+        ),
+      );
+
+      if (payload.status !== 'PENDING') {
+        knownPendingIds.current.delete(payload.id);
+      }
+    });
+
+    source.onerror = () => {
+      setLiveStatus('polling');
+      setError('Conexao em tempo real caiu. Usando atualizacao automatica.');
+      source.close();
+      startPollingFallback();
+      reconnectTimeoutRef.current = setTimeout(connectOrderEvents, 10000);
+    };
+  }, [fetchOrders, mergeOrder, startPollingFallback]);
+
+  // Initial load and live updates setup
   useEffect(() => {
     let isMounted = true;
     
-    // Initial load
     fetchOrders().then(() => {
       if (!isMounted) return;
-      // Setup polling every 20 seconds
-      const intervalId = setInterval(() => {
-        fetchOrders(true);
-      }, 20000);
-      
-      return () => clearInterval(intervalId);
+      connectOrderEvents();
     });
 
     return () => {
       isMounted = false;
+      eventSourceRef.current?.close();
+      stopPollingFallback();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, [fetchOrders]);
+  }, [connectOrderEvents, fetchOrders]);
 
   async function updateOrderStatus(orderId, status) {
     try {
-      const adminDataStr = window.localStorage.getItem('pizzaria-admin');
-      if (!adminDataStr) return;
-      const adminData = JSON.parse(adminDataStr);
+      const adminData = getAdminSession();
+      if (!adminData?.token) return;
 
       const response = await fetch(`${API_BASE_URL}/pedidos/${orderId}/status`, {
         method: 'PATCH',
@@ -225,7 +327,20 @@ export function OrdersPage() {
       <div className="mb-6 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white">Gestão Live (Kanban)</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Acompanhe e avance o status dos pedidos. (Auto-atualiza a cada 20s)</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Acompanhe e avance o status dos pedidos.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-black uppercase ${
+              liveStatus === 'connected'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : liveStatus === 'connecting'
+                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+            }`}
+          >
+            {liveStatus === 'connected' ? 'Tempo real' : liveStatus === 'connecting' ? 'Conectando' : 'Fallback'}
+          </span>
         </div>
         
         {error && (
@@ -264,7 +379,7 @@ export function OrdersPage() {
                       <button 
                         onClick={() => handleIssueNfce(order)}
                         className="text-slate-400 hover:text-blue-600 transition"
-                        title="Emitir NFC-e"
+                        title="Registrar fiscal demonstrativo"
                       >
                         <FileText size={16} />
                       </button>

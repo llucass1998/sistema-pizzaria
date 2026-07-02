@@ -57,6 +57,25 @@ const API_BASE_URL = import.meta.env.PROD
 const savedCustomerKey = 'pizzaria-customer';
 const savedThemeKey = 'pizzaria-theme';
 const savedCartKey = 'pizzaria-cart';
+const ADMIN_ROUTE_ROLES = {
+  dashboard: ['OWNER', 'ADMIN', 'MANAGER'],
+  orders: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'],
+  products: ['OWNER', 'ADMIN', 'MANAGER'],
+  categories: ['OWNER', 'ADMIN', 'MANAGER'],
+  options: ['OWNER', 'ADMIN', 'MANAGER'],
+  crm: ['OWNER', 'ADMIN', 'MANAGER'],
+  coupons: ['OWNER', 'ADMIN', 'MANAGER'],
+  inventory: ['OWNER', 'ADMIN', 'MANAGER'],
+  recipes: ['OWNER', 'ADMIN', 'MANAGER'],
+  users: ['OWNER', 'ADMIN'],
+  pos: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  kds: ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN'],
+  dispatch: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
+  settings: ['OWNER', 'ADMIN'],
+  purchases: ['OWNER', 'ADMIN', 'MANAGER'],
+  quotes: ['OWNER', 'ADMIN', 'MANAGER'],
+  receivables: ['OWNER', 'ADMIN', 'MANAGER'],
+};
 const addonOptions = [
   {
     id: 'borda-catupiry',
@@ -191,6 +210,39 @@ function getInitialDarkMode() {
   }
 
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
+function getSavedAdminRole() {
+  try {
+    const session = JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
+    return session?.role || 'ADMIN';
+  } catch {
+    return 'ADMIN';
+  }
+}
+
+function AdminIndexRedirect() {
+  const role = getSavedAdminRole();
+  return <Navigate to={role === 'DRIVER' ? '/admin/dispatch' : '/admin/dashboard'} replace />;
+}
+
+function AccessDenied() {
+  return (
+    <div className="flex min-h-[420px] items-center justify-center p-6">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="text-xl font-black text-slate-900 dark:text-slate-100">Acesso negado</h1>
+        <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Seu perfil nao tem permissao para acessar esta area.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function ProtectedAdminRoute({ routeKey, children }) {
+  const role = getSavedAdminRole();
+  const allowedRoles = ADMIN_ROUTE_ROLES[routeKey] ?? [];
+  return allowedRoles.includes(role) ? children : <AccessDenied />;
 }
 
 function getSavedCartItems() {
@@ -959,24 +1011,24 @@ export default function PizzariaApp() {
                 path="/admin"
                 element={<AdminLayout isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />}
               >
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="options" element={<OptionsPage />} />
-                <Route path="crm" element={<CRMPage />} />
-                <Route path="coupons" element={<CouponsPage />} />
-                <Route path="inventory" element={<InventoryPage />} />
-                <Route path="recipes" element={<RecipesPage />} />
-                <Route path="users" element={<AdminsPage />} />
-                <Route path="pos" element={<POSPage />} />
-                <Route path="kds" element={<KDSPage />} />
-                <Route path="dispatch" element={<DispatchPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="purchases" element={<Purchases />} />
-                <Route path="quotes" element={<Quotes />} />
-                <Route path="receivables" element={<AccountsReceivable />} />
+                <Route index element={<AdminIndexRedirect />} />
+                <Route path="dashboard" element={<ProtectedAdminRoute routeKey="dashboard"><DashboardPage /></ProtectedAdminRoute>} />
+                <Route path="orders" element={<ProtectedAdminRoute routeKey="orders"><OrdersPage /></ProtectedAdminRoute>} />
+                <Route path="products" element={<ProtectedAdminRoute routeKey="products"><ProductsPage /></ProtectedAdminRoute>} />
+                <Route path="categories" element={<ProtectedAdminRoute routeKey="categories"><CategoriesPage /></ProtectedAdminRoute>} />
+                <Route path="options" element={<ProtectedAdminRoute routeKey="options"><OptionsPage /></ProtectedAdminRoute>} />
+                <Route path="crm" element={<ProtectedAdminRoute routeKey="crm"><CRMPage /></ProtectedAdminRoute>} />
+                <Route path="coupons" element={<ProtectedAdminRoute routeKey="coupons"><CouponsPage /></ProtectedAdminRoute>} />
+                <Route path="inventory" element={<ProtectedAdminRoute routeKey="inventory"><InventoryPage /></ProtectedAdminRoute>} />
+                <Route path="recipes" element={<ProtectedAdminRoute routeKey="recipes"><RecipesPage /></ProtectedAdminRoute>} />
+                <Route path="users" element={<ProtectedAdminRoute routeKey="users"><AdminsPage /></ProtectedAdminRoute>} />
+                <Route path="pos" element={<ProtectedAdminRoute routeKey="pos"><POSPage /></ProtectedAdminRoute>} />
+                <Route path="kds" element={<ProtectedAdminRoute routeKey="kds"><KDSPage /></ProtectedAdminRoute>} />
+                <Route path="dispatch" element={<ProtectedAdminRoute routeKey="dispatch"><DispatchPage /></ProtectedAdminRoute>} />
+                <Route path="settings" element={<ProtectedAdminRoute routeKey="settings"><SettingsPage /></ProtectedAdminRoute>} />
+                <Route path="purchases" element={<ProtectedAdminRoute routeKey="purchases"><Purchases /></ProtectedAdminRoute>} />
+                <Route path="quotes" element={<ProtectedAdminRoute routeKey="quotes"><Quotes /></ProtectedAdminRoute>} />
+                <Route path="receivables" element={<ProtectedAdminRoute routeKey="receivables"><AccountsReceivable /></ProtectedAdminRoute>} />
               </Route>
             </Routes>
           </HashRouter>

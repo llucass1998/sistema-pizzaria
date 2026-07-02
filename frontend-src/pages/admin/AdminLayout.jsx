@@ -60,7 +60,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         to: '/admin/dispatch',
         icon: Truck,
         label: 'Despacho',
-        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
       },
       {
         to: '/admin/dashboard',
@@ -201,7 +201,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-white truncate">{admin.name}</p>
-                <p className="text-xs text-slate-500 truncate">Administrador</p>
+                <p className="text-xs text-slate-500 truncate">
+                  {role === 'DRIVER' ? 'Entregador' : 'Administrador'}
+                </p>
               </div>
             </div>
             <div className="space-y-2">

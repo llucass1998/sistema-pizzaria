@@ -9,6 +9,8 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 import { couponRoutes } from './coupon.routes.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireRole } from '../middlewares/requireRole.js';
+import { getOrderPaymentStatus, getPrimaryPaymentMethod } from '../services/orderFinancial.service.js';
+import { normalizeAdminRole } from '../utils/adminRoles.js';
 
 export const adminRoutes = Router();
 
@@ -152,6 +154,9 @@ adminRoutes.get(
       select: {
         id: true,
         status: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        paidAt: true,
         total: true,
         createdAt: true,
         items: {
@@ -164,6 +169,7 @@ adminRoutes.get(
         },
         invoice: {
           select: {
+            status: true,
             payments: {
               select: {
                 method: true,
@@ -176,6 +182,8 @@ adminRoutes.get(
     });
 
     let totalRevenue = 0;
+    let pendingRevenue = 0;
+    let cancelledRevenue = 0;
     let completedOrders = 0;
     let pendingOrders = 0;
     let cancelledOrders = 0;
@@ -196,18 +204,38 @@ adminRoutes.get(
 
       if (order.status === 'DELIVERED') {
         completedOrders++;
-        const orderTotal = Number(order.total?.toString() || 0);
-        totalRevenue += orderTotal;
+      } else if (order.status === 'CANCELED') {
+        cancelledOrders++;
+      } else if (['PENDING', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.status)) {
+        pendingOrders++;
+      }
 
-        // 2. Revenue by hour (only for delivered orders)
+      const orderTotal = Number(order.total?.toString() || 0);
+      const paymentStatus = getOrderPaymentStatus(order);
+      const paidFromInvoice =
+        order.invoice?.payments?.reduce(
+          (sum, payment) => sum + Number(payment.amount?.toString() || 0),
+          0,
+        ) ?? 0;
+      const paidAmount = paymentStatus === 'PAID' && paidFromInvoice === 0 ? orderTotal : paidFromInvoice;
+
+      if (paymentStatus === 'CANCELED') {
+        cancelledRevenue += orderTotal;
+        continue;
+      }
+
+      if (paidAmount > 0) {
+        totalRevenue += paidAmount;
+
+        // 2. Revenue by hour (paid revenue)
         const hour = order.createdAt.getHours();
         const hourLabel = `${String(hour).padStart(2, '0')}h`;
         const hourData = revenueByHourMap.get(hour) || { hour: hourLabel, revenue: 0, orders: 0 };
-        hourData.revenue += orderTotal;
+        hourData.revenue += paidAmount;
         hourData.orders += 1;
         revenueByHourMap.set(hour, hourData);
 
-        // 3. Top Products (only for delivered orders)
+        // 3. Top Products (paid orders)
         for (const item of order.items) {
           if (!item.product) continue;
           const prodKey = item.productId;
@@ -217,17 +245,20 @@ adminRoutes.get(
           topProductsMap.set(prodKey, prodData);
         }
 
-        // 4. Payments by Method (only for delivered orders, from invoices)
-        if (order.invoice && order.invoice.payments) {
+        // 4. Payments by Method (real payments first, then paid order fallback)
+        if (order.invoice?.payments?.length) {
           for (const payment of order.invoice.payments) {
             const methodKey = payment.method;
             paymentsByMethodMap.set(methodKey, (paymentsByMethodMap.get(methodKey) || 0) + Number(payment.amount?.toString() || 0));
           }
+        } else {
+          const methodKey = getPrimaryPaymentMethod(order);
+          paymentsByMethodMap.set(methodKey, (paymentsByMethodMap.get(methodKey) || 0) + paidAmount);
         }
-      } else if (order.status === 'CANCELED') {
-        cancelledOrders++;
-      } else if (['PENDING', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.status)) {
-        pendingOrders++;
+      }
+
+      if (paymentStatus === 'PENDING' || paymentStatus === 'PARTIALLY_PAID') {
+        pendingRevenue += Math.max(0, orderTotal - paidAmount);
       }
     }
 
@@ -273,6 +304,9 @@ adminRoutes.get(
     res.json({
       summary: {
         totalRevenue,
+        paidRevenue: totalRevenue,
+        pendingRevenue,
+        cancelledRevenue,
         completedOrders,
         pendingOrders,
         cancelledOrders,
@@ -356,7 +390,7 @@ adminRoutes.post(
     const name = normalizeText(req.body.name);
     const email = normalizeEmail(req.body.email);
     const password = normalizeText(req.body.password);
-    const role = normalizeText(req.body.role);
+    const role = normalizeAdminRole(req.body.role);
 
     if (!name || !email || !password || !role) {
       res.status(400).json({ message: 'Informe nome, email, senha e permissão.' });
@@ -364,7 +398,7 @@ adminRoutes.post(
     }
 
     const existing = await prisma.admin.findFirst({
-      where: { email }
+      where: { tenantId, email }
     });
 
     if (existing) {
@@ -372,15 +406,32 @@ adminRoutes.post(
       return;
     }
 
-    const admin = await prisma.admin.create({
-      data: {
-        tenantId,
-        name,
-        email,
-        passwordHash: await hashPassword(password),
-        role
-      },
-      select: adminSelect
+    const admin = await prisma.$transaction(async (tx) => {
+      const createdAdmin = await tx.admin.create({
+        data: {
+          tenantId,
+          name,
+          email,
+          passwordHash: await hashPassword(password),
+          role
+        },
+        select: adminSelect
+      });
+
+      if (role === 'DRIVER') {
+        await tx.driver.create({
+          data: {
+            tenantId,
+            adminId: createdAdmin.id,
+            name,
+            phone: null,
+            vehicle: null,
+            isActive: true,
+          },
+        });
+      }
+
+      return createdAdmin;
     });
 
     res.status(201).json(admin);
@@ -394,7 +445,7 @@ adminRoutes.patch(
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
     const id = req.params.id as string;
-    const role = normalizeText(req.body.role);
+    const role = normalizeAdminRole(req.body.role);
 
     if (!role) {
       res.status(400).json({ message: 'Informe a nova permissão.' });
@@ -408,10 +459,38 @@ adminRoutes.patch(
       return;
     }
 
-    const admin = await prisma.admin.update({
-      where: { id, tenantId },
-      data: { role },
-      select: adminSelect
+    const admin = await prisma.$transaction(async (tx) => {
+      const updatedAdmin = await tx.admin.update({
+        where: { id, tenantId },
+        data: { role },
+        select: adminSelect
+      });
+
+      if (role === 'DRIVER') {
+        const existingDriver = await tx.driver.findFirst({
+          where: { tenantId, adminId: id },
+          select: { id: true },
+        });
+        if (!existingDriver) {
+          await tx.driver.create({
+            data: {
+              tenantId,
+              adminId: id,
+              name: targetAdmin?.name ?? updatedAdmin.name,
+              phone: null,
+              vehicle: null,
+              isActive: true,
+            },
+          });
+        }
+      } else {
+        await tx.driver.updateMany({
+          where: { tenantId, adminId: id },
+          data: { adminId: null },
+        });
+      }
+
+      return updatedAdmin;
     });
 
     res.json(admin);

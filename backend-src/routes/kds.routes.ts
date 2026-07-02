@@ -9,6 +9,7 @@ import { normalizeText } from '../utils/normalize.js';
 import { validateStatusTransition } from '../utils/orderStateMachine.js';
 import { FulfillmentType, OrderStatus } from '../../generated/prisma/index.js';
 import { InventoryService } from '../services/inventory.service.js';
+import { emitOrderEvent } from '../services/orderEvents.service.js';
 
 export const kdsRouter = Router();
 
@@ -244,6 +245,8 @@ kdsRouter.post(
       return findKdsOrder(item.orderId, tenantId, tx);
     });
 
+    emitOrderEvent(tenantId, 'order-updated', order as any);
+
     res.json(serializeOrder(order));
   }),
 );
@@ -312,7 +315,18 @@ kdsRouter.post(
       return findKdsOrder(orderId, tenantId, tx);
     });
 
-    res.json(serializeOrder(order));
+    const serializedOrder = serializeOrder(order);
+    if (targetStatus !== existing.status) {
+      emitOrderEvent(tenantId, 'order-status-changed', {
+        id: order.id,
+        status: targetStatus,
+        previousStatus: existing.status,
+        updatedAt: order.updatedAt,
+      });
+      emitOrderEvent(tenantId, 'order-updated', order as any);
+    }
+
+    res.json(serializedOrder);
   }),
 );
 
@@ -374,6 +388,15 @@ kdsRouter.post(
       return findKdsOrder(orderId, tenantId, tx);
     });
 
-    res.json(serializeOrder(order));
+    const serializedOrder = serializeOrder(order);
+    emitOrderEvent(tenantId, 'order-status-changed', {
+      id: order.id,
+      status: OrderStatus.OUT_FOR_DELIVERY,
+      previousStatus: existing.status,
+      updatedAt: order.updatedAt,
+    });
+    emitOrderEvent(tenantId, 'order-updated', order as any);
+
+    res.json(serializedOrder);
   }),
 );

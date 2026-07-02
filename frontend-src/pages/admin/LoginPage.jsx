@@ -36,8 +36,7 @@ export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
         role: data.role,
       }));
       
-      // Redirect to the dashboard
-      navigate('/admin/dashboard', { replace: true });
+      navigate(data.role === 'DRIVER' ? '/admin/dispatch' : '/admin/dashboard', { replace: true });
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Erro ao entrar.');
     } finally {

@@ -71,18 +71,18 @@ export function DashboardPage() {
 
   const cards = [
     {
-      title: 'Faturamento de Hoje',
+      title: 'Faturamento Pago',
       value: formatCurrencySafe(metrics?.totalRevenue),
       icon: DollarSign,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-950/30',
     },
     {
-      title: 'Pedidos Finalizados',
-      value: metrics?.completedOrders ?? 0,
+      title: 'A Receber Hoje',
+      value: formatCurrencySafe(metrics?.pendingRevenue),
       icon: ShoppingBag,
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-950/30',
+      color: 'text-sky-600 dark:text-sky-400',
+      bg: 'bg-sky-50 dark:bg-sky-950/30',
     },
     {
       title: 'Pedidos em Andamento',

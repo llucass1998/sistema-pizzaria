@@ -96,7 +96,7 @@ export default function AccountsReceivable() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-orange-700 dark:bg-orange-950/40 dark:text-orange-300">
-                          <AlertCircle size={16} /> {inv.status === 'PARTIAL' ? 'Parcial' : 'Pendente'}
+                          <AlertCircle size={16} /> {['PARTIAL', 'PARTIALLY_PAID'].includes(inv.status) ? 'Parcial' : 'Pendente'}
                         </span>
                       )}
                       {!isCompleted && (

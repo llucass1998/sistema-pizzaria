@@ -5,6 +5,8 @@ import { getTenantId } from '../core/context/TenantContext.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { normalizeText, parseMoney } from '../utils/normalize.js';
+import { FINANCIAL_STATUS, normalizePaymentMethod } from '../services/orderFinancial.service.js';
+import { emitOrderEvent } from '../services/orderEvents.service.js';
 
 const posRouter = Router();
 
@@ -52,6 +54,76 @@ type ValidPosOrderItemInput = {
   customizations: string | null;
 };
 
+function buildShiftSummary(shift: any) {
+  const transactions = Array.isArray(shift?.transactions) ? shift.transactions : [];
+  const openingCash = Number(shift?.openingCash ?? 0);
+  const salesByMethod: Record<string, number> = transactions
+    .filter((transaction: any) => transaction.type === 'SALE')
+    .reduce((summary: Record<string, number>, transaction: any) => {
+      const method = transaction.paymentMethodId || 'UNKNOWN';
+      summary[method] = (summary[method] ?? 0) + Number(transaction.amount ?? 0);
+      return summary;
+    }, {} as Record<string, number>);
+  const sangria = transactions
+    .filter((transaction: any) => transaction.type === 'SANGRIA')
+    .reduce((total: number, transaction: any) => total + Number(transaction.amount ?? 0), 0);
+  const suprimento = transactions
+    .filter((transaction: any) => transaction.type === 'SUPRIMENTO')
+    .reduce((total: number, transaction: any) => total + Number(transaction.amount ?? 0), 0);
+  const cashSales = Number(salesByMethod.CASH ?? 0);
+  const expectedClosingCash = openingCash + cashSales + suprimento - sangria;
+  const actualClosingCash =
+    shift?.actualClosingCash === null || shift?.actualClosingCash === undefined
+      ? null
+      : Number(shift.actualClosingCash);
+
+  return {
+    openingCash,
+    salesByMethod,
+    totalSales: Object.values(salesByMethod).reduce(
+      (total: number, value: number) => total + value,
+      0,
+    ),
+    sangria,
+    suprimento,
+    expectedClosingCash,
+    actualClosingCash,
+    difference:
+      actualClosingCash === null ? null : Number((actualClosingCash - expectedClosingCash).toFixed(2)),
+    transactions: transactions.map((transaction: any) => ({
+      id: transaction.id,
+      type: transaction.type,
+      amount: Number(transaction.amount ?? 0),
+      description: transaction.description,
+      paymentMethodId: transaction.paymentMethodId,
+      createdAt: transaction.createdAt,
+    })),
+  };
+}
+
+async function findShiftWithSummary(tenantId: string, shiftId?: string) {
+  const shift = shiftId
+    ? await prisma.shift.findFirst({
+        where: { id: shiftId, tenantId },
+        include: {
+          admin: true,
+          cashRegister: true,
+          transactions: { orderBy: { createdAt: 'desc' } },
+        },
+      })
+    : await prisma.shift.findFirst({
+        where: { tenantId, status: 'OPEN' },
+        orderBy: { startTime: 'desc' },
+        include: {
+          admin: true,
+          cashRegister: true,
+          transactions: { orderBy: { createdAt: 'desc' } },
+        },
+      });
+
+  return shift ? { ...shift, summary: buildShiftSummary(shift) } : null;
+}
+
 posRouter.get(
   '/shift/registers',
   asyncHandler(async (_req, res) => {
@@ -92,13 +164,22 @@ posRouter.get(
   '/shift/current',
   asyncHandler(async (_req, res) => {
     const tenantId = getTenantId();
-    const shift = await prisma.shift.findFirst({
-      where: { tenantId, status: 'OPEN' },
-      orderBy: { startTime: 'desc' },
-      include: { admin: true, cashRegister: true },
-    });
-
+    const shift = await findShiftWithSummary(tenantId);
     res.json(shift);
+  }),
+);
+
+posRouter.get(
+  '/shift/:shiftId/summary',
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const shiftId = normalizeText(req.params.shiftId);
+    const shift = await findShiftWithSummary(tenantId, shiftId);
+    if (!shift) {
+      res.status(404).json({ message: 'Caixa nao encontrado.' });
+      return;
+    }
+    res.json(shift.summary);
   }),
 );
 
@@ -157,17 +238,28 @@ posRouter.post(
       return;
     }
 
+    const shiftWithTransactions = await findShiftWithSummary(tenantId, shiftId);
+    const expectedClosingCash = Number(shiftWithTransactions?.summary.expectedClosingCash ?? 0);
+    const difference = closingCash - expectedClosingCash;
+
     const updatedShift = await prisma.shift.update({
       where: { id: shiftId },
       data: {
+        expectedClosingCash: expectedClosingCash.toFixed(2),
         actualClosingCash: closingCash.toFixed(2),
+        difference: difference.toFixed(2),
         status: 'CLOSED',
         endTime: new Date(),
         closedById: (req as any).adminId,
       },
+      include: {
+        admin: true,
+        cashRegister: true,
+        transactions: { orderBy: { createdAt: 'desc' } },
+      },
     });
 
-    res.json(updatedShift);
+    res.json({ ...updatedShift, summary: buildShiftSummary(updatedShift) });
   }),
 );
 
@@ -217,8 +309,9 @@ posRouter.post(
     const rawItems = Array.isArray(req.body.items) ? req.body.items : [];
     const tableName = normalizeText(req.body.tableName) || 'Balcao';
     const attendant = normalizeText(req.body.attendant) || 'PDV';
-    const paymentMethod = normalizeText(req.body.paymentMethod).toUpperCase() || 'CASH';
+    const paymentMethod = normalizePaymentMethod(req.body.paymentMethod, 'CASH');
     const notes = normalizeText(req.body.notes) || null;
+    const paidAt = new Date();
 
     if (rawItems.length === 0) {
       res.status(400).json({ message: 'Adicione pelo menos um item ao pedido.' });
@@ -353,6 +446,9 @@ posRouter.post(
           customerId: customer.id,
           fulfillmentType: 'PICKUP',
           status: 'PENDING',
+          paymentMethod,
+          paymentStatus: FINANCIAL_STATUS.PAID,
+          paidAt,
           subtotal: subtotal.toFixed(2),
           deliveryFee: '0.00',
           total: subtotal.toFixed(2),
@@ -405,6 +501,7 @@ posRouter.post(
       return { order, invoice };
     });
 
+    emitOrderEvent(tenantId, 'order-created', result.order as any);
     res.status(201).json(result);
   }),
 );

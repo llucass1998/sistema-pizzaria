@@ -37,6 +37,9 @@ export const app = express();
 
 import { tenantGuard } from './core/middlewares/tenantGuard.js';
 import { requireAdmin as requireAuth } from './middlewares/requireAdmin.js';
+import { requireRole } from './middlewares/requireRole.js';
+import { getTenantId } from './core/context/TenantContext.js';
+import { addOrderEventClient } from './services/orderEvents.service.js';
 
 // Libera o acesso da API para o front-end.
 app.use(cors());
@@ -55,7 +58,30 @@ app.use('/api', tenantRoutes);
 // SaaS Pública
 app.use('/api/public/saas', saasRoutes);
 
+// Webhooks de pagamento sao chamados por terceiros e validam assinatura no controller.
+app.use('/api/webhooks', webhookRoutes);
+
 app.use(tenantGuard);
+
+app.get(
+  '/api/admin/orders/events',
+  requireAuth,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN']),
+  (req, res) => {
+    const removeClient = addOrderEventClient(getTenantId(), res);
+    req.on('close', removeClient);
+  },
+);
+
+app.get(
+  '/api/orders/events',
+  requireAuth,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN']),
+  (req, res) => {
+    const removeClient = addOrderEventClient(getTenantId(), res);
+    req.on('close', removeClient);
+  },
+);
 
 // Todas essas rotas comecam com /api.
 app.use(
@@ -75,7 +101,6 @@ app.use('/api/inventory', inventoryRouter);
 app.use('/api', deliveryRoutes);
 app.use('/api/pos', posRouter);
 app.use('/api/billing', billingRoutes);
-app.use('/api/webhooks', webhookRoutes);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/quotes', quotesRouter);
 app.use('/api/receivables', receivablesRouter);

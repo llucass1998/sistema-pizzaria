@@ -24,6 +24,8 @@ generated/
 # Backups SQL temporários
 backup_*.sql
 *.sql
+!prisma/migrations/20260701185000_order_payment_fields/migration.sql
+!prisma/migrations/20260701193000_driver_admin_link/migration.sql
 
 # Logs e arquivos de depuração temporários
 *.log
