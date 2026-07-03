@@ -7,6 +7,8 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { normalizeText, parseMoney } from '../utils/normalize.js';
 import { FINANCIAL_STATUS, normalizePaymentMethod } from '../services/orderFinancial.service.js';
 import { emitOrderEvent } from '../services/orderEvents.service.js';
+import { ShiftAuditService } from '../services/shiftAudit.service.js';
+import { resolveKdsStation, resolvePrepTimeMinutes } from '../utils/kdsHelpers.js';
 
 const posRouter = Router();
 
@@ -54,53 +56,6 @@ type ValidPosOrderItemInput = {
   customizations: string | null;
 };
 
-function buildShiftSummary(shift: any) {
-  const transactions = Array.isArray(shift?.transactions) ? shift.transactions : [];
-  const openingCash = Number(shift?.openingCash ?? 0);
-  const salesByMethod: Record<string, number> = transactions
-    .filter((transaction: any) => transaction.type === 'SALE')
-    .reduce((summary: Record<string, number>, transaction: any) => {
-      const method = transaction.paymentMethodId || 'UNKNOWN';
-      summary[method] = (summary[method] ?? 0) + Number(transaction.amount ?? 0);
-      return summary;
-    }, {} as Record<string, number>);
-  const sangria = transactions
-    .filter((transaction: any) => transaction.type === 'SANGRIA')
-    .reduce((total: number, transaction: any) => total + Number(transaction.amount ?? 0), 0);
-  const suprimento = transactions
-    .filter((transaction: any) => transaction.type === 'SUPRIMENTO')
-    .reduce((total: number, transaction: any) => total + Number(transaction.amount ?? 0), 0);
-  const cashSales = Number(salesByMethod.CASH ?? 0);
-  const expectedClosingCash = openingCash + cashSales + suprimento - sangria;
-  const actualClosingCash =
-    shift?.actualClosingCash === null || shift?.actualClosingCash === undefined
-      ? null
-      : Number(shift.actualClosingCash);
-
-  return {
-    openingCash,
-    salesByMethod,
-    totalSales: Object.values(salesByMethod).reduce(
-      (total: number, value: number) => total + value,
-      0,
-    ),
-    sangria,
-    suprimento,
-    expectedClosingCash,
-    actualClosingCash,
-    difference:
-      actualClosingCash === null ? null : Number((actualClosingCash - expectedClosingCash).toFixed(2)),
-    transactions: transactions.map((transaction: any) => ({
-      id: transaction.id,
-      type: transaction.type,
-      amount: Number(transaction.amount ?? 0),
-      description: transaction.description,
-      paymentMethodId: transaction.paymentMethodId,
-      createdAt: transaction.createdAt,
-    })),
-  };
-}
-
 async function findShiftWithSummary(tenantId: string, shiftId?: string) {
   const shift = shiftId
     ? await prisma.shift.findFirst({
@@ -121,8 +76,22 @@ async function findShiftWithSummary(tenantId: string, shiftId?: string) {
         },
       });
 
-  return shift ? { ...shift, summary: buildShiftSummary(shift) } : null;
+  return shift ? { ...shift, summary: await ShiftAuditService.getShiftSummary(tenantId, shift.id) } : null;
 }
+
+posRouter.get(
+  '/shift/audit',
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const { startDate, endDate, cashRegisterId } = req.query;
+    const report = await ShiftAuditService.getAuditReport(tenantId, {
+      startDate: startDate ? String(startDate) : undefined,
+      endDate: endDate ? String(endDate) : undefined,
+      cashRegisterId: cashRegisterId ? String(cashRegisterId) : undefined,
+    });
+    res.json(report);
+  }),
+);
 
 posRouter.get(
   '/shift/registers',
@@ -259,7 +228,7 @@ posRouter.post(
       },
     });
 
-    res.json({ ...updatedShift, summary: buildShiftSummary(updatedShift) });
+    res.json({ ...updatedShift, summary: await ShiftAuditService.getShiftSummary(tenantId, shiftId) });
   }),
 );
 
@@ -286,6 +255,10 @@ posRouter.post(
     if (!shift) {
       res.status(400).json({ message: 'Caixa nao encontrado ou fechado.' });
       return;
+    }
+
+    if (type.toUpperCase() === 'SANGRIA') {
+      await ShiftAuditService.validateSangria(tenantId, shiftId, amount);
     }
 
     const transaction = await prisma.cashTransaction.create({
@@ -342,6 +315,7 @@ posRouter.post(
       const [products, variants, options] = await Promise.all([
         tx.product.findMany({
           where: { tenantId, id: { in: productIds }, isAvailable: true },
+          include: { menuCategory: true },
         }),
         variantIds.length > 0
           ? tx.productVariant.findMany({
@@ -414,6 +388,13 @@ posRouter.post(
           .filter(Boolean)
           .join(', ');
 
+        const station = resolveKdsStation(product as any, (product as any).menuCategory, product.name);
+        const prepTime = resolvePrepTimeMinutes(
+          station,
+          (product as any).prepTimeMinutes,
+          (product as any).menuCategory?.prepTimeMinutes,
+        );
+
         return {
           productId: product.id,
           variantId: variant?.id ?? null,
@@ -437,6 +418,8 @@ posRouter.post(
           optionsTotal: optionsTotal.toFixed(2),
           unitPrice: unitPrice.toFixed(2),
           total: total.toFixed(2),
+          kdsStation: station,
+          prepTimeMinutes: prepTime,
         };
       });
 

@@ -1,6 +1,7 @@
 import { OrderOrigin } from '../../../generated/prisma/index.js';
 import { prisma } from '../../lib/prisma.js';
 import { logger } from '../../utils/logger.js';
+import { resolveKdsStation, resolvePrepTimeMinutes } from '../../utils/kdsHelpers.js';
 import type { NormalizedExternalOrder, NormalizedOrderItem } from './types.js';
 
 function cleanNumber(value: unknown, fallback = 0) {
@@ -106,6 +107,8 @@ export class ExternalOrderIngestionService {
       const quantity = Math.max(1, Math.round(cleanNumber(item.quantity, 1)));
       const unitPrice = cleanNumber(item.unitPrice);
       const total = cleanNumber(item.total, unitPrice * quantity);
+      const station = resolveKdsStation(product as any, null, item.name);
+      const prepTime = resolvePrepTimeMinutes(station, (product as any).prepTimeMinutes, null);
 
       items.push({
         productId: product.id,
@@ -117,6 +120,8 @@ export class ExternalOrderIngestionService {
         optionsTotal: '0.00',
         unitPrice: unitPrice.toFixed(2),
         total: total.toFixed(2),
+        kdsStation: station,
+        prepTimeMinutes: prepTime,
       });
     }
 

@@ -25,7 +25,12 @@ import OrderStatusPage from './pages/OrderStatusPage.jsx';
 import Purchases from './pages/ERP/Purchases.jsx';
 import Quotes from './pages/ERP/Quotes.jsx';
 import AccountsReceivable from './pages/ERP/AccountsReceivable.jsx';
+import AccountsPayable from './pages/ERP/AccountsPayable.jsx';
+import ShiftAuditPage from './pages/admin/ShiftAuditPage.jsx';
 import OnboardingPage from './pages/SaaS/OnboardingPage.jsx';
+import { CashFlowPage } from './pages/admin/CashFlowPage.jsx';
+import { DREPage } from './pages/admin/DREPage.jsx';
+import { ReconciliationPage } from './pages/admin/ReconciliationPage.jsx';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthModal } from './components/AuthModal.jsx';
 import { BottomNav } from './components/ui/BottomNav.jsx';
@@ -75,6 +80,11 @@ const ADMIN_ROUTE_ROLES = {
   purchases: ['OWNER', 'ADMIN', 'MANAGER'],
   quotes: ['OWNER', 'ADMIN', 'MANAGER'],
   receivables: ['OWNER', 'ADMIN', 'MANAGER'],
+  payables: ['OWNER', 'ADMIN', 'MANAGER'],
+  caixa: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  'fluxo-caixa': ['OWNER', 'ADMIN', 'MANAGER'],
+  dre: ['OWNER', 'ADMIN', 'MANAGER'],
+  conciliacao: ['OWNER', 'ADMIN', 'MANAGER'],
 };
 const addonOptions = [
   {
@@ -1029,6 +1039,11 @@ export default function PizzariaApp() {
                 <Route path="purchases" element={<ProtectedAdminRoute routeKey="purchases"><Purchases /></ProtectedAdminRoute>} />
                 <Route path="quotes" element={<ProtectedAdminRoute routeKey="quotes"><Quotes /></ProtectedAdminRoute>} />
                 <Route path="receivables" element={<ProtectedAdminRoute routeKey="receivables"><AccountsReceivable /></ProtectedAdminRoute>} />
+                <Route path="payables" element={<ProtectedAdminRoute routeKey="payables"><AccountsPayable /></ProtectedAdminRoute>} />
+                <Route path="caixa" element={<ProtectedAdminRoute routeKey="caixa"><ShiftAuditPage /></ProtectedAdminRoute>} />
+                <Route path="fluxo-caixa" element={<ProtectedAdminRoute routeKey="fluxo-caixa"><CashFlowPage /></ProtectedAdminRoute>} />
+                <Route path="dre" element={<ProtectedAdminRoute routeKey="dre"><DREPage /></ProtectedAdminRoute>} />
+                <Route path="conciliacao" element={<ProtectedAdminRoute routeKey="conciliacao"><ReconciliationPage /></ProtectedAdminRoute>} />
               </Route>
             </Routes>
           </HashRouter>

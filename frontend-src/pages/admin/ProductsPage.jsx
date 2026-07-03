@@ -128,6 +128,7 @@ export function ProductsPage() {
     setProductForm({
       id: product.id,
       name: product.name,
+      barcode: product.barcode ?? '',
       category: product.category ?? 'pizzas',
       description: product.description ?? '',
       imageUrl: product.imageUrl ?? '',

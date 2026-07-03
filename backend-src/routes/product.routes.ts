@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { getIdParam } from '../utils/request.js';
-import { normalizeText, parseMoney } from '../utils/normalize.js';
+import { normalizeText, normalizeBarcode, parseMoney } from '../utils/normalize.js';
 import { FIELD_LIMITS, validateLength } from '../utils/validate.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import { ProductOptionType } from '../../generated/prisma/index.js';
@@ -139,6 +139,8 @@ function categoryDto(category: any) {
     allowSizes: category.allowSizes ?? false,
     allowHalfAndHalf: category.allowHalfAndHalf ?? false,
     halfAndHalfGroup: category.halfAndHalfGroup ?? '',
+    kdsStation: category.kdsStation ?? null,
+    prepTimeMinutes: category.prepTimeMinutes ?? null,
     createdAt: category.createdAt,
     updatedAt: category.updatedAt,
   };
@@ -172,10 +174,13 @@ function productDto(product: any) {
     allowHalfAndHalf: category?.allowHalfAndHalf ?? false,
     halfAndHalfGroup: category?.halfAndHalfGroup ?? '',
     name: product.name,
+    barcode: product.barcode ?? null,
     description: product.description ?? '',
     price: Number(product.price ?? 0),
     imageUrl: product.imageUrl ?? '',
     isAvailable: product.isAvailable ?? true,
+    kdsStation: product.kdsStation ?? null,
+    prepTimeMinutes: product.prepTimeMinutes ?? null,
     calculatedAvailability: availabilityDto(product.calculatedAvailability),
     variants: (product.variants ?? [])
       .slice()
@@ -686,6 +691,8 @@ productRoutes.post(
         allowSizes,
         allowHalfAndHalf,
         halfAndHalfGroup,
+        kdsStation: req.body.kdsStation || null,
+        prepTimeMinutes: req.body.prepTimeMinutes ? Number(req.body.prepTimeMinutes) : null,
       } as any,
     });
 
@@ -768,6 +775,13 @@ productRoutes.put(
       data.halfAndHalfGroup = null;
     } else if (data.allowHalfAndHalf === true && !category.halfAndHalfGroup) {
       data.halfAndHalfGroup = data.slug ?? category.slug;
+    }
+
+    if (req.body.kdsStation !== undefined) {
+      data.kdsStation = req.body.kdsStation || null;
+    }
+    if (req.body.prepTimeMinutes !== undefined) {
+      data.prepTimeMinutes = req.body.prepTimeMinutes ? Number(req.body.prepTimeMinutes) : null;
     }
 
     const updated = await prisma.menuCategory.update({
@@ -926,9 +940,36 @@ productRoutes.delete(
 // Produtos e alias /pizzas
 productRoutes.get(
   ['/produtos', '/pizzas', '/products'],
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     await ensureDefaultCategories();
-    res.json(await listProducts());
+    const search = normalizeText(req.query.search);
+    const barcodeQuery = normalizeBarcode(req.query.barcode);
+    let products = await listProducts();
+
+    if (barcodeQuery) {
+      const byBarcode = products.filter(
+        (p: any) =>
+          p.barcode === barcodeQuery ||
+          p.variants?.some((v: any) => v.code === barcodeQuery || v.name === barcodeQuery),
+      );
+      res.json(byBarcode);
+      return;
+    }
+
+    if (search) {
+      const lower = search.toLowerCase();
+      products = products.filter(
+        (p: any) =>
+          p.name.toLowerCase().includes(lower) ||
+          p.description?.toLowerCase().includes(lower) ||
+          p.barcode?.toLowerCase() === lower ||
+          p.variants?.some(
+            (v: any) => v.name?.toLowerCase().includes(lower) || v.code?.toLowerCase() === lower,
+          ),
+      );
+    }
+
+    res.json(products);
   }),
 );
 
@@ -953,10 +994,21 @@ productRoutes.post(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const name = normalizeText(req.body.name);
+    const barcode = normalizeBarcode(req.body.barcode);
     const description = normalizeText(req.body.description) || null;
     const imageUrl = normalizeText(req.body.imageUrl) || null;
     const price = parseMoney(req.body.price);
     const isAvailable = typeof req.body.isAvailable === 'boolean' ? req.body.isAvailable : true;
+
+    if (barcode) {
+      const existingBarcode = await prisma.product.findFirst({
+        where: { tenantId: getTenantId(), barcode },
+      });
+      if (existingBarcode) {
+        res.status(409).json({ message: 'Ja existe um produto com este codigo de barras.' });
+        return;
+      }
+    }
 
     const nameError = validateTextField(name, 'Nome', FIELD_LIMITS.NAME, true);
     if (nameError) {
@@ -997,10 +1049,13 @@ productRoutes.post(
         categoryId: category.id,
         category: category.slug,
         name,
+        barcode,
         description,
         imageUrl,
         price,
         isAvailable,
+        kdsStation: req.body.kdsStation || null,
+        prepTimeMinutes: req.body.prepTimeMinutes ? Number(req.body.prepTimeMinutes) : null,
       } as any,
     });
 
@@ -1042,6 +1097,20 @@ productRoutes.put(
         return;
       }
       data.name = name;
+    }
+
+    if (req.body.barcode !== undefined) {
+      const barcode = normalizeBarcode(req.body.barcode);
+      if (barcode && barcode !== product.barcode) {
+        const existingBarcode = await prisma.product.findFirst({
+          where: { tenantId: getTenantId(), barcode, NOT: { id: product.id } },
+        });
+        if (existingBarcode) {
+          res.status(409).json({ message: 'Ja existe outro produto com este codigo de barras.' });
+          return;
+        }
+      }
+      data.barcode = barcode;
     }
 
     if (req.body.description !== undefined) {
@@ -1089,6 +1158,12 @@ productRoutes.put(
 
     if (typeof req.body.isAvailable === 'boolean') {
       data.isAvailable = req.body.isAvailable;
+    }
+    if (req.body.kdsStation !== undefined) {
+      data.kdsStation = req.body.kdsStation || null;
+    }
+    if (req.body.prepTimeMinutes !== undefined) {
+      data.prepTimeMinutes = req.body.prepTimeMinutes ? Number(req.body.prepTimeMinutes) : null;
     }
 
     await prisma.product.update({

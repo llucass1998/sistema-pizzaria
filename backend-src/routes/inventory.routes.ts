@@ -5,7 +5,7 @@ import { getTenantId } from '../core/context/TenantContext.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { getIdParam } from '../utils/request.js';
-import { normalizeText, parseMoney } from '../utils/normalize.js';
+import { normalizeText, normalizeBarcode, parseMoney } from '../utils/normalize.js';
 
 import { requireRole } from '../middlewares/requireRole.js';
 import { InventoryService } from '../services/inventory.service.js';
@@ -34,6 +34,7 @@ function serializeIngredient(ingredient: {
   minStock: unknown;
   createdAt: Date;
   updatedAt: Date;
+  barcode?: string | null;
 }) {
   const stock = Number(ingredient.stock);
   const minStock = Number(ingredient.minStock);
@@ -44,6 +45,7 @@ function serializeIngredient(ingredient: {
 
   return {
     ...ingredient,
+    barcode: (ingredient as any).barcode ?? null,
     cost,
     stock,
     minStock,
@@ -86,10 +88,25 @@ inventoryRouter.get(
 
 inventoryRouter.get(
   '/ingredients',
-  asyncHandler(async (_req, res) => {
-    const ingredients = await prisma.ingredient.findMany({
+  asyncHandler(async (req, res) => {
+    const search = normalizeText(req.query.search);
+    const barcodeQuery = normalizeBarcode(req.query.barcode);
+    let ingredients = await prisma.ingredient.findMany({
       orderBy: { name: 'asc' },
     });
+
+    if (barcodeQuery) {
+      const byBarcode = ingredients.filter((item) => (item as any).barcode === barcodeQuery);
+      res.json(byBarcode.map(serializeIngredient));
+      return;
+    }
+
+    if (search) {
+      const lower = search.toLowerCase();
+      ingredients = ingredients.filter(
+        (item) => item.name.toLowerCase().includes(lower) || (item as any).barcode?.toLowerCase() === lower
+      );
+    }
 
     res.json(ingredients.map(serializeIngredient));
   }),
@@ -99,6 +116,7 @@ inventoryRouter.post(
   '/ingredients',
   asyncHandler(async (req, res) => {
     const name = normalizeText(req.body.name);
+    const barcode = normalizeBarcode(req.body.barcode);
     const unit = normalizeText(req.body.unit);
     const cost = parsePositiveNumber(req.body.cost) ?? 0;
     const stock = parsePositiveNumber(req.body.stock) ?? 0;
@@ -109,9 +127,20 @@ inventoryRouter.post(
       return;
     }
 
+    if (barcode) {
+      const existing = await prisma.ingredient.findFirst({
+        where: { tenantId: getTenantId(), barcode },
+      });
+      if (existing) {
+        res.status(409).json({ message: 'Ja existe um insumo com este codigo de barras.' });
+        return;
+      }
+    }
+
     const ingredient = await prisma.ingredient.create({
       data: {
         name,
+        barcode,
         unit,
         cost: cost.toFixed(2),
         stock: stock.toFixed(2),
@@ -142,6 +171,20 @@ inventoryRouter.patch(
         return;
       }
       data.name = name;
+    }
+
+    if (req.body.barcode !== undefined) {
+      const barcode = normalizeBarcode(req.body.barcode);
+      if (barcode) {
+        const existing = await prisma.ingredient.findFirst({
+          where: { tenantId: getTenantId(), barcode, NOT: { id } },
+        });
+        if (existing) {
+          res.status(409).json({ message: 'Ja existe outro insumo com este codigo de barras.' });
+          return;
+        }
+      }
+      data.barcode = barcode;
     }
 
     if (req.body.unit !== undefined) {

@@ -238,4 +238,43 @@ describe('kdsRouter', () => {
 
     expect(response.status).toBe(403);
   });
+
+  it('returns serverNow and filters queue by station', async () => {
+    mocks.allowRole = true;
+    const pizzaOrder = createOrder({
+      id: 'order-pizza',
+      items: [
+        {
+          id: 'item-pizza',
+          orderId: 'order-pizza',
+          productId: 'prod-1',
+          displayName: 'Pizza Calabresa',
+          quantity: 1,
+          kdsStatus: 'PREPARING',
+          product: { name: 'Pizza Calabresa', menuCategory: { kdsStation: 'OVEN', prepTimeMinutes: 15 } },
+        },
+        {
+          id: 'item-coca',
+          orderId: 'order-pizza',
+          productId: 'prod-2',
+          displayName: 'Coca Cola',
+          quantity: 1,
+          kdsStatus: 'PREPARING',
+          product: { name: 'Coca Cola', menuCategory: { kdsStation: 'BEVERAGE', prepTimeMinutes: 2 } },
+        },
+      ],
+    });
+    mocks.orderFindMany.mockResolvedValue([pizzaOrder]);
+
+    const resAll = await request(createApp()).get('/api/admin/kds/queue');
+    expect(resAll.status).toBe(200);
+    expect(resAll.body.serverNow).toBeDefined();
+    expect(resAll.body.orders[0].items.length).toBe(2);
+
+    const resOven = await request(createApp()).get('/api/admin/kds/queue?station=OVEN');
+    expect(resOven.status).toBe(200);
+    expect(resOven.body.orders[0].items.length).toBe(1);
+    expect(resOven.body.orders[0].items[0].kdsStation).toBe('OVEN');
+    expect(resOven.body.orders[0].items[0].prepTimeMinutes).toBe(15);
+  });
 });

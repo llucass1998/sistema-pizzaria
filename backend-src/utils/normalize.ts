@@ -25,3 +25,11 @@ export function parseMoney(value: unknown) {
 
   return Number.isFinite(parsed) ? parsed.toFixed(2) : null;
 }
+
+export function normalizeBarcode(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}

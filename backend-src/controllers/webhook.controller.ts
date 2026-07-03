@@ -3,6 +3,7 @@ import { basePrisma } from '../lib/prisma.js';
 import { logger } from '../utils/logger.js';
 import { FINANCIAL_STATUS, normalizePaymentMethod } from '../services/orderFinancial.service.js';
 import { PaymentGatewayService } from '../services/PaymentGatewayService.js';
+import { emitOrderEvent } from '../services/orderEvents.service.js';
 
 function getPaymentStatusForOrder(status: string) {
   if (status === 'APPROVED') return FINANCIAL_STATUS.PAID;
@@ -181,6 +182,12 @@ export const WebhookController = {
           },
         });
       });
+
+      const newOrderStatus = event.status === 'APPROVED' && order.status === 'PENDING' ? 'PREPARING' : order.status;
+      emitOrderEvent(order.tenantId, 'order-updated', { id: order.id, status: newOrderStatus, paymentStatus: nextPaymentStatus } as any);
+      if (newOrderStatus !== order.status) {
+        emitOrderEvent(order.tenantId, 'order-status-changed', { orderId: order.id, status: newOrderStatus, oldStatus: order.status } as any);
+      }
 
       res.status(200).json({ message: 'Webhook processado com sucesso.' });
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -17,6 +17,8 @@ import {
   CloseShiftModal,
   CashTransactionModal,
 } from '../../components/admin/ShiftModals.jsx';
+import { POSQuickPayModal } from '../../components/admin/POSQuickPayModal.jsx';
+import { POSReceiptModal } from '../../components/admin/POSReceiptModal.jsx';
 
 const API_BASE_URL = import.meta.env.PROD
   ? '/api'
@@ -40,6 +42,16 @@ export function POSPage() {
   const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+
+  // Busca (F1) e Modals de Pagamento/Cupom
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isQuickPayModalOpen, setIsQuickPayModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [lastCompletedOrder, setLastCompletedOrder] = useState(null);
+
+  const searchInputRef = useRef(null);
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(0);
 
   // Modal State for Product Options
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -90,10 +102,141 @@ export function POSPage() {
     fetchData();
   }, []);
 
+  // Atalhos de teclado e leitor USB (Barcode Scanner)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isInputFocused =
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) ||
+        e.target?.isContentEditable;
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (cart.length > 0 && window.confirm('Limpar carrinho e iniciar nova venda?')) {
+          setCart([]);
+          setCustomerInfo({ name: '', phone: '' });
+        }
+        return;
+      }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        if (isInputFocused) return;
+        setPaymentMethod('CASH');
+        if (cart.length > 0) setIsQuickPayModalOpen(true);
+        return;
+      }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (isInputFocused) return;
+        setPaymentMethod('PIX');
+        return;
+      }
+      if (e.key === 'F6') {
+        e.preventDefault();
+        if (isInputFocused) return;
+        setPaymentMethod('CREDIT_CARD');
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (isInputFocused) return;
+        if (cart.length > 0) {
+          if (paymentMethod === 'CASH') {
+            setIsQuickPayModalOpen(true);
+          } else {
+            handleCheckout();
+          }
+        }
+        return;
+      }
+
+      if (isInputFocused && e.target !== searchInputRef.current) return;
+
+      const now = Date.now();
+      if (now - lastKeyTime.current > 100) {
+        barcodeBuffer.current = '';
+      }
+      lastKeyTime.current = now;
+
+      if (e.key === 'Enter' && barcodeBuffer.current.length >= 3) {
+        e.preventDefault();
+        const scannedCode = barcodeBuffer.current.trim();
+        barcodeBuffer.current = '';
+
+        let foundProduct = products.find((p) => p.barcode === scannedCode);
+        let foundVariant = null;
+
+        if (!foundProduct) {
+          for (const p of products) {
+            const v = p.variants?.find(
+              (varItem) => varItem.code === scannedCode || varItem.name === scannedCode,
+            );
+            if (v) {
+              foundProduct = p;
+              foundVariant = v;
+              break;
+            }
+          }
+        }
+
+        if (foundProduct) {
+          if (
+            foundProduct.calculatedAvailability &&
+            !foundProduct.calculatedAvailability.available
+          ) {
+            showError(`Produto ${foundProduct.name} indisponivel pelo estoque.`);
+            return;
+          }
+          if (foundVariant) {
+            addToCart(foundProduct, foundVariant.id, [], null);
+            showSuccess(`${foundProduct.name} (${foundVariant.name}) adicionado!`);
+          } else if (foundProduct.variants?.length > 0 || foundProduct.allowSizes) {
+            setSelectedProduct(foundProduct);
+            setSelectedVariant(foundProduct.variants?.[0]?.id || '');
+            setSelectedAddons([]);
+            setSelectedCrust('');
+            showSuccess(`Selecione o tamanho para ${foundProduct.name}`);
+          } else {
+            addToCart(foundProduct, null, [], null);
+            showSuccess(`${foundProduct.name} adicionado!`);
+          }
+          if (e.target === searchInputRef.current) {
+            setSearchQuery('');
+          }
+        } else {
+          showError(`Código "${scannedCode}" não encontrado no catálogo.`);
+        }
+        return;
+      }
+
+      if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [products, cart, paymentMethod, isSubmitting]);
+
   const displayedProducts = useMemo(() => {
-    if (!activeCategory) return [];
-    return products.filter((p) => p.categoryId === activeCategory);
-  }, [products, activeCategory]);
+    let list = products;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.barcode?.toLowerCase() === q ||
+          p.variants?.some((v) => v.name?.toLowerCase().includes(q) || v.code?.toLowerCase() === q)
+      );
+    } else if (activeCategory) {
+      list = list.filter((p) => p.categoryId === activeCategory);
+    }
+    return list;
+  }, [products, activeCategory, searchQuery]);
 
   const getProductDisplayPrice = (product) => {
     const firstVariant = product.variants?.[0];
@@ -121,20 +264,37 @@ export function POSPage() {
       ? product.variants?.find((v) => v.id === variantId)
       : null;
 
-    const newItem = {
-      cartId: crypto.randomUUID(),
-      productId: product.id,
-      name: product.name,
-      variantId,
-      addonIds: addonIds || [],
-      crustId,
-      quantity: 1,
-      // Just for display:
-      price: Number(selectedVariantData?.price ?? product.price),
-      variantName: selectedVariantData?.name ?? '',
-    };
+    const addonArr = addonIds || [];
+    const crustVal = crustId || null;
 
-    setCart((prev) => [...prev, newItem]);
+    const existingIndex = cart.findIndex(
+      (item) =>
+        item.productId === product.id &&
+        item.variantId === (variantId || null) &&
+        item.crustId === crustVal &&
+        JSON.stringify((item.addonIds || []).slice().sort()) === JSON.stringify(addonArr.slice().sort())
+    );
+
+    if (existingIndex > -1) {
+      setCart((prev) =>
+        prev.map((item, idx) =>
+          idx === existingIndex ? { ...item, quantity: item.quantity + 1 } : item
+        )
+      );
+    } else {
+      const newItem = {
+        cartId: crypto.randomUUID(),
+        productId: product.id,
+        name: product.name,
+        variantId: variantId || null,
+        addonIds: addonArr,
+        crustId: crustVal,
+        quantity: 1,
+        price: Number(selectedVariantData?.price ?? product.price),
+        variantName: selectedVariantData?.name ?? '',
+      };
+      setCart((prev) => [...prev, newItem]);
+    }
     setSelectedProduct(null);
   };
 
@@ -158,7 +318,7 @@ export function POSPage() {
     return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [cart]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (quickPayData = {}) => {
     if (cart.length === 0) return;
     if (!isShiftOpen) {
       showError('Abra o caixa antes de finalizar vendas no PDV.');
@@ -196,6 +356,22 @@ export function POSPage() {
         throw new Error(data.message || 'Erro ao finalizar pedido');
       }
 
+      const result = await response.json();
+      const completedOrderData = {
+        order: result.order || result,
+        invoice: result.invoice,
+        cartSnapshot: [...cart],
+        cartTotal,
+        paymentMethod,
+        receivedAmount: quickPayData?.receivedAmount || cartTotal,
+        changeAmount: quickPayData?.changeAmount || 0,
+        date: new Date().toLocaleString('pt-BR'),
+        storeName: adminData?.storeName || 'Pizzaria Rio',
+      };
+      setLastCompletedOrder(completedOrderData);
+      setIsReceiptModalOpen(true);
+      setIsQuickPayModalOpen(false);
+
       setCart([]);
       setCustomerInfo({ name: '', phone: '' });
       showSuccess('Pedido gerado com sucesso! Já foi enviado para a cozinha.');
@@ -222,21 +398,45 @@ export function POSPage() {
     <div className="flex h-[calc(100vh-4rem)] lg:h-full flex-col lg:flex-row overflow-hidden bg-slate-100 dark:bg-slate-900">
       {/* Esquerda: Cardápio */}
       <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-200 dark:border-slate-800">
-        {/* Categorias */}
-        <div className="flex gap-2 overflow-x-auto p-4 bg-white dark:bg-slate-950 shadow-sm shrink-0 no-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${
-                activeCategory === cat.id
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+        {/* Barra de Busca (F1) e Categorias */}
+        <div className="flex flex-col sm:flex-row gap-3 p-4 bg-white dark:bg-slate-950 shadow-sm shrink-0 border-b border-slate-200 dark:border-slate-800">
+          <div className="relative flex-1">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Buscar por nome ou código (F1)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 pl-10 text-sm font-medium text-slate-800 focus:border-red-500 focus:bg-white focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+            />
+            <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-red-500 font-bold"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar items-center">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setSearchQuery('');
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${
+                  activeCategory === cat.id && !searchQuery
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Grid de Produtos */}
@@ -418,15 +618,18 @@ export function POSPage() {
 
           <div className="mb-3 grid grid-cols-2 gap-2">
             {[
-              ['CASH', 'Dinheiro'],
-              ['PIX', 'PIX'],
+              ['CASH', 'Dinheiro (F3)'],
+              ['PIX', 'PIX (F4)'],
               ['DEBIT_CARD', 'Debito'],
-              ['CREDIT_CARD', 'Credito'],
+              ['CREDIT_CARD', 'Credito (F6)'],
             ].map(([value, label]) => (
               <button
                 key={value}
                 type="button"
-                onClick={() => setPaymentMethod(value)}
+                onClick={() => {
+                  setPaymentMethod(value);
+                  if (value === 'CASH' && cart.length > 0) setIsQuickPayModalOpen(true);
+                }}
                 className={`h-10 rounded-lg border text-sm font-black transition ${
                   paymentMethod === value
                     ? 'border-green-600 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300'
@@ -439,11 +642,17 @@ export function POSPage() {
           </div>
 
           <button
-            onClick={handleCheckout}
+            onClick={() => {
+              if (paymentMethod === 'CASH') {
+                setIsQuickPayModalOpen(true);
+              } else {
+                handleCheckout();
+              }
+            }}
             disabled={cart.length === 0 || isSubmitting || !isShiftOpen}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-black py-4 rounded-xl text-lg transition flex items-center justify-center gap-2 shadow-lg hover:shadow-green-600/20 active:scale-[0.98]"
           >
-            {isSubmitting ? 'Processando...' : 'Finalizar Pedido (Balcão)'}
+            {isSubmitting ? 'Processando...' : paymentMethod === 'CASH' ? 'Troco / Finalizar (F9)' : 'Finalizar Pedido (F9)'}
           </button>
         </div>
       </div>
@@ -540,6 +749,34 @@ export function POSPage() {
           if (shiftRes.ok) setCurrentShift(await shiftRes.json());
           showSuccess('Movimentacao registrada.');
         }}
+      />
+
+      {/* Rodapé de Atalhos (não sai na impressão) */}
+      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-slate-900 text-slate-300 text-xs px-4 py-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20 no-print">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-bold"><strong className="text-red-500">F1</strong> Buscar</span>
+          <span className="font-bold"><strong className="text-red-500">F2</strong> Nova Venda</span>
+          <span className="font-bold"><strong className="text-red-500">F3</strong> Dinheiro</span>
+          <span className="font-bold"><strong className="text-red-500">F4</strong> PIX</span>
+          <span className="font-bold"><strong className="text-red-500">F6</strong> Cartão</span>
+          <span className="font-bold"><strong className="text-red-500">F9</strong> Finalizar</span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-slate-400">
+          <span>* Bipagem rápida via leitor USB ativa automaticamente</span>
+        </div>
+      </div>
+
+      <POSQuickPayModal
+        isOpen={isQuickPayModalOpen}
+        onClose={() => setIsQuickPayModalOpen(false)}
+        cartTotal={cartTotal}
+        onConfirmPay={(quickPayData) => handleCheckout(quickPayData)}
+      />
+
+      <POSReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        orderData={lastCompletedOrder}
       />
     </div>
   );

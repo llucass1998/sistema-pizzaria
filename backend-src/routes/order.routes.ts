@@ -24,6 +24,7 @@ import { normalizeText } from '../utils/normalize.js';
 import { getAllowedNextStatuses, validateStatusTransition } from '../utils/orderStateMachine.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import { getIdParam } from '../utils/request.js';
+import { resolveKdsStation, resolvePrepTimeMinutes } from '../utils/kdsHelpers.js';
 import { IfoodService } from '../integrations/ifood/ifood.service.js';
 import { calculateCheckoutTotals } from '../utils/checkoutTotals.js';
 import {
@@ -128,6 +129,18 @@ function getDashboardDateRange(rawDate: unknown) {
   end.setDate(end.getDate() + 1);
 
   return { date, start, end };
+}
+
+function enrichOrderWithPix(order: any) {
+  if (!order) return order;
+  const txs = order.paymentTransactions || [];
+  const lastTx = txs[txs.length - 1];
+  const meta = (lastTx?.metadata as any) ?? {};
+  return {
+    ...order,
+    pixQrCode: meta.pixQrCode || order.pixQrCode,
+    pixQrCodeBase64: meta.pixQrCodeBase64 || order.pixQrCodeBase64,
+  };
 }
 
 orderRoutes.get(
@@ -265,6 +278,8 @@ orderRoutes.post(
       optionsTotal: string;
       unitPrice: string;
       total: string;
+      kdsStation?: any;
+      prepTimeMinutes?: number;
     }> = [];
 
     let subtotal = 0;
@@ -443,6 +458,13 @@ orderRoutes.post(
         .filter(Boolean)
         .join(', ');
 
+      const station = resolveKdsStation(product as any, (product as any).menuCategory, itemDisplayName);
+      const prepTime = resolvePrepTimeMinutes(
+        station,
+        (product as any).prepTimeMinutes,
+        (product as any).menuCategory?.prepTimeMinutes,
+      );
+
       orderItems.push({
         productId: product.id,
         variantId: variant?.id ?? null,
@@ -465,6 +487,8 @@ orderRoutes.post(
         optionsTotal: optionsTotal.toFixed(2),
         unitPrice: unitPrice.toFixed(2),
         total: itemTotal.toFixed(2),
+        kdsStation: station,
+        prepTimeMinutes: prepTime,
       });
     }
 
@@ -620,7 +644,7 @@ orderRoutes.post(
       // Se for pagamento online (ex: PIX ou Cartão ONLINE), geramos o link de pagamento
       if (
         cardPaymentMode === 'ONLINE' ||
-        (paymentMethod === 'PIX' && process.env.ENABLE_ONLINE_PIX === 'true')
+        (paymentMethod === 'PIX' && process.env.ENABLE_ONLINE_PIX !== 'false')
       ) {
         const intent = await PaymentGatewayService.createPaymentLink(
           order.id,
@@ -628,6 +652,7 @@ orderRoutes.post(
           tenantId,
           customer.name,
           customer.email,
+          paymentMethod,
         );
 
         await prisma.order.update({
@@ -652,7 +677,11 @@ orderRoutes.post(
             status: FINANCIAL_STATUS.PENDING,
             rawStatus: intent.rawStatus ?? 'PENDING',
             paymentUrl: intent.paymentUrl,
-            metadata: intent.metadata ?? {},
+            metadata: {
+              ...(intent.metadata ?? {}),
+              pixQrCode: intent.pixQrCode,
+              pixQrCodeBase64: intent.pixQrCodeBase64,
+            } as any,
           },
           create: {
             tenantId,
@@ -663,11 +692,17 @@ orderRoutes.post(
             status: FINANCIAL_STATUS.PENDING,
             rawStatus: intent.rawStatus ?? 'PENDING',
             paymentUrl: intent.paymentUrl,
-            metadata: intent.metadata ?? {},
+            metadata: {
+              ...(intent.metadata ?? {}),
+              pixQrCode: intent.pixQrCode,
+              pixQrCodeBase64: intent.pixQrCodeBase64,
+            } as any,
           },
         });
 
         order.paymentUrl = intent.paymentUrl;
+        (order as any).pixQrCode = intent.pixQrCode;
+        (order as any).pixQrCodeBase64 = intent.pixQrCodeBase64;
       }
 
       emitOrderEvent(tenantId, 'order-created', order as any);
@@ -784,6 +819,7 @@ orderRoutes.get(
       include: {
         customer: true,
         items: { include: { product: true } },
+        paymentTransactions: true,
       },
     });
 
@@ -792,7 +828,7 @@ orderRoutes.get(
       return;
     }
 
-    res.json(order);
+    res.json(enrichOrderWithPix(order));
   }),
 );
 
@@ -982,6 +1018,7 @@ orderRoutes.get(
       include: {
         customer: true,
         items: true,
+        paymentTransactions: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -1002,6 +1039,7 @@ orderRoutes.get(
           include: {
             customer: true,
             items: true,
+            paymentTransactions: true,
           },
           orderBy: { createdAt: 'desc' },
         });
@@ -1013,7 +1051,7 @@ orderRoutes.get(
       return;
     }
 
-    res.json(order);
+    res.json(enrichOrderWithPix(order));
   }),
 );
 
@@ -1062,7 +1100,10 @@ orderRoutes.post(
     const optionIds = [...new Set(rawItems.flatMap((item) => getItemOptionIds(item)))];
 
     const [foundProducts, foundVariants, globalOptions, productOptions] = await Promise.all([
-      prisma.product.findMany({ where: { tenantId, id: { in: productIds }, isAvailable: true } }),
+      prisma.product.findMany({
+        where: { tenantId, id: { in: productIds }, isAvailable: true },
+        include: { menuCategory: true },
+      }),
       variantIds.length > 0
         ? prisma.productVariant.findMany({
             where: { product: { tenantId }, id: { in: variantIds }, isAvailable: true },
@@ -1124,6 +1165,13 @@ orderRoutes.post(
         .filter(Boolean)
         .join(', ');
 
+      const station = resolveKdsStation(product as any, (product as any).menuCategory, product.name);
+      const prepTime = resolvePrepTimeMinutes(
+        station,
+        (product as any).prepTimeMinutes,
+        (product as any).menuCategory?.prepTimeMinutes,
+      );
+
       orderItems.push({
         productId: product.id,
         variantId: variant?.id ?? null,
@@ -1142,6 +1190,8 @@ orderRoutes.post(
         optionsTotal: optionsTotal.toFixed(2),
         unitPrice: unitPrice.toFixed(2),
         total: itemTotal.toFixed(2),
+        kdsStation: station,
+        prepTimeMinutes: prepTime,
       });
     }
 

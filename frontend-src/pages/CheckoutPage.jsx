@@ -210,6 +210,11 @@ function normalizeOrder(order, fallbackItems, fallbackTotal) {
     total: safeNumber(order?.total, fallbackTotal),
     createdAt,
     items,
+    pixQrCode: order?.pixQrCode,
+    pixQrCodeBase64: order?.pixQrCodeBase64,
+    paymentUrl: order?.paymentUrl,
+    paymentStatus: order?.paymentStatus || 'PENDING',
+    paymentMethod: order?.paymentMethod,
   };
 }
 
@@ -437,6 +442,45 @@ export default function CartPage({
       isActive = false;
     };
   }, [pixPayload]);
+
+  const [orderQrCodeUrl, setOrderQrCodeUrl] = useState('');
+  const [orderPaymentStatus, setOrderPaymentStatus] = useState('PENDING');
+
+  useEffect(() => {
+    if (!lastOrder) return;
+    setOrderPaymentStatus(lastOrder.paymentStatus || 'PENDING');
+    if (lastOrder.pixQrCodeBase64) {
+      setOrderQrCodeUrl(
+        lastOrder.pixQrCodeBase64.startsWith('data:image')
+          ? lastOrder.pixQrCodeBase64
+          : `data:image/png;base64,${lastOrder.pixQrCodeBase64}`,
+      );
+    } else if (lastOrder.pixQrCode) {
+      createPixQrCodeDataUrl(lastOrder.pixQrCode)
+        .then((url) => setOrderQrCodeUrl(url))
+        .catch(() => setOrderQrCodeUrl(''));
+    }
+  }, [lastOrder]);
+
+  useEffect(() => {
+    if (!lastOrder?.id || orderPaymentStatus === 'PAID' || orderPaymentStatus === 'COMPLETED') return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/pedidos/rastrear/${lastOrder.id}`);
+        if (res.ok) {
+          const updated = await res.json();
+          const st = updated.paymentStatus || updated.financialStatus || updated.status;
+          if (st === 'PAID' || st === 'COMPLETED' || updated.status === 'PREPARING' || updated.status === 'READY') {
+            setOrderPaymentStatus('PAID');
+            showSuccess('🎉 Pagamento PIX confirmado com sucesso!');
+          }
+        }
+      } catch (e) {
+        // ignorar falha temporária no polling
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastOrder?.id, orderPaymentStatus, apiBaseUrl]);
 
   const canCheckout = useMemo(() => {
     if (!hasItems || store?.isOpen === false) {
@@ -672,7 +716,14 @@ export default function CartPage({
 
       setLastOrder(order);
 
-      if (data.paymentUrl) {
+      const isMockUrl = data.paymentUrl && data.paymentUrl.includes('/mock-payment');
+      const isProd = import.meta.env.PROD;
+      if (
+        data.paymentUrl &&
+        !data.pixQrCode &&
+        paymentMethod !== 'PIX' &&
+        (!isProd || !isMockUrl)
+      ) {
         window.location.href = data.paymentUrl;
         return;
       }
@@ -707,6 +758,125 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (lastOrder) {
+    const isPixOrder =
+      paymentMethod === 'PIX' ||
+      lastOrder.pixQrCode ||
+      lastOrder.pixQrCodeBase64 ||
+      lastOrder.paymentMethod === 'PIX';
+
+    return (
+      <main className="mx-auto max-w-4xl px-3 py-8 sm:px-6 sm:py-12">
+        <div className="rounded-3xl border-2 border-emerald-200 bg-white p-6 shadow-2xl dark:border-emerald-900/60 dark:bg-slate-900 sm:p-10">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+              <Check size={44} strokeWidth={3} />
+            </div>
+            <span className="rounded-full bg-emerald-100 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Pedido Gerado
+            </span>
+            <h1 className="mt-3 text-3xl font-black text-slate-950 dark:text-white sm:text-4xl">
+              Pedido #{getOrderDisplayNumber(lastOrder)}
+            </h1>
+            <p className="mt-2 text-base font-bold text-slate-500 dark:text-slate-400">
+              {getFulfillmentLabel(lastOrder.fulfillmentType)} · {formatCurrencySafe(lastOrder.total)}
+            </p>
+          </div>
+
+          {isPixOrder && (
+            <div className="mt-8 rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-950 sm:p-8">
+              <div className="text-center">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  Pagamento PIX via QR Code
+                </h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">
+                  Escaneie o QR Code no seu aplicativo bancário ou use o código Copia e Cola abaixo.
+                </p>
+              </div>
+
+              {orderPaymentStatus === 'PAID' ? (
+                <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-6 text-center text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 animate-bounce">
+                  <p className="text-xl font-black">🎉 Pagamento PIX Confirmado!</p>
+                  <p className="mt-1 text-sm font-bold">
+                    Recebemos seu pagamento em tempo real. Nossa cozinha já começou a preparar seu pedido!
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-6 flex justify-center">
+                    <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-md dark:border-slate-800 dark:bg-slate-900">
+                      {orderQrCodeUrl ? (
+                        <img
+                          src={orderQrCodeUrl}
+                          alt="QR Code PIX"
+                          className="h-56 w-56 rounded-lg sm:h-64 sm:w-64"
+                        />
+                      ) : (
+                        <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 text-center text-sm font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 sm:h-64 sm:w-64">
+                          Gerando QR Code...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-col items-center">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse">
+                      <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                      Aguardando confirmação de pagamento...
+                    </span>
+                  </div>
+
+                  {lastOrder.pixQrCode && (
+                    <div className="mt-6">
+                      <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
+                        PIX Copia e Cola
+                      </label>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="text"
+                          readOnly
+                          value={lastOrder.pixQrCode}
+                          className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(lastOrder.pixQrCode);
+                            showSuccess('Código PIX copiado para a área de transferência!');
+                          }}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-black text-white transition hover:bg-red-700 shrink-0"
+                        >
+                          <Copy size={16} />
+                          Copiar Código PIX
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a
+              href={`#/order/${lastOrder.id}`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-black text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 sm:w-auto"
+            >
+              Acompanhar meu Pedido
+            </a>
+            <a
+              href="#/"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:w-auto"
+            >
+              <ArrowLeft size={16} />
+              Voltar ao Cardápio
+            </a>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (

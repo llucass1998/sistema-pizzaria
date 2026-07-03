@@ -10,6 +10,7 @@ import { validateStatusTransition } from '../utils/orderStateMachine.js';
 import { FulfillmentType, OrderStatus } from '../../generated/prisma/index.js';
 import { InventoryService } from '../services/inventory.service.js';
 import { emitOrderEvent } from '../services/orderEvents.service.js';
+import { resolveKdsStation, resolvePrepTimeMinutes, isValidStation } from '../utils/kdsHelpers.js';
 
 export const kdsRouter = Router();
 
@@ -30,10 +31,28 @@ function minutesSince(date: Date) {
   return Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
 }
 
-function serializeOrder(order: any) {
+function serializeOrder(order: any, filterStation?: string | null) {
   const elapsedMinutes = minutesSince(order.createdAt);
-  const items = (order.items ?? []).map((item: any) => {
+  const rawItems = order.items ?? [];
+  const allSerializedItems = rawItems.map((item: any) => {
     const snapshot = parseOptionsSnapshot(item.optionsSnapshot);
+    const station = resolveKdsStation(
+      item.product as any,
+      item.product?.menuCategory,
+      item.displayName || item.product?.name,
+    );
+    const prepTimeMinutes = resolvePrepTimeMinutes(
+      station,
+      item.prepTimeMinutes,
+      item.product?.prepTimeMinutes || item.product?.menuCategory?.prepTimeMinutes,
+    );
+    const refTime = item.kdsStartedAt ? new Date(item.kdsStartedAt) : new Date(order.createdAt);
+    const itemElapsedMinutes = minutesSince(refTime);
+    const isDelayed =
+      item.kdsStatus !== 'READY' &&
+      item.kdsStatus !== 'CANCELED' &&
+      itemElapsedMinutes >= prepTimeMinutes;
+
     return {
       id: item.id,
       productId: item.productId,
@@ -42,17 +61,27 @@ function serializeOrder(order: any) {
       customizations: item.customizations,
       notes: item.notes ?? null,
       kdsStatus: item.kdsStatus,
+      kdsStation: station,
+      prepTimeMinutes,
+      elapsedMinutes: itemElapsedMinutes,
+      isDelayed,
       kdsStartedAt: item.kdsStartedAt,
       kdsReadyAt: item.kdsReadyAt,
       halfAndHalf: item.halfAndHalfData ?? snapshot.halfAndHalf ?? null,
       options: Array.isArray(snapshot.options) ? snapshot.options : [],
     };
   });
-  const allItemsReady = items.length > 0 && items.every((item: any) => item.kdsStatus === 'READY');
+
+  const activeItems = allSerializedItems.filter((i: any) => i.kdsStatus !== 'CANCELED');
+  const allItemsReady = activeItems.length > 0 && activeItems.every((item: any) => item.kdsStatus === 'READY');
   const readyForExpedition =
     order.fulfillmentType === FulfillmentType.PICKUP
       ? order.status === OrderStatus.READY
       : order.status === OrderStatus.PREPARING && allItemsReady;
+
+  const filteredItems = filterStation
+    ? allSerializedItems.filter((i: any) => i.kdsStation === filterStation)
+    : allSerializedItems;
 
   return {
     id: order.id,
@@ -66,10 +95,10 @@ function serializeOrder(order: any) {
     notes: order.notes,
     createdAt: order.createdAt,
     elapsedMinutes,
-    isDelayed: elapsedMinutes >= 25,
+    isDelayed: elapsedMinutes >= 25 || activeItems.some((i: any) => i.isDelayed),
     readyForExpedition,
     allItemsReady,
-    items,
+    items: filteredItems,
   };
 }
 
@@ -78,15 +107,21 @@ async function findKdsOrder(orderId: string, tenantId: string, tx: any = basePri
     where: { id: orderId, tenantId },
     include: {
       customer: true,
-      items: { include: { product: true }, orderBy: { id: 'asc' } },
+      items: {
+        include: { product: { include: { menuCategory: true } } },
+        orderBy: { id: 'asc' },
+      },
     },
   });
 }
 
 kdsRouter.get(
   '/queue',
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
+    const filterStationRaw = req.query.station ? normalizeText(String(req.query.station))?.toUpperCase() : null;
+    const stationParam = isValidStation(filterStationRaw) ? filterStationRaw : null;
+
     const orders = await basePrisma.order.findMany({
       where: {
         tenantId,
@@ -95,13 +130,21 @@ kdsRouter.get(
       orderBy: { createdAt: 'asc' },
       include: {
         customer: true,
-        items: { include: { product: true }, orderBy: { id: 'asc' } },
+        items: {
+          include: { product: { include: { menuCategory: true } } },
+          orderBy: { id: 'asc' },
+        },
       },
     });
 
-    const serialized = orders.map(serializeOrder);
+    let serialized = orders.map((order) => serializeOrder(order, stationParam));
+    if (stationParam) {
+      serialized = serialized.filter((order) => order.items.length > 0);
+    }
+
     const kitchenStatuses = [OrderStatus.PENDING, OrderStatus.PREPARING].map(String);
     res.json({
+      serverNow: new Date().toISOString(),
       orders: serialized,
       kitchenQueue: serialized.filter((order) => kitchenStatuses.includes(String(order.status))),
       expeditionQueue: serialized.filter((order) => order.readyForExpedition),
@@ -263,8 +306,9 @@ kdsRouter.post(
       return;
     }
 
+    const activeItems = existing.items.filter((item: any) => item.kdsStatus !== 'CANCELED');
     const allItemsReady =
-      existing.items.length > 0 && existing.items.every((item: any) => item.kdsStatus === 'READY');
+      activeItems.length > 0 && activeItems.every((item: any) => item.kdsStatus === 'READY');
     if (!allItemsReady) {
       res.status(422).json({ message: 'Marque todos os itens como prontos antes de finalizar.' });
       return;
@@ -347,8 +391,9 @@ kdsRouter.post(
       return;
     }
 
+    const activeItems = existing.items.filter((item: any) => item.kdsStatus !== 'CANCELED');
     const allItemsReady =
-      existing.items.length > 0 && existing.items.every((item: any) => item.kdsStatus === 'READY');
+      activeItems.length > 0 && activeItems.every((item: any) => item.kdsStatus === 'READY');
     if (!allItemsReady) {
       res.status(422).json({ message: 'Pedido ainda nao esta pronto para expedicao.' });
       return;

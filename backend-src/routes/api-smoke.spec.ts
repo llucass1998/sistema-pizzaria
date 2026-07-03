@@ -98,6 +98,7 @@ const product = {
   category: 'pizzas',
   menuCategory: category,
   name: 'E2E_TEST_Pizza',
+  barcode: '7891234567890',
   description: 'Produto de contrato para smoke test',
   price: '39.90',
   imageUrl: null,
@@ -194,5 +195,17 @@ describe('API smoke contracts', () => {
 
     expect(response.status).toBe(401);
     expect(response.body.message).toContain('administrador');
+  });
+
+  it('searches products by barcode', async () => {
+    const response = await request(createApp())
+      .get('/api/produtos')
+      .query({ barcode: '7891234567890' });
+
+    expect(response.status).toBe(200);
+    expect(response.body[0]).toMatchObject({
+      id: 'product-1',
+      barcode: '7891234567890',
+    });
   });
 });

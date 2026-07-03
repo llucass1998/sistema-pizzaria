@@ -44,10 +44,21 @@ enum IntegrationEventStatus {
   FAILED
 }
 
+enum KdsStation {
+  GENERAL
+  OVEN
+  ASSEMBLY
+  BEVERAGE
+  DESSERT
+}
+
 enum KdsItemStatus {
   WAITING
   PREPARING
+  PENDING
+  IN_PREPARATION
   READY
+  CANCELED
 }
 
 enum OptionStockImpactType {
@@ -55,6 +66,34 @@ enum OptionStockImpactType {
   ADD_INGREDIENT
   REMOVE_INGREDIENT
   REPLACE_INGREDIENT
+}
+
+enum AccountPayableStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+enum AccountPayableCategory {
+  SUPPLIER
+  RENT
+  ENERGY
+  WATER
+  INTERNET
+  SALARY
+  MARKETING
+  TAX
+  MAINTENANCE
+  OTHER
+}
+
+enum RecurrenceType {
+  NONE
+  WEEKLY
+  MONTHLY
+  YEARLY
 }
 
 model Tenant {
@@ -98,6 +137,8 @@ model Tenant {
   suppliers        Supplier[]
   inboundInvoices  InboundInvoice[]
   quotes           Quote[]
+  accountPayables  AccountPayable[]
+  payablePayments  PayablePayment[]
   purchaseRequests PurchaseRequest[]
   purchaseOrders   PurchaseOrder[]
   purchaseReceipts PurchaseReceipt[]
@@ -126,9 +167,11 @@ model MenuCategory {
   sortOrder        Int       @default(0)
   isActive         Boolean   @default(true)
   allowSizes       Boolean   @default(false)
-  allowHalfAndHalf Boolean   @default(false)
+  allowHalfAndHalf Boolean     @default(false)
   halfAndHalfGroup String?
-  createdAt        DateTime  @default(now())
+  kdsStation       KdsStation? @default(GENERAL)
+  prepTimeMinutes  Int?        @default(10)
+  createdAt        DateTime    @default(now())
   updatedAt        DateTime  @updatedAt
   products         Product[]
 
@@ -143,10 +186,13 @@ model Product {
   categoryId    String?
   menuCategory  MenuCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   name          String
+  barcode       String?
   description   String?
   category      String               @default("pizzas")
   price         Decimal
   imageUrl      String?
+  kdsStation    KdsStation?
+  prepTimeMinutes Int?
   isAvailable   Boolean              @default(true)
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -156,6 +202,8 @@ model Product {
   optionGroups  ProductOptionGroup[]
   storeSettings StoreSetting[]       @relation("StoreFeaturedProduct")
   manufacturingOrders ManufacturingOrder[]
+
+  @@unique([tenantId, barcode])
 }
 
 model ProductVariant {
@@ -428,6 +476,8 @@ model OrderItem {
   unitPrice       Decimal
   total           Decimal
   kdsStatus       KdsItemStatus   @default(WAITING)
+  kdsStation      KdsStation?     @default(GENERAL)
+  prepTimeMinutes Int?            @default(10)
   kdsStartedAt    DateTime?
   kdsReadyAt      DateTime?
 }
@@ -483,6 +533,7 @@ model Ingredient {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name      String
+  barcode   String?
   unit      String
   cost      Decimal
   stock     Decimal  @default(0)
@@ -502,6 +553,8 @@ model Ingredient {
   purchaseReceiptLines          PurchaseReceiptLine[]
   manufacturingOutputs          ManufacturingOrder[]   @relation("ManufacturingOutput")
   wasteRecords                  WasteRecord[]
+
+  @@unique([tenantId, barcode])
 }
 
 model Recipe {
@@ -777,6 +830,7 @@ model Supplier {
   inboundInvoices  InboundInvoice[]
   purchaseRequests PurchaseRequest[]
   purchaseOrders   PurchaseOrder[]
+  accountPayables  AccountPayable[]
 }
 
 model InboundInvoice {
@@ -823,6 +877,48 @@ model Quote {
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model AccountPayable {
+  id              String                 @id @default(uuid())
+  tenantId        String
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId      String?
+  supplier        Supplier?              @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  description     String
+  category        AccountPayableCategory
+  amount          Decimal
+  paidAmount      Decimal                @default(0)
+  remainingAmount Decimal
+  dueDate         DateTime
+  status          AccountPayableStatus   @default(PENDING)
+  recurrenceType  RecurrenceType         @default(NONE)
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  canceledAt      DateTime?
+  paidAt          DateTime?
+
+  payments        PayablePayment[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([tenantId, supplierId])
+}
+
+model PayablePayment {
+  id               String         @id @default(uuid())
+  tenantId         String
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accountPayableId String
+  accountPayable   AccountPayable @relation(fields: [accountPayableId], references: [id], onDelete: Cascade)
+  amount           Decimal
+  paymentMethod    String
+  paidAt           DateTime       @default(now())
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  @@index([tenantId, accountPayableId])
 }
 
 // ────────────────────────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ export function InventoryPage() {
   const [editingIngredient, setEditingIngredient] = useState(null);
   
   const [ingredientForm, setIngredientForm] = useState({
-    name: '', unit: 'UN', cost: 0, minStock: 0, stock: 0
+    name: '', barcode: '', unit: 'UN', cost: 0, minStock: 0, stock: 0
   });
 
   const [transactionForm, setTransactionForm] = useState({
@@ -112,7 +112,7 @@ export function InventoryPage() {
 
   function openNewIngredient() {
     setEditingIngredient(null);
-    setIngredientForm({ name: '', unit: 'UN', cost: 0, minStock: 0, stock: 0 });
+    setIngredientForm({ name: '', barcode: '', unit: 'UN', cost: 0, minStock: 0, stock: 0 });
     setIsIngredientModalOpen(true);
   }
 
@@ -120,6 +120,7 @@ export function InventoryPage() {
     setEditingIngredient(ingredient);
     setIngredientForm({
       name: ingredient.name,
+      barcode: ingredient.barcode ?? '',
       unit: ingredient.unit,
       cost: ingredient.cost,
       minStock: ingredient.minStock,
@@ -275,6 +276,14 @@ export function InventoryPage() {
                   type="text" required
                   className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-transparent dark:text-white"
                   value={ingredientForm.name} onChange={e => setIngredientForm({...ingredientForm, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Código de Barras / SKU</label>
+                <input 
+                  type="text" placeholder="EAN ou SKU do insumo"
+                  className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-transparent dark:text-white"
+                  value={ingredientForm.barcode || ''} onChange={e => setIngredientForm({...ingredientForm, barcode: e.target.value})}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

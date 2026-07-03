@@ -13,7 +13,7 @@ function formatMoney(value) {
   });
 }
 
-export function OpenShiftModal({ isOpen, onOpen, adminData }) {
+export function OpenShiftModal({ isOpen, onOpen, onClose, adminData }) {
   const [registers, setRegisters] = useState([]);
   const [selectedRegister, setSelectedRegister] = useState('');
   const [openingCash, setOpeningCash] = useState(0);
@@ -80,9 +80,8 @@ export function OpenShiftModal({ isOpen, onOpen, adminData }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Selecione o Caixa</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Caixa Operacional</label>
             <select
-              required
               value={selectedRegister}
               onChange={(e) => setSelectedRegister(e.target.value)}
               className="w-full rounded-lg border border-slate-300 p-2.5 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-red-500"
@@ -105,13 +104,25 @@ export function OpenShiftModal({ isOpen, onOpen, adminData }) {
               className="w-full rounded-lg border border-slate-300 p-2.5 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-red-500"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isSubmitting || !selectedRegister}
-            className="w-full h-11 flex items-center justify-center bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Abrindo...' : 'Abrir Caixa'}
-          </button>
+          <div className="flex gap-2">
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="w-1/3 h-11 flex items-center justify-center border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting || !selectedRegister}
+              className={`${onClose ? 'w-2/3' : 'w-full'} h-11 flex items-center justify-center bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50`}
+            >
+              {isSubmitting ? 'Abrindo...' : 'Abrir Caixa'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

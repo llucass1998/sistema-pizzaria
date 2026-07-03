@@ -11,6 +11,8 @@ export interface PaymentIntent {
   paymentUrl: string;
   rawStatus?: string;
   metadata?: Record<string, unknown>;
+  pixQrCode?: string;
+  pixQrCodeBase64?: string;
 }
 
 export interface NormalizedPaymentWebhook {
@@ -118,14 +120,24 @@ export class PaymentGatewayService {
     tenantId: string,
     customerName: string,
     customerEmail?: string,
+    paymentMethod?: string,
   ): Promise<PaymentIntent> {
     const provider = getConfiguredProvider();
 
     if (provider === 'MERCADOPAGO') {
+      if (paymentMethod === 'PIX') {
+        return this.createMercadoPagoPixPayment(
+          orderId,
+          amount,
+          tenantId,
+          customerName,
+          customerEmail,
+        );
+      }
       return this.createMercadoPagoPreference(orderId, amount, tenantId, customerName, customerEmail);
     }
 
-    return this.createMockPaymentLink(orderId, amount, tenantId);
+    return this.createMockPaymentLink(orderId, amount, tenantId, paymentMethod);
   }
 
   static async normalizeWebhook(req: Request): Promise<NormalizedPaymentWebhook> {
@@ -143,6 +155,7 @@ export class PaymentGatewayService {
     orderId: string,
     amount: number,
     tenantId: string,
+    paymentMethod?: string,
   ): PaymentIntent {
     if (process.env.NODE_ENV === 'production' && process.env.PAYMENT_ALLOW_MOCK !== 'true') {
       throw new Error('Gateway MOCK bloqueado em producao. Configure PAYMENT_GATEWAY=MERCADOPAGO.');
@@ -153,12 +166,81 @@ export class PaymentGatewayService {
       orderId,
     )}&externalId=${encodeURIComponent(externalId)}&amount=${encodeURIComponent(amount)}`;
 
+    const isPix = paymentMethod === 'PIX';
+    const mockPixCode = isPix
+      ? `00020126580014br.gov.bcb.pix0136mock-${randomUUID()}-pizzaria5204000053039865405${amount.toFixed(
+          2,
+        )}5802BR5913Pizzaria Demo6008SPO62070503***6304E2CA`
+      : undefined;
+
     return {
       provider: 'MOCK',
       externalId,
       paymentUrl,
       rawStatus: 'PENDING',
-      metadata: { tenantId, mode: 'demo' },
+      metadata: { tenantId, mode: 'demo', method: paymentMethod ?? 'ONLINE' },
+      pixQrCode: mockPixCode,
+      pixQrCodeBase64: isPix ? '' : undefined,
+    };
+  }
+
+  private static async createMercadoPagoPixPayment(
+    orderId: string,
+    amount: number,
+    tenantId: string,
+    customerName: string,
+    customerEmail?: string,
+  ): Promise<PaymentIntent> {
+    const accessToken = requireEnv('MERCADOPAGO_ACCESS_TOKEN');
+    const publicUrl = getPublicUrl();
+    const notificationUrl =
+      process.env.MERCADOPAGO_WEBHOOK_URL?.trim() ||
+      `${publicUrl}/api/webhooks/payments/callback?provider=MERCADOPAGO`;
+
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': `pix-${orderId}-${Date.now()}`,
+      },
+      body: JSON.stringify({
+        transaction_amount: Number(amount.toFixed(2)),
+        description: `Pedido ${orderId.slice(0, 8).toUpperCase()}`,
+        payment_method_id: 'pix',
+        external_reference: orderId,
+        notification_url: notificationUrl,
+        payer: {
+          email: customerEmail || 'cliente@pizzarialucas.com.br',
+          first_name: customerName || 'Cliente',
+        },
+        metadata: {
+          order_id: orderId,
+          tenant_id: tenantId,
+        },
+      }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as Record<string, any>;
+    if (!response.ok || !data.id) {
+      logger.error('[Payment] Mercado Pago PIX creation failed', {
+        status: response.status,
+        message: JSON.stringify(data).slice(0, 500),
+      });
+      throw new Error('Nao foi possivel criar pagamento PIX no Mercado Pago.');
+    }
+
+    const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
+    const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
+
+    return {
+      provider: 'MERCADOPAGO',
+      externalId: String(data.id),
+      paymentUrl: `${publicUrl}/#/order/${orderId}`,
+      rawStatus: data.status ?? 'pending',
+      metadata: { tenantId, orderId, method: 'PIX' },
+      pixQrCode: qrCode,
+      pixQrCodeBase64: qrCodeBase64,
     };
   }
 

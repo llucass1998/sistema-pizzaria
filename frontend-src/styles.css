@@ -673,3 +673,32 @@ html.dark .legacy-public-shell .login-action:hover {
     0 12px 28px rgb(127 29 29 / 0.26),
     inset 0 1px 0 rgb(255 244 190 / 0.82) !important;
 }
+
+/* Estilos de impressão de cupom não-fiscal (80mm) */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-receipt,
+  #printable-receipt * {
+    visibility: visible !important;
+  }
+  #printable-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    background: white !important;
+    color: black !important;
+    font-family: monospace !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

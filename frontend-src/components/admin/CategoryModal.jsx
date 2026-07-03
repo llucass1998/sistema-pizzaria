@@ -17,6 +17,8 @@ const categorySchema = z.object({
   allowSizes: z.boolean().default(false),
   allowHalfAndHalf: z.boolean().default(false),
   halfAndHalfGroup: z.string().optional(),
+  kdsStation: z.string().optional().nullable(),
+  prepTimeMinutes: z.number().or(z.string().transform((val) => val ? Number(val) : null)).optional().nullable(),
 });
 
 export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }) {
@@ -40,6 +42,8 @@ export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }
       allowSizes: false,
       allowHalfAndHalf: false,
       halfAndHalfGroup: '',
+      kdsStation: '',
+      prepTimeMinutes: '',
     },
   });
 
@@ -60,6 +64,8 @@ export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }
           allowSizes: false,
           allowHalfAndHalf: false,
           halfAndHalfGroup: '',
+          kdsStation: '',
+          prepTimeMinutes: '',
         });
       }
     }
@@ -218,6 +224,42 @@ export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }
                 type="text"
                 className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 placeholder="Ex: pizza-doce"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <h3 className="mb-3 text-sm font-black text-slate-900 dark:text-white">
+            Configuração de Praça / KDS
+          </h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Praça de Preparo Padrão
+              </label>
+              <select
+                {...register('kdsStation')}
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="">Automática / Geral</option>
+                <option value="GENERAL">Geral</option>
+                <option value="OVEN">Forno (Pizzas, Assados)</option>
+                <option value="ASSEMBLY">Montagem (Lanches, Salgados)</option>
+                <option value="BEVERAGE">Bebidas (Bar, Copa)</option>
+                <option value="DESSERT">Sobremesas (Confeitaria)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Tempo de Preparo (minutos)
+              </label>
+              <input
+                {...register('prepTimeMinutes')}
+                type="number"
+                min="0"
+                placeholder="Ex: 15"
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
           </div>

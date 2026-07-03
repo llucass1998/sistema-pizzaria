@@ -20,6 +20,10 @@ import {
   Moon,
   Sun,
   ChefHat,
+  DollarSign,
+  TrendingUp,
+  BarChart3,
+  Scale,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import pizzariaLogo from '../../assets/rio-pizzas-logo.png';
@@ -36,12 +40,18 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
   const role = adminDataString ? JSON.parse(adminDataString).role || 'ADMIN' : 'ADMIN';
 
-  const allNavItems = useMemo(() => {
+  const operationItems = useMemo(() => {
     return [
       {
         to: '/admin/pos',
         icon: Store,
         label: 'Frente de Caixa (PDV)',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+      },
+      {
+        to: '/admin/caixa',
+        icon: Wallet,
+        label: 'Caixa & Turnos',
         roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
       },
       {
@@ -62,12 +72,11 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         label: 'Despacho',
         roles: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
       },
-      {
-        to: '/admin/dashboard',
-        icon: LayoutDashboard,
-        label: 'Dashboard',
-        roles: ['OWNER', 'ADMIN', 'MANAGER'],
-      },
+    ].filter((item) => item.roles.includes(role));
+  }, [role]);
+
+  const managementItems = useMemo(() => {
+    return [
       {
         to: '/admin/products',
         icon: Package,
@@ -108,6 +117,42 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
   const allErpItems = useMemo(() => {
     return [
       {
+        to: '/admin/dashboard',
+        icon: LayoutDashboard,
+        label: 'Dashboard Executivo',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/fluxo-caixa',
+        icon: TrendingUp,
+        label: 'Fluxo de Caixa',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/dre',
+        icon: BarChart3,
+        label: 'DRE Simplificado',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/conciliacao',
+        icon: Scale,
+        label: 'Conciliação',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/payables',
+        icon: DollarSign,
+        label: 'Contas a Pagar',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/receivables',
+        icon: Wallet,
+        label: 'Contas a Receber',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
         to: '/admin/purchases',
         icon: Truck,
         label: 'Compras & Notas',
@@ -117,12 +162,6 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         to: '/admin/quotes',
         icon: FileText,
         label: 'Orçamentos',
-        roles: ['OWNER', 'ADMIN', 'MANAGER'],
-      },
-      {
-        to: '/admin/receivables',
-        icon: Wallet,
-        label: 'Contas a Receber',
         roles: ['OWNER', 'ADMIN', 'MANAGER'],
       },
     ].filter((item) => item.roles.includes(role));
@@ -154,28 +193,58 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {allNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setIsSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-sm transition-colors ${
-                    isActive ? 'bg-red-600 text-white' : 'hover:bg-slate-800 hover:text-white'
-                  }`
-                }
-              >
-                <item.icon size={20} />
-                {item.label}
-              </NavLink>
-            ))}
+            {operationItems.length > 0 && (
+              <>
+                <div className="mb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Operação
+                </div>
+                {operationItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                        isActive ? 'bg-red-600 text-white' : 'hover:bg-slate-800 hover:text-white'
+                      }`
+                    }
+                  >
+                    <item.icon size={20} />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </>
+            )}
 
             {allErpItems.length > 0 && (
               <>
-                <div className="mt-8 mb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <div className="mt-6 mb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   ERP & Financeiro
                 </div>
                 {allErpItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                        isActive ? 'bg-red-600 text-white' : 'hover:bg-slate-800 hover:text-white'
+                      }`
+                    }
+                  >
+                    <item.icon size={20} />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </>
+            )}
+
+            {managementItems.length > 0 && (
+              <>
+                <div className="mt-6 mb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Cadastros & Gestão
+                </div>
+                {managementItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}

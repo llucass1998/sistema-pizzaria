@@ -8,11 +8,14 @@ import { Save, X, Plus, PackagePlus } from 'lucide-react';
 const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'O nome é obrigatório'),
+  barcode: z.string().optional().nullable(),
   description: z.string().optional(),
   category: z.string().min(1, 'Selecione uma categoria'),
   price: z.number().or(z.string().transform((val) => Number(val))),
   imageUrl: z.string().optional(),
   isAvailable: z.boolean().default(true),
+  kdsStation: z.string().optional().nullable(),
+  prepTimeMinutes: z.number().or(z.string().transform((val) => val ? Number(val) : null)).optional().nullable(),
   variants: z
     .array(
       z.object({
@@ -167,11 +170,14 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
+      barcode: '',
       description: '',
       category: categories?.[0]?.slug ?? 'pizzas',
       price: 0,
       imageUrl: '',
       isAvailable: true,
+      kdsStation: '',
+      prepTimeMinutes: '',
       variants: [],
       optionGroups: [],
     },
@@ -252,15 +258,20 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
               ? defaultVariants
               : [],
           optionGroups: initialData.optionGroups || [],
+          kdsStation: initialData.kdsStation || '',
+          prepTimeMinutes: initialData.prepTimeMinutes || '',
         });
       } else {
         reset({
           name: '',
+          barcode: '',
           description: '',
           category: categories?.[0]?.slug ?? 'pizzas',
           price: 0,
           imageUrl: '',
           isAvailable: true,
+          kdsStation: '',
+          prepTimeMinutes: '',
           variants: [],
           optionGroups: [],
         });
@@ -327,21 +338,35 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
       title={initialData?.id ? 'Editar Produto' : 'Novo Produto'}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 px-1 pb-4">
-        {/* Nome */}
-        <div>
-          <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
-            Nome
-          </label>
-          <input
-            {...register('name')}
-            type="text"
-            className={`w-full rounded-lg border p-2 text-sm focus:outline-none dark:bg-slate-800 dark:text-white ${
-              errors.name
-                ? 'border-red-500 focus:border-red-500'
-                : 'border-slate-300 focus:border-slate-500 dark:border-slate-700'
-            }`}
-          />
-          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
+        {/* Nome e Barcode */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+              Nome
+            </label>
+            <input
+              {...register('name')}
+              type="text"
+              className={`w-full rounded-lg border p-2 text-sm focus:outline-none dark:bg-slate-800 dark:text-white ${
+                errors.name
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-slate-300 focus:border-slate-500 dark:border-slate-700'
+              }`}
+            />
+            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+              Código de Barras / SKU
+            </label>
+            <input
+              {...register('barcode')}
+              type="text"
+              placeholder="EAN ou SKU"
+              className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
         </div>
 
         {/* Categoria */}
@@ -433,6 +458,42 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
             rows="2"
             className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <h3 className="mb-3 text-sm font-black text-slate-900 dark:text-white">
+            Configuração de Praça / KDS (Exceção à categoria)
+          </h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Praça Específica do Produto
+              </label>
+              <select
+                {...register('kdsStation')}
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="">Herdar da Categoria / Automática</option>
+                <option value="GENERAL">Geral</option>
+                <option value="OVEN">Forno (Pizzas, Assados)</option>
+                <option value="ASSEMBLY">Montagem (Lanches, Salgados)</option>
+                <option value="BEVERAGE">Bebidas (Bar, Copa)</option>
+                <option value="DESSERT">Sobremesas (Confeitaria)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Tempo de Preparo Específico (min)
+              </label>
+              <input
+                {...register('prepTimeMinutes')}
+                type="number"
+                min="0"
+                placeholder="Ex: 15 (vazio = herdar)"
+                className="w-full rounded-lg border border-slate-300 p-2 text-sm focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Variantes para categorias com tamanhos */}
