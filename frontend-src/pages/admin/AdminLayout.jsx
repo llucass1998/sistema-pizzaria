@@ -25,8 +25,17 @@ import {
   BarChart3,
   Scale,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import pizzariaLogo from '../../assets/rio-pizzas-logo.png';
+
+function AdminLoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 animate-pulse">
+      <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-red-600 animate-spin mb-4"></div>
+      <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Carregando módulo...</p>
+    </div>
+  );
+}
 
 export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -156,6 +165,12 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         to: '/admin/purchases',
         icon: Truck,
         label: 'Compras & Notas',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/suppliers',
+        icon: Truck,
+        label: 'Fornecedores',
         roles: ['OWNER', 'ADMIN', 'MANAGER'],
       },
       {
@@ -328,7 +343,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         </header>
 
         <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 print:overflow-visible print:bg-white dark:print:bg-white">
-          <Outlet />
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

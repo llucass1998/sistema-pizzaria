@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, CheckCircle2, Search, User, MapPin, Plus, Edit2, Check, X, UserPlus, Info } from 'lucide-react';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { formatCurrency } from '../../data/menuData.js';
+const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function DispatchPage() {
   const [orders, setOrders] = useState([]);
@@ -23,10 +24,10 @@ export function DispatchPage() {
   async function fetchData() {
     try {
       const [ordersRes, driversRes] = await Promise.all([
-        fetch('/api/admin/dispatch/ready-orders', {
+        fetch(`${API_BASE_URL}/admin/dispatch/ready-orders`, {
           headers: { Authorization: `Bearer ${sessionToken}` },
         }),
-        fetch('/api/admin/dispatch/drivers', {
+        fetch(`${API_BASE_URL}/admin/dispatch/drivers`, {
           headers: { Authorization: `Bearer ${sessionToken}` },
         })
       ]);
@@ -49,7 +50,7 @@ export function DispatchPage() {
   async function handleAssignDriver(orderId, driverId) {
     if (!driverId) return;
     try {
-      const res = await fetch('/api/admin/dispatch/assign', {
+      const res = await fetch(`${API_BASE_URL}/admin/dispatch/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify({ orderId, driverId })
@@ -68,7 +69,7 @@ export function DispatchPage() {
 
   async function handleMarkDelivered(orderId) {
     try {
-      const res = await fetch(`/api/admin/dispatch/orders/${orderId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dispatch/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify({ status: 'DELIVERED' }),
@@ -251,8 +252,8 @@ function DriverModal({ drivers, sessionToken, onClose, onRefresh }) {
     try {
       const res = await fetch(
         editingDriver
-          ? `/api/admin/dispatch/drivers/${editingDriver.id}`
-          : '/api/admin/dispatch/drivers',
+          ? `${API_BASE_URL}/admin/dispatch/drivers/${editingDriver.id}`
+          : `${API_BASE_URL}/admin/dispatch/drivers`,
         {
           method: editingDriver ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
@@ -275,7 +276,7 @@ function DriverModal({ drivers, sessionToken, onClose, onRefresh }) {
   async function handleToggleActive(driver) {
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/dispatch/drivers/${driver.id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dispatch/drivers/${driver.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
         body: JSON.stringify({ isActive: !driver.isActive }),

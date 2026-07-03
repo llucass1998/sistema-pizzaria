@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { LogOut, LogIn, Moon, ShoppingCart, Sun, User, X } from 'lucide-react';
 import AccountPage from './pages/AccountPage.jsx';
 import CategoryPage from './pages/CategoryPage.jsx';
@@ -6,33 +6,34 @@ import HomePage from './pages/HomePage.jsx';
 import { LoginPage } from './pages/admin/LoginPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import { AdminLayout } from './pages/admin/AdminLayout.jsx';
-import { DashboardPage } from './pages/admin/DashboardPage.jsx';
-import { OrdersPage } from './pages/admin/OrdersPage.jsx';
-import { ProductsPage } from './pages/admin/ProductsPage.jsx';
-import { CategoriesPage } from './pages/admin/CategoriesPage.jsx';
-import { OptionsPage } from './pages/admin/OptionsPage.jsx';
-import { CRMPage } from './pages/admin/CRMPage.jsx';
-import { CouponsPage } from './pages/admin/CouponsPage.jsx';
-import { SettingsPage } from './pages/admin/SettingsPage.jsx';
-import { InventoryPage } from './pages/admin/InventoryPage.jsx';
-import { RecipesPage } from './pages/admin/RecipesPage.jsx';
-import { AdminsPage } from './pages/admin/AdminsPage.jsx';
-import { POSPage } from './pages/admin/POSPage.jsx';
-import { DispatchPage } from './pages/admin/DispatchPage.jsx';
-import { KDSPage } from './pages/admin/KDSPage.jsx';
 import MockPaymentPage from './pages/MockPaymentPage.jsx';
 import OrderStatusPage from './pages/OrderStatusPage.jsx';
-import Purchases from './pages/ERP/Purchases.jsx';
-import Quotes from './pages/ERP/Quotes.jsx';
-import AccountsReceivable from './pages/ERP/AccountsReceivable.jsx';
-import AccountsPayable from './pages/ERP/AccountsPayable.jsx';
-import ShiftAuditPage from './pages/admin/ShiftAuditPage.jsx';
 import OnboardingPage from './pages/SaaS/OnboardingPage.jsx';
-import { CashFlowPage } from './pages/admin/CashFlowPage.jsx';
-import { DREPage } from './pages/admin/DREPage.jsx';
-import { ReconciliationPage } from './pages/admin/ReconciliationPage.jsx';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthModal } from './components/AuthModal.jsx';
+
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage.jsx').then((m) => ({ default: m.DashboardPage || m.default })));
+const OrdersPage = lazy(() => import('./pages/admin/OrdersPage.jsx').then((m) => ({ default: m.OrdersPage || m.default })));
+const ProductsPage = lazy(() => import('./pages/admin/ProductsPage.jsx').then((m) => ({ default: m.ProductsPage || m.default })));
+const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage.jsx').then((m) => ({ default: m.CategoriesPage || m.default })));
+const OptionsPage = lazy(() => import('./pages/admin/OptionsPage.jsx').then((m) => ({ default: m.OptionsPage || m.default })));
+const CRMPage = lazy(() => import('./pages/admin/CRMPage.jsx').then((m) => ({ default: m.CRMPage || m.default })));
+const CouponsPage = lazy(() => import('./pages/admin/CouponsPage.jsx').then((m) => ({ default: m.CouponsPage || m.default })));
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage.jsx').then((m) => ({ default: m.SettingsPage || m.default })));
+const InventoryPage = lazy(() => import('./pages/admin/InventoryPage.jsx').then((m) => ({ default: m.InventoryPage || m.default })));
+const RecipesPage = lazy(() => import('./pages/admin/RecipesPage.jsx').then((m) => ({ default: m.RecipesPage || m.default })));
+const AdminsPage = lazy(() => import('./pages/admin/AdminsPage.jsx').then((m) => ({ default: m.AdminsPage || m.default })));
+const POSPage = lazy(() => import('./pages/admin/POSPage.jsx').then((m) => ({ default: m.POSPage || m.default })));
+const DispatchPage = lazy(() => import('./pages/admin/DispatchPage.jsx').then((m) => ({ default: m.DispatchPage || m.default })));
+const KDSPage = lazy(() => import('./pages/admin/KDSPage.jsx').then((m) => ({ default: m.KDSPage || m.default })));
+const Purchases = lazy(() => import('./pages/ERP/Purchases.jsx'));
+const Quotes = lazy(() => import('./pages/ERP/Quotes.jsx'));
+const AccountsReceivable = lazy(() => import('./pages/ERP/AccountsReceivable.jsx'));
+const AccountsPayable = lazy(() => import('./pages/ERP/AccountsPayable.jsx'));
+const ShiftAuditPage = lazy(() => import('./pages/admin/ShiftAuditPage.jsx').then((m) => ({ default: m.ShiftAuditPage || m.default })));
+const CashFlowPage = lazy(() => import('./pages/admin/CashFlowPage.jsx').then((m) => ({ default: m.CashFlowPage || m.default })));
+const DREPage = lazy(() => import('./pages/admin/DREPage.jsx').then((m) => ({ default: m.DREPage || m.default })));
+const ReconciliationPage = lazy(() => import('./pages/admin/ReconciliationPage.jsx').then((m) => ({ default: m.ReconciliationPage || m.default })));
 import { BottomNav } from './components/ui/BottomNav.jsx';
 import { CartDrawer } from './components/ui/CartDrawer.jsx';
 import { FloatingCartButton } from './components/ui/FloatingCartButton.jsx';
@@ -85,6 +86,13 @@ const ADMIN_ROUTE_ROLES = {
   'fluxo-caixa': ['OWNER', 'ADMIN', 'MANAGER'],
   dre: ['OWNER', 'ADMIN', 'MANAGER'],
   conciliacao: ['OWNER', 'ADMIN', 'MANAGER'],
+  suppliers: ['OWNER', 'ADMIN', 'MANAGER'],
+  fornecedores: ['OWNER', 'ADMIN', 'MANAGER'],
+  customers: ['OWNER', 'ADMIN', 'MANAGER'],
+  team: ['OWNER', 'ADMIN'],
+  financeiro: ['OWNER', 'ADMIN', 'MANAGER'],
+  relatorios: ['OWNER', 'ADMIN', 'MANAGER'],
+  'accounts-receivable': ['OWNER', 'ADMIN', 'MANAGER'],
 };
 const addonOptions = [
   {
@@ -1044,6 +1052,13 @@ export default function PizzariaApp() {
                 <Route path="fluxo-caixa" element={<ProtectedAdminRoute routeKey="fluxo-caixa"><CashFlowPage /></ProtectedAdminRoute>} />
                 <Route path="dre" element={<ProtectedAdminRoute routeKey="dre"><DREPage /></ProtectedAdminRoute>} />
                 <Route path="conciliacao" element={<ProtectedAdminRoute routeKey="conciliacao"><ReconciliationPage /></ProtectedAdminRoute>} />
+                <Route path="suppliers" element={<ProtectedAdminRoute routeKey="suppliers"><Purchases /></ProtectedAdminRoute>} />
+                <Route path="fornecedores" element={<ProtectedAdminRoute routeKey="fornecedores"><Purchases /></ProtectedAdminRoute>} />
+                <Route path="customers" element={<ProtectedAdminRoute routeKey="customers"><CRMPage /></ProtectedAdminRoute>} />
+                <Route path="team" element={<ProtectedAdminRoute routeKey="team"><AdminsPage /></ProtectedAdminRoute>} />
+                <Route path="financeiro" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="relatorios" element={<Navigate to="/admin/dre" replace />} />
+                <Route path="accounts-receivable" element={<ProtectedAdminRoute routeKey="accounts-receivable"><AccountsReceivable /></ProtectedAdminRoute>} />
               </Route>
             </Routes>
           </HashRouter>
