@@ -364,6 +364,38 @@ adminRoutes.get(
   }),
 );
 
+adminRoutes.get(
+  '/admin/clientes/:id/orders',
+  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER']),
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const customerId = req.params.id as string;
+
+    const orders = await prisma.order.findMany({
+      where: { tenantId, customerId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        createdAt: true,
+        fulfillmentType: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        items: {
+          select: {
+            quantity: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    res.json(orders);
+  }),
+);
+
 // ─── ADMIN USERS MANAGEMENT ────────────────────────────────────────────────────
 
 adminRoutes.get(
@@ -506,10 +538,16 @@ adminRoutes.patch(
     const id = req.params.id as string;
     const name = req.body.name ? normalizeText(req.body.name) : undefined;
     const email = req.body.email ? normalizeEmail(req.body.email) : undefined;
+    const password = req.body.password ? normalizeText(req.body.password) : undefined;
 
     const targetAdmin = await prisma.admin.findFirst({ where: { id, tenantId } });
     if (!targetAdmin) {
       res.status(404).json({ message: 'Administrador não encontrado.' });
+      return;
+    }
+
+    if (targetAdmin.role === 'OWNER' && targetAdmin.id !== (req as any).adminId) {
+      res.status(403).json({ message: 'Apenas o próprio OWNER pode alterar seus dados ou senha.' });
       return;
     }
 
@@ -521,16 +559,54 @@ adminRoutes.patch(
       }
     }
 
+    const passwordHash = password ? await hashPassword(password) : undefined;
+
     const admin = await prisma.admin.update({
       where: { id, tenantId },
       data: { 
         ...(name && { name }), 
-        ...(email && { email }) 
+        ...(email && { email }),
+        ...(passwordHash && { passwordHash })
       },
       select: adminSelect
     });
 
     res.json(admin);
+  })
+);
+
+adminRoutes.post(
+  '/admin/users/:id/reset-password',
+  requireAdmin,
+  requireRole(['OWNER', 'ADMIN']),
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const id = req.params.id as string;
+    const customPassword = req.body.password ? normalizeText(req.body.password) : undefined;
+
+    const targetAdmin = await prisma.admin.findFirst({ where: { id, tenantId } });
+    if (!targetAdmin) {
+      res.status(404).json({ message: 'Administrador não encontrado.' });
+      return;
+    }
+
+    if (targetAdmin.role === 'OWNER' && targetAdmin.id !== (req as any).adminId) {
+      res.status(403).json({ message: 'Não é permitido redefinir a senha do OWNER por outro administrador.' });
+      return;
+    }
+
+    const tempPassword = customPassword || `Pizza${Math.floor(1000 + Math.random() * 9000)}!`;
+    const passwordHash = await hashPassword(tempPassword);
+
+    await prisma.admin.update({
+      where: { id, tenantId },
+      data: { passwordHash },
+    });
+
+    res.json({
+      message: 'Senha redefinida com sucesso.',
+      temporaryPassword: tempPassword,
+    });
   })
 );
 

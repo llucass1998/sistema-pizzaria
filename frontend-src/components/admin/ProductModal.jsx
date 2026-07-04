@@ -201,7 +201,10 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
   const selectedCategory = watch('category');
   const selectedCategoryConfig = categories?.find((category) => category.slug === selectedCategory);
   const allowsSizes = Boolean(
-    selectedCategoryConfig?.allowSizes || ['pizzas', 'pizzas-especiais'].includes(selectedCategory),
+    selectedCategoryConfig?.allowSizes ||
+      ['pizzas', 'pizzas-especiais', 'pizzas-tradicionais', 'pizzas-doces'].includes(
+        selectedCategory,
+      ),
   );
 
   const [imageFile, setImageFile] = useState(null);
@@ -254,7 +257,9 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
             ? initialData.variants
             : categories?.find((category) => category.slug === initialData.category)?.allowSizes ||
                 initialData.category === 'pizzas' ||
-                initialData.category === 'pizzas-especiais'
+                initialData.category === 'pizzas-especiais' ||
+                initialData.category === 'pizzas-tradicionais' ||
+                initialData.category === 'pizzas-doces'
               ? defaultVariants
               : [],
           optionGroups: initialData.optionGroups || [],

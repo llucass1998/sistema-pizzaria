@@ -26,14 +26,20 @@ const AdminsPage = lazy(() => import('./pages/admin/AdminsPage.jsx').then((m) =>
 const POSPage = lazy(() => import('./pages/admin/POSPage.jsx').then((m) => ({ default: m.POSPage || m.default })));
 const DispatchPage = lazy(() => import('./pages/admin/DispatchPage.jsx').then((m) => ({ default: m.DispatchPage || m.default })));
 const KDSPage = lazy(() => import('./pages/admin/KDSPage.jsx').then((m) => ({ default: m.KDSPage || m.default })));
-const Purchases = lazy(() => import('./pages/ERP/Purchases.jsx'));
-const Quotes = lazy(() => import('./pages/ERP/Quotes.jsx'));
-const AccountsReceivable = lazy(() => import('./pages/ERP/AccountsReceivable.jsx'));
-const AccountsPayable = lazy(() => import('./pages/ERP/AccountsPayable.jsx'));
+const PurchasesPage = lazy(() => import('./pages/admin/PurchasesPage.jsx'));
+const InvoicesPage = lazy(() => import('./pages/admin/InvoicesPage.jsx'));
+const SuppliersPage = lazy(() => import('./pages/admin/SuppliersPage.jsx'));
+const Quotes = lazy(() => import('./pages/admin/Quotes.jsx'));
+const AccountsReceivable = lazy(() => import('./pages/admin/AccountsReceivable.jsx'));
+const AccountsPayable = lazy(() => import('./pages/admin/AccountsPayable.jsx'));
 const ShiftAuditPage = lazy(() => import('./pages/admin/ShiftAuditPage.jsx').then((m) => ({ default: m.ShiftAuditPage || m.default })));
 const CashFlowPage = lazy(() => import('./pages/admin/CashFlowPage.jsx').then((m) => ({ default: m.CashFlowPage || m.default })));
 const DREPage = lazy(() => import('./pages/admin/DREPage.jsx').then((m) => ({ default: m.DREPage || m.default })));
 const ReconciliationPage = lazy(() => import('./pages/admin/ReconciliationPage.jsx').then((m) => ({ default: m.ReconciliationPage || m.default })));
+const FiscalPage = lazy(() => import('./pages/admin/FiscalPage.jsx').then((m) => ({ default: m.FiscalPage || m.default })));
+const IntegrationsPage = lazy(() => import('./pages/admin/IntegrationsPage.jsx').then((m) => ({ default: m.IntegrationsPage || m.default })));
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage.jsx').then((m) => ({ default: m.ReportsPage || m.default })));
+const SaasDashboardPage = lazy(() => import('./pages/SaaS/SaasDashboardPage.jsx').then((m) => ({ default: m.SaasDashboardPage || m.default })));
 import { BottomNav } from './components/ui/BottomNav.jsx';
 import { CartDrawer } from './components/ui/CartDrawer.jsx';
 import { FloatingCartButton } from './components/ui/FloatingCartButton.jsx';
@@ -78,21 +84,24 @@ const ADMIN_ROUTE_ROLES = {
   kds: ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN'],
   dispatch: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
   settings: ['OWNER', 'ADMIN'],
-  purchases: ['OWNER', 'ADMIN', 'MANAGER'],
+  purchases: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  invoices: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
   quotes: ['OWNER', 'ADMIN', 'MANAGER'],
   receivables: ['OWNER', 'ADMIN', 'MANAGER'],
   payables: ['OWNER', 'ADMIN', 'MANAGER'],
   caixa: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
   'fluxo-caixa': ['OWNER', 'ADMIN', 'MANAGER'],
   dre: ['OWNER', 'ADMIN', 'MANAGER'],
-  conciliacao: ['OWNER', 'ADMIN', 'MANAGER'],
-  suppliers: ['OWNER', 'ADMIN', 'MANAGER'],
-  fornecedores: ['OWNER', 'ADMIN', 'MANAGER'],
+  conciliacao: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  suppliers: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  fornecedores: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
   customers: ['OWNER', 'ADMIN', 'MANAGER'],
   team: ['OWNER', 'ADMIN'],
   financeiro: ['OWNER', 'ADMIN', 'MANAGER'],
   relatorios: ['OWNER', 'ADMIN', 'MANAGER'],
   'accounts-receivable': ['OWNER', 'ADMIN', 'MANAGER'],
+  fiscal: ['OWNER', 'ADMIN', 'MANAGER'],
+  integrations: ['OWNER', 'ADMIN', 'MANAGER'],
 };
 const addonOptions = [
   {
@@ -200,19 +209,22 @@ function findMatchingVariant(product, selectedVariant) {
 const routes = {
   '/': { Component: HomePage },
   '/conta': { Component: AccountPage },
-  '/pizzas': { Component: CategoryPage, categoryId: 'pizzas' },
-  '/pizzas-especiais': { Component: CategoryPage, categoryId: 'especiais' },
-  '/promocoes': { Component: CategoryPage, categoryId: 'promocoes' },
-  '/bebidas': { Component: CategoryPage, categoryId: 'bebidas' },
-  '/sobremesas': { Component: CategoryPage, categoryId: 'sobremesas' },
-  '/combos': { Component: CategoryPage, categoryId: 'combos' },
+  '/pizzas-tradicionais': { Component: CategoryPage, categoryId: 'pizzas-tradicionais' },
+  '/pizzas-doces': { Component: CategoryPage, categoryId: 'pizzas-doces' },
+  '/refrigerantes': { Component: CategoryPage, categoryId: 'refrigerantes' },
+  '/pizzas': { Component: CategoryPage, categoryId: 'pizzas-tradicionais' },
   '/checkout': { Component: CheckoutPage },
   '/mock-payment': { Component: MockPaymentPage },
 };
 
 function getRoute(path) {
   if (path.startsWith('/order/')) return { Component: OrderStatusPage };
-  return routes[path];
+  if (routes[path]) return routes[path];
+  if (path.startsWith('/') && !path.startsWith('/admin') && path.length > 1) {
+    const slug = path.replace('/', '');
+    return { Component: CategoryPage, categoryId: slug };
+  }
+  return null;
 }
 
 function getHashPath() {
@@ -1020,6 +1032,7 @@ export default function PizzariaApp() {
           <HashRouter>
             <Routes>
               <Route path="/saas/onboarding" element={<OnboardingPage />} />
+              <Route path="/saas/dashboard" element={<SaasDashboardPage />} />
               <Route
                 path="/admin/login"
                 element={<LoginPage isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />}
@@ -1044,7 +1057,8 @@ export default function PizzariaApp() {
                 <Route path="kds" element={<ProtectedAdminRoute routeKey="kds"><KDSPage /></ProtectedAdminRoute>} />
                 <Route path="dispatch" element={<ProtectedAdminRoute routeKey="dispatch"><DispatchPage /></ProtectedAdminRoute>} />
                 <Route path="settings" element={<ProtectedAdminRoute routeKey="settings"><SettingsPage /></ProtectedAdminRoute>} />
-                <Route path="purchases" element={<ProtectedAdminRoute routeKey="purchases"><Purchases /></ProtectedAdminRoute>} />
+                <Route path="purchases" element={<ProtectedAdminRoute routeKey="purchases"><PurchasesPage /></ProtectedAdminRoute>} />
+                <Route path="invoices" element={<ProtectedAdminRoute routeKey="invoices"><InvoicesPage /></ProtectedAdminRoute>} />
                 <Route path="quotes" element={<ProtectedAdminRoute routeKey="quotes"><Quotes /></ProtectedAdminRoute>} />
                 <Route path="receivables" element={<ProtectedAdminRoute routeKey="receivables"><AccountsReceivable /></ProtectedAdminRoute>} />
                 <Route path="payables" element={<ProtectedAdminRoute routeKey="payables"><AccountsPayable /></ProtectedAdminRoute>} />
@@ -1052,13 +1066,15 @@ export default function PizzariaApp() {
                 <Route path="fluxo-caixa" element={<ProtectedAdminRoute routeKey="fluxo-caixa"><CashFlowPage /></ProtectedAdminRoute>} />
                 <Route path="dre" element={<ProtectedAdminRoute routeKey="dre"><DREPage /></ProtectedAdminRoute>} />
                 <Route path="conciliacao" element={<ProtectedAdminRoute routeKey="conciliacao"><ReconciliationPage /></ProtectedAdminRoute>} />
-                <Route path="suppliers" element={<ProtectedAdminRoute routeKey="suppliers"><Purchases /></ProtectedAdminRoute>} />
-                <Route path="fornecedores" element={<ProtectedAdminRoute routeKey="fornecedores"><Purchases /></ProtectedAdminRoute>} />
+                <Route path="suppliers" element={<ProtectedAdminRoute routeKey="suppliers"><SuppliersPage /></ProtectedAdminRoute>} />
+                <Route path="fornecedores" element={<ProtectedAdminRoute routeKey="fornecedores"><SuppliersPage /></ProtectedAdminRoute>} />
                 <Route path="customers" element={<ProtectedAdminRoute routeKey="customers"><CRMPage /></ProtectedAdminRoute>} />
                 <Route path="team" element={<ProtectedAdminRoute routeKey="team"><AdminsPage /></ProtectedAdminRoute>} />
                 <Route path="financeiro" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="relatorios" element={<Navigate to="/admin/dre" replace />} />
+                <Route path="relatorios" element={<ProtectedAdminRoute routeKey="relatorios"><ReportsPage /></ProtectedAdminRoute>} />
                 <Route path="accounts-receivable" element={<ProtectedAdminRoute routeKey="accounts-receivable"><AccountsReceivable /></ProtectedAdminRoute>} />
+                <Route path="fiscal" element={<ProtectedAdminRoute routeKey="fiscal"><FiscalPage /></ProtectedAdminRoute>} />
+                <Route path="integrations" element={<ProtectedAdminRoute routeKey="integrations"><IntegrationsPage /></ProtectedAdminRoute>} />
               </Route>
             </Routes>
           </HashRouter>
@@ -1256,7 +1272,9 @@ export default function PizzariaApp() {
                       </div>
                     ))
                   : productToCustomize.category === 'pizzas' ||
-                      productToCustomize.category === 'pizzas-especiais'
+                      productToCustomize.category === 'pizzas-especiais' ||
+                      productToCustomize.category === 'pizzas-tradicionais' ||
+                      productToCustomize.category === 'pizzas-doces'
                     ? addonOptions.map((addon) => (
                         <label
                           key={addon.id}

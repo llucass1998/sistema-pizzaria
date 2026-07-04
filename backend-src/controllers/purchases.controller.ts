@@ -448,4 +448,59 @@ export const PurchasesController = {
 
     res.status(201).json(result);
   },
+
+  async updatePurchaseOrder(req: Request, res: Response) {
+    const tenantId = getTenantId();
+    const id = String(req.params['id']);
+    const { status, notes, expectedDate } = req.body;
+
+    const existing = await prisma.purchaseOrder.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw createBusinessError('Pedido de compra nao encontrado para esta loja.', 404);
+    }
+
+    const updated = await prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        ...(status ? { status } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(expectedDate ? { expectedDate: new Date(expectedDate) } : {}),
+      },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        items: { include: { ingredient: { select: { id: true, name: true, unit: true } } } },
+      },
+    });
+
+    res.json(updated);
+  },
+
+  async cancelPurchaseOrder(req: Request, res: Response) {
+    const tenantId = getTenantId();
+    const id = String(req.params['id']);
+
+    const existing = await prisma.purchaseOrder.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw createBusinessError('Pedido de compra nao encontrado para esta loja.', 404);
+    }
+
+    const updated = await prisma.purchaseOrder.update({
+      where: { id },
+      data: { status: 'CANCELED' },
+      include: {
+        supplier: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json(updated);
+  },
 };
+

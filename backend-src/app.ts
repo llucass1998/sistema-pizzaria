@@ -19,6 +19,9 @@ import { billingRoutes } from './routes/billing.routes.js';
 import { webhookRoutes } from './routes/webhook.routes.js';
 import { integrationRoutes } from './routes/integration.routes.js';
 import { purchasesRouter } from './routes/purchases.routes.js';
+import { invoicesRouter } from './routes/invoices.routes.js';
+import { suppliersRouter } from './routes/suppliers.routes.js';
+import { reconciliationRouter } from './routes/reconciliation.routes.js';
 import { quotesRouter } from './routes/quotes.routes.js';
 import { receivablesRouter } from './routes/receivables.routes.js';
 import { payablesRouter } from './routes/payables.routes.js';
@@ -33,6 +36,7 @@ import saasRoutes from './routes/saas.routes.js';
 import { kdsRouter } from './routes/kds.routes.js';
 import { manufacturingRouter } from './routes/manufacturing.routes.js';
 import { wasteRouter } from './routes/waste.routes.js';
+import { reportsRoutes } from './routes/reports.routes.js';
 
 // Cria a aplicacao Express, que sera a API.
 export const app = express();
@@ -105,6 +109,12 @@ app.use('/api/pos', posRouter);
 app.use('/api/billing', billingRoutes);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/admin/purchases', requireAuth, purchasesRouter);
+app.use('/api/invoices', invoicesRouter);
+app.use('/api/admin/invoices', requireAuth, invoicesRouter);
+app.use('/api/suppliers', suppliersRouter);
+app.use('/api/admin/suppliers', requireAuth, suppliersRouter);
+app.use('/api/reconciliation', reconciliationRouter);
+app.use('/api/admin/reconciliation', requireAuth, reconciliationRouter);
 app.use('/api/quotes', quotesRouter);
 app.use('/api/admin/quotes', requireAuth, quotesRouter);
 app.use('/api/receivables', receivablesRouter);
@@ -119,11 +129,13 @@ app.use('/api/admin/pos', posRouter);
 app.use('/api/admin/inventory', requireAuth, inventoryRouter);
 app.use('/api/admin/inventory/waste', requireAuth, wasteRouter);
 app.use('/api/admin/recipes', recipeRouter);
-app.use('/api/admin/fiscal', fiscalRoutes);
+app.use('/api/fiscal', fiscalRoutes);
+app.use('/api/admin/fiscal', requireAuth, fiscalRoutes);
 app.use('/api/admin/dispatch', requireAuth, dispatchRoutes);
 app.use('/api/admin/kds', kdsRouter);
 app.use('/api/admin/manufacturing', requireAuth, manufacturingRouter);
 app.use('/api/manufacturing', manufacturingRouter);
+app.use('/api/admin/reports', requireAuth, requireRole(['OWNER', 'ADMIN', 'MANAGER']), reportsRoutes);
 
 // Handler global de erros — deve ser o ULTIMO middleware registrado.
 // Captura qualquer erro nao tratado pelas rotas e retorna resposta JSON limpa.

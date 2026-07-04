@@ -156,7 +156,7 @@ export function NewQuoteModal({ isOpen, onClose, onSuccess, quote = null }) {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
       const response = await fetch(
-        isEditing ? `${API_BASE_URL}/quotes/${quote.id}` : `${API_BASE_URL}/quotes`,
+        isEditing ? `${API_BASE_URL}/admin/quotes/${quote.id}` : `${API_BASE_URL}/admin/quotes`,
         {
           method: isEditing ? 'PUT' : 'POST',
           headers: {

@@ -2,8 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Truck, CheckCircle2, Search, User, MapPin, Plus, Edit2, Check, X, UserPlus, Info } from 'lucide-react';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { formatCurrency } from '../../data/menuData.js';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
 const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
+// Fix para os ícones padrão do leaflet no Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 export function DispatchPage() {
   const [orders, setOrders] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -89,22 +100,22 @@ export function DispatchPage() {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 overflow-hidden">
-      <div className="flex-none flex justify-between items-center bg-white dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex-none flex justify-between items-center bg-white dark:bg-slate-950 px-6 py-4 border-b border-slate-200 dark:border-slate-800 shadow-sm z-10 relative">
         <div className="flex items-center gap-3">
           <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 dark:text-orange-400">
             <Truck size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white">Painel de Despacho</h1>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-white">Painel de Despacho & Logística</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {sessionRole === 'DRIVER' ? 'Acompanhe suas entregas em rota.' : 'Atribua pedidos prontos aos entregadores.'}
+              {sessionRole === 'DRIVER' ? 'Acompanhe suas entregas em rota.' : 'Atribua pedidos e rastreie entregadores no mapa.'}
             </p>
           </div>
         </div>
         {canManageDrivers && (
           <button
             onClick={() => setShowDriverModal(true)}
-            className="bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition"
+            className="bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-slate-700 transition shadow-sm"
           >
             <User size={18} />
             Gerenciar Motoboys
@@ -112,32 +123,59 @@ export function DispatchPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-4">
-        {isLoading && orders.length === 0 ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="bg-white dark:bg-slate-950 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center p-12 text-center text-slate-500">
-            <CheckCircle2 size={48} className="mb-4 text-emerald-400" />
-            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">Nenhum pedido aguardando</h3>
-            <p>Todos os pedidos foram despachados.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders.map(order => (
-              <DispatchCard 
-                key={order.id} 
-                order={order} 
-                drivers={drivers}
-                canAssign={canManageDrivers}
-                canCompleteDelivery={sessionRole === 'DRIVER'}
-                onAssign={(driverId) => handleAssignDriver(order.id, driverId)} 
-                onDelivered={() => handleMarkDelivered(order.id)}
-              />
-            ))}
-          </div>
-        )}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Painel Esquerdo: Lista de Pedidos */}
+        <div className="w-full lg:w-1/2 flex flex-col overflow-auto p-6 space-y-4">
+          {isLoading && orders.length === 0 ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="bg-white dark:bg-slate-950 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center p-12 text-center text-slate-500">
+              <CheckCircle2 size={48} className="mb-4 text-emerald-400" />
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">Nenhum pedido aguardando</h3>
+              <p>Todos os pedidos foram despachados.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {orders.map(order => (
+                <DispatchCard 
+                  key={order.id} 
+                  order={order} 
+                  drivers={drivers}
+                  canAssign={canManageDrivers}
+                  canCompleteDelivery={sessionRole === 'DRIVER'}
+                  onAssign={(driverId) => handleAssignDriver(order.id, driverId)} 
+                  onDelivered={() => handleMarkDelivered(order.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Painel Direito: Mapa */}
+        <div className="hidden lg:block lg:w-1/2 border-l border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-800 relative z-0">
+          <MapContainer center={[-23.5505, -46.6333]} zoom={13} style={{ height: '100%', width: '100%' }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {orders.map(order => {
+              const hash = order.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              const lat = -23.5505 + ((hash % 100) * 0.001 * (hash % 2 === 0 ? 1 : -1));
+              const lng = -46.6333 + (((hash * 3) % 100) * 0.001 * (hash % 3 === 0 ? 1 : -1));
+              return (
+                <Marker key={order.id} position={[lat, lng]}>
+                  <Popup>
+                    <div className="font-bold text-slate-900">Pedido #{order.id.slice(-6).toUpperCase()}</div>
+                    <div className="text-sm text-slate-600">{order.street}, {order.number}</div>
+                    <div className="text-xs mt-1 text-orange-600 font-bold">{order.status === 'OUT_FOR_DELIVERY' ? 'Despachado' : 'Pronto'}</div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        </div>
       </div>
 
       {showDriverModal && canManageDrivers && (

@@ -66,7 +66,7 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       },
     });
 
-    // Em um SaaS real, aqui também criariamos a Subscription no gateway
+// Em um SaaS real, aqui também criariamos a Subscription no gateway
     // const subscription = await gateway.createSubscription(...)
 
     return res.status(201).json({
@@ -79,5 +79,75 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erro interno ao criar loja.' });
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN SAAS (Super Admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { requireAdmin } from '../middlewares/requireAdmin.js';
+import { requireRole } from '../middlewares/requireRole.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
+
+router.get(
+  '/admin/tenants',
+  requireAdmin,
+  requireRole(['SUPER_ADMIN']),
+  asyncHandler(async (_req: Request, res: Response) => {
+    // Busca todos os tenants com contagens basicas
+    const tenants = await prisma.tenant.findMany({
+      include: {
+        _count: {
+          select: {
+            orders: true,
+            customers: true,
+            products: true,
+          }
+        },
+        admins: {
+          where: { role: 'OWNER' },
+          select: { email: true, name: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const mapped = tenants.map(t => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      isActive: t.isActive,
+      createdAt: t.createdAt,
+      totalOrders: t._count.orders,
+      totalCustomers: t._count.customers,
+      totalProducts: t._count.products,
+      ownerEmail: t.admins[0]?.email || null,
+      ownerName: t.admins[0]?.name || null,
+    }));
+
+    res.json(mapped);
+  })
+);
+
+router.patch(
+  '/admin/tenants/:id/status',
+  requireAdmin,
+  requireRole(['SUPER_ADMIN']),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { isActive } = req.body;
+    const id = req.params.id as string;
+
+    if (typeof isActive !== 'boolean') {
+      res.status(400).json({ message: 'isActive deve ser um booleano.' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.update({
+      where: { id },
+      data: { isActive },
+    });
+
+    res.json({ message: 'Status do Tenant atualizado com sucesso.', tenant });
+  })
+);
 
 export default router;

@@ -44,7 +44,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
 
-      const res = await fetch(`${API_BASE_URL}/receivables/invoices/${invoice.id}/payments`, {
+      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices/${invoice.id}/payments`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

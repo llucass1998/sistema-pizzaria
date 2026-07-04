@@ -273,12 +273,21 @@ export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onCl
   );
 }
 
-export function CashTransactionModal({ isOpen, onClose, currentShift, adminData, onTransaction }) {
-  const [type, setType] = useState('SANGRIA');
+export function CashTransactionModal({ isOpen, onClose, currentShift, adminData, onTransaction, initialType = 'SANGRIA' }) {
+  const [type, setType] = useState(initialType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setType(initialType);
+      setAmount('');
+      setDescription('');
+      setError('');
+    }
+  }, [isOpen, initialType]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

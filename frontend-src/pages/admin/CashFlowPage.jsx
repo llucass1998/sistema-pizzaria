@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatCurrencySafe } from '../../data/menuData.js';
-import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, Calendar, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, Calendar, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight, Layers, Download, FileText } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.PROD 
   ? '/api' 
@@ -51,9 +51,43 @@ export function CashFlowPage() {
     return true;
   });
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportCSV = () => {
+    if (!cashFlowData?.entries) return;
+    const periodLabel = period === 'MONTH' ? 'Este Mês' : period === 'THIS_WEEK' ? 'Esta Semana' : period === 'LAST_30_DAYS' ? 'Últimos 30 Dias' : 'Turno Atual / Hoje';
+    const rows = [
+      ['FLUXO DE CAIXA CONSOLIDADO - RIO PIZZAS'],
+      ['Período:', periodLabel],
+      ['Data de Emissão:', new Date().toLocaleString('pt-BR')],
+      [],
+      ['Data/Hora', 'Tipo Movimentação', 'Descrição / Categoria', 'Valor (R$)', 'Status / Realizado', 'Método / Conta'],
+      ...filteredEntries.map(e => [
+        new Date(e.date).toLocaleString('pt-BR'),
+        e.type === 'INFLOW' ? 'Entrada (+)' : e.type === 'OUTFLOW' ? 'Saída (-)' : 'Mov. Físico / Sangria/Supr.',
+        e.description || e.category || 'Sem descrição',
+        Number(e.amount || 0).toFixed(2),
+        e.isRealized ? 'Realizado' : 'Previsto',
+        e.paymentMethod || 'Caixa Geral'
+      ])
+    ];
+    
+    const csvContent = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `FluxoCaixa_RioPizzas_${period}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 tracking-wide uppercase">
@@ -79,6 +113,26 @@ export function CashFlowPage() {
               <option value="MONTH">Este Mês</option>
             </select>
           </div>
+
+          <button
+            onClick={handleExportCSV}
+            disabled={isLoading || !cashFlowData?.entries}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-all disabled:opacity-50"
+            title="Baixar planilha Excel (CSV UTF-8)"
+          >
+            <Download size={16} />
+            Exportar Excel
+          </button>
+
+          <button
+            onClick={handlePrint}
+            disabled={isLoading || !cashFlowData?.entries}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-sm font-bold shadow-sm transition-all disabled:opacity-50"
+            title="Gerar PDF estruturado ou Imprimir"
+          >
+            <FileText size={16} />
+            Imprimir PDF
+          </button>
 
           <button 
             onClick={loadCashFlow} 

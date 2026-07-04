@@ -15,8 +15,7 @@ import {
   Building,
   CreditCard,
 } from 'lucide-react';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
-import { PageContainer } from '../../components/ui/PageContainer.jsx';
+import { formatCurrencySafe } from '../../data/menuData.js';
 import { NewPayableModal } from './NewPayableModal.jsx';
 import { PayablePaymentModal } from './PayablePaymentModal.jsx';
 
@@ -42,7 +41,13 @@ const CATEGORY_BADGES = {
   OTHER: { label: 'Outros', bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' },
 };
 
+const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+
 export default function AccountsPayable() {
+  const adminDataStr = typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
+  const adminData = adminDataStr ? JSON.parse(adminDataStr) : null;
+  const userRole = adminData?.user?.role || adminData?.role || '';
+
   const [payables, setPayables] = useState([]);
   const [summary, setSummary] = useState({
     totalOverdue: 0,
@@ -79,7 +84,7 @@ export default function AccountsPayable() {
       const [payRes, sumRes, supRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/payables?${queryParams.toString()}`, { headers }),
         fetch(`${API_BASE_URL}/admin/payables/summary`, { headers }),
-        fetch(`${API_BASE_URL}/purchases/suppliers`, { headers }).catch(() => ({ ok: false })),
+        fetch(`${API_BASE_URL}/admin/suppliers`, { headers }).catch(() => ({ ok: false })),
       ]);
 
       if (payRes.ok) setPayables(await payRes.json());
@@ -126,22 +131,30 @@ export default function AccountsPayable() {
     );
   });
 
+  if (userRole === 'KITCHEN' || userRole === 'DRIVER' || userRole === 'DELIVERY') {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center backdrop-blur-md">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
+          <p className="text-slate-300 max-w-md mx-auto">
+            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui permissões para acessar Contas a Pagar.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <PageContainer>
+    <>
       <div className="mx-auto max-w-7xl p-4 md:p-8">
-        {/* Cabeçalho */}
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <a
-              href="#/admin"
-              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              <ArrowLeft size={22} />
-            </a>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">
-                Contas a Pagar
-              </h1>
+      {/* Cabeçalho */}
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">
+              Contas a Pagar
+            </h1>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 ERP Financeiro — Gestão de despesas, insumos, fornecedores e vencimentos
               </p>
@@ -165,7 +178,7 @@ export default function AccountsPayable() {
               <AlertCircle size={22} />
             </div>
             <p className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">
-              R$ {Number(summary.totalOverdue).toFixed(2)}
+              {formatCurrencySafe(summary?.totalOverdue ?? 0)}
             </p>
             <p className="mt-1 text-xs font-semibold text-rose-600/80 dark:text-rose-400/80">
               Ação imediata necessária
@@ -178,7 +191,7 @@ export default function AccountsPayable() {
               <Clock size={22} />
             </div>
             <p className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">
-              R$ {Number(summary.dueIn7Days).toFixed(2)}
+              {formatCurrencySafe(summary?.dueIn7Days ?? 0)}
             </p>
             <p className="mt-1 text-xs font-semibold text-amber-600/80 dark:text-amber-400/80">
               Previsão de curto prazo
@@ -191,7 +204,7 @@ export default function AccountsPayable() {
               <TrendingDown size={22} />
             </div>
             <p className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">
-              R$ {Number(summary.totalPending).toFixed(2)}
+              {formatCurrencySafe(summary?.totalPending ?? 0)}
             </p>
             <p className="mt-1 text-xs font-semibold text-blue-600/80 dark:text-blue-400/80">
               Saldo devedor total
@@ -204,7 +217,7 @@ export default function AccountsPayable() {
               <CheckCircle2 size={22} />
             </div>
             <p className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">
-              R$ {Number(summary.paidThisMonth).toFixed(2)}
+              {formatCurrencySafe(summary?.paidThisMonth ?? 0)}
             </p>
             <p className="mt-1 text-xs font-semibold text-emerald-600/80 dark:text-emerald-400/80">
               Baixas realizadas no mês
@@ -357,11 +370,11 @@ export default function AccountsPayable() {
                       <div className="flex flex-col text-right">
                         <span className="text-xs font-semibold text-slate-400">Valor Total</span>
                         <span className="text-xl font-black text-slate-900 dark:text-slate-100">
-                          R$ {totalAmount.toFixed(2)}
+                          {formatCurrencySafe(totalAmount)}
                         </span>
                         {paidAmount > 0 && !isPaid && (
                           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            Pago: R$ {paidAmount.toFixed(2)} | Resta: R$ {remaining.toFixed(2)}
+                            Pago: {formatCurrencySafe(paidAmount)} | Resta: {formatCurrencySafe(remaining)}
                           </span>
                         )}
                       </div>
@@ -469,7 +482,7 @@ export default function AccountsPayable() {
                           {p.notes && <p className="text-[11px] text-slate-500">{p.notes}</p>}
                         </div>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          + R$ {Number(p.amount).toFixed(2)}
+                          + {formatCurrencySafe(p.amount)}
                         </span>
                       </div>
                     ))}
@@ -491,6 +504,6 @@ export default function AccountsPayable() {
           </div>
         </div>
       )}
-    </PageContainer>
+    </>
   );
 }

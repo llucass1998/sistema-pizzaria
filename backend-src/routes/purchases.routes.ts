@@ -36,7 +36,17 @@ purchasesRouter.post(
 purchasesRouter.get('/orders', asyncHandler(PurchasesController.getPurchaseOrders));
 purchasesRouter.post('/orders', asyncHandler(PurchasesController.createPurchaseOrder));
 purchasesRouter.get('/orders/:id', asyncHandler(PurchasesController.getPurchaseOrderById));
+purchasesRouter.put('/orders/:id', asyncHandler(PurchasesController.updatePurchaseOrder));
+purchasesRouter.patch('/orders/:id/cancel', asyncHandler(PurchasesController.cancelPurchaseOrder));
 purchasesRouter.post(
   '/orders/:id/receive',
   asyncHandler(PurchasesController.receivePurchaseOrder),
 );
+
+// Apelidos na raiz para compatibilidade com a REST API padrão (GET /api/admin/purchases)
+purchasesRouter.get('/', asyncHandler(PurchasesController.getPurchaseOrders));
+purchasesRouter.post('/', asyncHandler(PurchasesController.createPurchaseOrder));
+purchasesRouter.get('/:id', asyncHandler(PurchasesController.getPurchaseOrderById));
+purchasesRouter.put('/:id', asyncHandler(PurchasesController.updatePurchaseOrder));
+purchasesRouter.patch('/:id/cancel', asyncHandler(PurchasesController.cancelPurchaseOrder));
+

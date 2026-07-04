@@ -19,7 +19,7 @@ export function ReversePaymentModal({ isOpen, onClose, onSuccess, invoice }) {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
 
-      const res = await fetch(`${API_BASE_URL}/receivables/invoices/${invoice.id}/payments/${paymentId}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices/${invoice.id}/payments/${paymentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

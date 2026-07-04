@@ -46,62 +46,35 @@ export function getWhatsappLink(currentStore = store) {
 
 export const categories = [
   {
-    id: 'pizzas',
-    slug: 'pizzas',
-    name: 'Pizzas',
+    id: 'pizzas-tradicionais',
+    slug: 'pizzas-tradicionais',
+    name: 'Pizzas Tradicionais',
     image: '🍕',
-    description: 'Sabores classicos da casa com massa leve e bastante recheio.',
+    description: 'Sabores tradicionais da casa com massa leve e bastante recheio.',
   },
   {
-    id: 'pizzas-especiais',
-    slug: 'pizzas-especiais',
-    name: 'Pizzas Especiais',
-    image: '🍕',
-    description: 'Receitas caprichadas para quem quer sair do basico.',
-  },
-  {
-    id: 'promocoes',
-    slug: 'promocoes',
-    name: 'Promocoes',
-    image: '🔥',
-    description: 'Combos e ofertas para pedir bem sem gastar demais.',
-  },
-  {
-    id: 'bebidas',
-    slug: 'bebidas',
-    name: 'Bebidas',
-    image: '🥤',
-    description: 'Refrigerantes e bebidas geladas para acompanhar a pizza.',
-  },
-  {
-    id: 'sobremesas',
-    slug: 'sobremesas',
-    name: 'Sobremesas',
+    id: 'pizzas-doces',
+    slug: 'pizzas-doces',
+    name: 'Pizzas Doces',
     image: '🍫',
-    description: 'Doces para fechar o pedido no clima certo.',
+    description: 'Deliciosa seleção de pizzas doces para sobremesa ou lanche.',
   },
   {
-    id: 'combos',
-    slug: 'combos',
-    name: 'Combos',
-    image: '📦',
-    description: 'Pedidos prontos para dividir com a familia ou amigos.',
+    id: 'refrigerantes',
+    slug: 'refrigerantes',
+    name: 'Refrigerantes',
+    image: '🥤',
+    description: 'Refrigerantes gelados na medida certa para acompanhar sua pizza.',
   },
 ];
 
 const productImagesByCategory = {
-  pizzas:
+  'pizzas-tradicionais':
     'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80',
-  'pizzas-especiais':
-    'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=900&q=80',
-  promocoes:
-    'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=900&q=80',
-  bebidas:
-    'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
-  sobremesas:
+  'pizzas-doces':
     'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
-  combos:
-    'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80',
+  refrigerantes:
+    'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
 };
 
 const productImagesById = {
@@ -110,28 +83,22 @@ const productImagesById = {
   3: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=900&q=80',
   4: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=900&q=80',
   5: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?auto=format&fit=crop&w=900&q=80',
-  6: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80',
+  6: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
   7: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?auto=format&fit=crop&w=900&q=80',
-  8: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
+  8: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
 };
 
 export const products = [
-  { id: 1, name: 'Pizza Margherita', category: 'pizzas', price: 39.9, image: '🍕' },
-  { id: 2, name: 'Pizza Calabresa', category: 'pizzas', price: 42.9, image: '🍕' },
-  { id: 3, name: 'Pizza Quatro Queijos', category: 'pizzas', price: 46.9, image: '🍕' },
-  { id: 4, name: 'Pizza Portuguesa', category: 'pizzas-especiais', price: 49.9, image: '🍕' },
-  {
-    id: 5,
-    name: 'Pizza Frango com Catupiry',
-    category: 'pizzas-especiais',
-    price: 52.9,
-    image: '🍕',
-  },
-  { id: 6, name: 'Combo Familia 2 Pizzas', category: 'combos', price: 89.9, image: '📦' },
-  { id: 7, name: 'Combo Pizza + Refrigerante', category: 'promocoes', price: 59.9, image: '🔥' },
-  { id: 8, name: 'Brownie de Chocolate', category: 'sobremesas', price: 14.9, image: '🍫' },
-  { id: 9, name: 'Coca-Cola lata 350ml', category: 'bebidas', price: 7, image: '🥤' },
-  { id: 10, name: 'Guarana Antarctica lata 350ml', category: 'bebidas', price: 7, image: '🥤' },
+  { id: 1, name: 'Pizza Margherita', category: 'pizzas-tradicionais', price: 39.9, image: '🍕' },
+  { id: 2, name: 'Pizza Calabresa', category: 'pizzas-tradicionais', price: 42.9, image: '🍕' },
+  { id: 3, name: 'Pizza Quatro Queijos', category: 'pizzas-tradicionais', price: 46.9, image: '🍕' },
+  { id: 4, name: 'Pizza Portuguesa', category: 'pizzas-tradicionais', price: 49.9, image: '🍕' },
+  { id: 5, name: 'Pizza Frango com Catupiry', category: 'pizzas-tradicionais', price: 52.9, image: '🍕' },
+  { id: 6, name: 'Pizza Brigadeiro com Morango', category: 'pizzas-doces', price: 45.9, image: '🍫' },
+  { id: 7, name: 'Pizza Romeu e Julieta', category: 'pizzas-doces', price: 44.9, image: '🍫' },
+  { id: 8, name: 'Coca-Cola lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  { id: 9, name: 'Guaraná Antarctica lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  { id: 10, name: 'Coca-Cola Garrafa 2L', category: 'refrigerantes', price: 14, image: '🥤' },
 ].map((product) => ({
   ...product,
   imageUrl: productImagesById[product.id] ?? productImagesByCategory[product.category],

@@ -25,9 +25,9 @@ const prisma = new PrismaClient({ adapter });
 
 const SAMPLE_CATEGORIES = [
   {
-    slug: 'pizzas',
-    name: 'Pizzas',
-    description: 'Sabores classicos da casa com massa leve e bastante recheio.',
+    slug: 'pizzas-tradicionais',
+    name: 'Pizzas Tradicionais',
+    description: 'Sabores tradicionais da casa com massa leve, bastante recheio e molho especial.',
     imageUrl:
       'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80',
     sortOrder: 10,
@@ -36,56 +36,23 @@ const SAMPLE_CATEGORIES = [
     halfAndHalfGroup: 'pizza-salgada',
   },
   {
-    slug: 'pizzas-especiais',
-    name: 'Pizzas Especiais',
-    description: 'Receitas caprichadas para quem quer sair do basico.',
+    slug: 'pizzas-doces',
+    name: 'Pizzas Doces',
+    description: 'Deliciosas receitas doces com ingredientes selecionados para sobremesa ou lanche.',
     imageUrl:
-      'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
     sortOrder: 20,
     allowSizes: true,
     allowHalfAndHalf: true,
-    halfAndHalfGroup: 'pizza-salgada',
+    halfAndHalfGroup: 'pizza-doce',
   },
   {
-    slug: 'promocoes',
-    name: 'Promocoes',
-    description: 'Combos e ofertas para pedir bem sem gastar demais.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=900&q=80',
-    sortOrder: 30,
-    allowSizes: false,
-    allowHalfAndHalf: false,
-    halfAndHalfGroup: null,
-  },
-  {
-    slug: 'bebidas',
-    name: 'Bebidas',
-    description: 'Refrigerantes e bebidas geladas para acompanhar a pizza.',
+    slug: 'refrigerantes',
+    name: 'Refrigerantes',
+    description: 'Refrigerantes e bebidas geladas na medida certa para acompanhar sua pizza.',
     imageUrl:
       'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
-    sortOrder: 40,
-    allowSizes: false,
-    allowHalfAndHalf: false,
-    halfAndHalfGroup: null,
-  },
-  {
-    slug: 'sobremesas',
-    name: 'Sobremesas',
-    description: 'Doces para fechar o pedido no clima certo.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
-    sortOrder: 50,
-    allowSizes: false,
-    allowHalfAndHalf: false,
-    halfAndHalfGroup: null,
-  },
-  {
-    slug: 'combos',
-    name: 'Combos',
-    description: 'Pedidos prontos para dividir com a familia ou amigos.',
-    imageUrl:
-      'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80',
-    sortOrder: 60,
+    sortOrder: 30,
     allowSizes: false,
     allowHalfAndHalf: false,
     halfAndHalfGroup: null,
@@ -96,63 +63,69 @@ const SAMPLE_CATEGORIES = [
 const SAMPLE_PRODUCTS = [
   {
     name: 'Pizza Margherita',
-    category: 'pizzas',
+    category: 'pizzas-tradicionais',
     price: '39.90',
-    description: 'Molho de tomate, mussarela e manjericao fresco.',
+    description: 'Molho de tomate artesanal, mussarela premium, rodelas de tomate e manjericão fresco.',
   },
   {
     name: 'Pizza Calabresa',
-    category: 'pizzas',
+    category: 'pizzas-tradicionais',
     price: '42.90',
-    description: 'Calabresa fatiada, cebola e azeitonas.',
+    description: 'Calabresa fatiada de primeira linha, cebola em rodelas e azeitonas pretas selecionadas.',
   },
   {
     name: 'Pizza Quatro Queijos',
-    category: 'pizzas',
+    category: 'pizzas-tradicionais',
     price: '46.90',
-    description: 'Mussarela, provolone, catupiry e parmesao.',
+    description: 'Mussarela derretida, provolone defumado, catupiry original e queijo parmesão ralado.',
   },
   {
     name: 'Pizza Portuguesa',
-    category: 'pizzas-especiais',
+    category: 'pizzas-tradicionais',
     price: '49.90',
-    description: 'Presunto, ovos, cebola, azeitonas e mussarela.',
+    description: 'Presunto de qualidade, ovos cozidos, cebola, azeitonas, ervilha e bastante mussarela.',
   },
   {
     name: 'Pizza Frango com Catupiry',
-    category: 'pizzas-especiais',
+    category: 'pizzas-tradicionais',
     price: '52.90',
-    description: 'Frango desfiado temperado com catupiry cremoso.',
+    description: 'Peito de frango desfiado e temperado, coberto com autêntico catupiry cremoso.',
   },
   {
-    name: 'Combo Familia 2 Pizzas',
-    category: 'combos',
-    price: '89.90',
-    description: 'Escolha 2 pizzas do cardapio classico.',
+    name: 'Pizza Brigadeiro com Morango',
+    category: 'pizzas-doces',
+    price: '45.90',
+    description: 'Delicioso creme de brigadeiro artesanal, granulado gourmet e morangos frescos fatiados.',
   },
   {
-    name: 'Combo Pizza + Refrigerante',
-    category: 'promocoes',
-    price: '59.90',
-    description: 'Uma pizza classica + 1 refrigerante lata.',
+    name: 'Pizza Banana com Canela e Leite Condensado',
+    category: 'pizzas-doces',
+    price: '42.90',
+    description: 'Fatias de banana prata flambada com açúcar e canela, gratinada com leite condensado.',
   },
   {
-    name: 'Brownie de Chocolate',
-    category: 'sobremesas',
-    price: '14.90',
-    description: 'Brownie artesanal com calda de chocolate.',
+    name: 'Pizza Romeu e Julieta',
+    category: 'pizzas-doces',
+    price: '44.90',
+    description: 'A clássica combinação mineira de goiabada derretida com generosas fatias de queijo minas.',
   },
   {
     name: 'Coca-Cola lata 350ml',
-    category: 'bebidas',
+    category: 'refrigerantes',
     price: '7.00',
-    description: 'Coca-Cola gelada.',
+    description: 'Refrigerante Coca-Cola lata 350ml extremamente gelado.',
   },
   {
-    name: 'Guarana Antarctica lata 350ml',
-    category: 'bebidas',
+    name: 'Guaraná Antarctica lata 350ml',
+    category: 'refrigerantes',
     price: '7.00',
-    description: 'Guarana gelado.',
+    description: 'Refrigerante Guaraná Antarctica lata 350ml extremamente gelado.',
+  },
+  {
+    name: 'Coca-Cola Garrafa 2L',
+    category: 'refrigerantes',
+    price: '14.00',
+    description: 'Refrigerante Coca-Cola Garrafa de 2 Litros para dividir com a família e amigos.',
   },
 ];
 
@@ -403,7 +376,9 @@ async function seed() {
 
   for (const product of productsForCategoryLink) {
     const normalizedCategory =
-      product.category === 'especiais' ? 'pizzas-especiais' : product.category;
+      product.category === 'pizzas' || product.category === 'especiais' || product.category === 'pizzas-especiais' ? 'pizzas-tradicionais' :
+      product.category === 'sobremesas' || product.category === 'doces' ? 'pizzas-doces' :
+      product.category === 'bebidas' ? 'refrigerantes' : product.category;
     const category = categoryBySlug.get(normalizedCategory);
 
     if (
@@ -519,6 +494,59 @@ async function seed() {
     }
   } else {
     console.log(`ℹ️   Ja existem ${existingOrderCount} pedido(s) — nenhum pedido demo criado.`);
+  }
+
+  // ─── Contas a Pagar de exemplo ──────────────────────────────────────────────
+  const existingPayableCount = await prisma.accountPayable.count({ where: { tenantId: tId } });
+  if (existingPayableCount === 0) {
+    const payablesData = [
+      {
+        description: 'Fornecedor Laticínios & Frios Premium',
+        category: 'SUPPLIER',
+        amount: '1450.00',
+        paidAmount: '0.00',
+        remainingAmount: '1450.00',
+        dueDate: new Date(Date.now() + 86400000 * 5),
+        status: 'PENDING',
+      },
+      {
+        description: 'Aluguel do Imóvel Comercial',
+        category: 'RENT',
+        amount: '2800.00',
+        paidAmount: '0.00',
+        remainingAmount: '2800.00',
+        dueDate: new Date(Date.now() + 86400000 * 10),
+        status: 'PENDING',
+      },
+      {
+        description: 'Energia Elétrica (Concessionária Local)',
+        category: 'ENERGY',
+        amount: '620.00',
+        paidAmount: '620.00',
+        remainingAmount: '0.00',
+        dueDate: new Date(Date.now() - 86400000 * 2),
+        status: 'PAID',
+      },
+    ];
+
+    for (const p of payablesData) {
+      await prisma.accountPayable.create({
+        data: {
+          tenantId: tId,
+          description: p.description,
+          category: p.category as any,
+          amount: p.amount,
+          paidAmount: p.paidAmount,
+          remainingAmount: p.remainingAmount,
+          dueDate: p.dueDate,
+          status: p.status as any,
+          recurrenceType: 'NONE',
+        },
+      });
+    }
+    console.log('✅  3 Contas a Pagar de exemplo criadas.');
+  } else {
+    console.log(`ℹ️   Ja existem ${existingPayableCount} conta(s) a pagar — nenhuma criada.`);
   }
 
   // ─── Resumo ─────────────────────────────────────────────────────────────────

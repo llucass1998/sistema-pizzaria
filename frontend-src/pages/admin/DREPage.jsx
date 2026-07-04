@@ -46,6 +46,36 @@ export function DREPage() {
     window.print();
   };
 
+  const handleExportCSV = () => {
+    if (!dreData) return;
+    const periodLabel = period === 'MONTH' ? 'Este Mês' : period === 'THIS_WEEK' ? 'Esta Semana' : period === 'LAST_30_DAYS' ? 'Últimos 30 Dias' : 'Turno Atual / Hoje';
+    const rows = [
+      ['DRE SIMPLIFICADO - RIO PIZZAS'],
+      ['Período:', periodLabel],
+      ['Data da Apuração:', new Date().toLocaleString('pt-BR')],
+      [],
+      ['Categoria / Linha Contábil', 'Valor (R$)', 'Representatividade / Margem (%)'],
+      ['(+) Receita Bruta Total', (dreData.grossRevenue || 0).toFixed(2), '100.0%'],
+      ['(-) Impostos e Deduções', (dreData.deductions || 0).toFixed(2), `${((dreData.deductions / (dreData.grossRevenue || 1)) * 100).toFixed(1)}%`],
+      ['(=) Receita Líquida', (dreData.netRevenue || 0).toFixed(2), `${((dreData.netRevenue / (dreData.grossRevenue || 1)) * 100).toFixed(1)}%`],
+      ['(-) Custos dos Insumos (CMV)', (dreData.cmv || 0).toFixed(2), `${((dreData.cmv / (dreData.grossRevenue || 1)) * 100).toFixed(1)}%`],
+      ['(=) Lucro Bruto', (dreData.grossProfit || 0).toFixed(2), `${(dreData.grossMargin || 0).toFixed(1)}%`],
+      ['(-) Despesas Fixas (Aluguel, Folha, etc)', (dreData.fixedExpenses || 0).toFixed(2), `${((dreData.fixedExpenses / (dreData.grossRevenue || 1)) * 100).toFixed(1)}%`],
+      ['(-) Despesas Variáveis & Financeiras', (dreData.variableExpenses || 0).toFixed(2), `${((dreData.variableExpenses / (dreData.grossRevenue || 1)) * 100).toFixed(1)}%`],
+      ['(=) Lucro Líquido do Período', (dreData.netProfit || 0).toFixed(2), `${(dreData.netMargin || 0).toFixed(1)}%`],
+    ];
+    
+    const csvContent = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `DRE_RioPizzas_${period}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
@@ -74,11 +104,23 @@ export function DREPage() {
           </select>
 
           <button
+            onClick={handleExportCSV}
+            disabled={isLoading || !dreData}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-all disabled:opacity-50"
+            title="Baixar planilha Excel (CSV UTF-8)"
+          >
+            <Download size={16} />
+            Exportar Excel
+          </button>
+
+          <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-sm font-bold shadow-sm transition-all"
+            disabled={isLoading || !dreData}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-sm font-bold shadow-sm transition-all disabled:opacity-50"
+            title="Gerar PDF estruturado ou Imprimir"
           >
             <FileText size={16} />
-            Imprimir DRE
+            Imprimir PDF
           </button>
 
           <button 

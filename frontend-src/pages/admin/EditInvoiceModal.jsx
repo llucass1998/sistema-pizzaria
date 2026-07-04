@@ -31,7 +31,7 @@ export function EditInvoiceModal({ isOpen, onClose, onSuccess, invoice }) {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
 
-      const res = await fetch(`${API_BASE_URL}/receivables/invoices/${invoice.id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices/${invoice.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -336,7 +336,7 @@ export default function Quotes() {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch(`${API_BASE_URL}/quotes`, {
+      const response = await fetch(`${API_BASE_URL}/admin/quotes`, {
         headers: { Authorization: `Bearer ${getAdminToken()}` },
       });
 
@@ -382,7 +382,7 @@ export default function Quotes() {
       setError('');
       updateQuoteInState(optimisticQuote);
 
-      const response = await fetch(`${API_BASE_URL}/quotes/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/admin/quotes/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -439,7 +439,7 @@ export default function Quotes() {
     try {
       setDeletingQuoteId(quote.id);
       setError('');
-      const response = await fetch(`${API_BASE_URL}/quotes/${quote.id}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/quotes/${quote.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getAdminToken()}` },
       });

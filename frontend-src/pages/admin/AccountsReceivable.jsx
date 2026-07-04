@@ -17,8 +17,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
-import { PageContainer } from '../../components/ui/PageContainer.jsx';
+import { formatCurrencySafe } from '../../data/menuData.js';
 import { RecordPaymentModal } from './RecordPaymentModal.jsx';
 import { EditInvoiceModal } from './EditInvoiceModal.jsx';
 import { ReversePaymentModal } from './ReversePaymentModal.jsx';
@@ -36,7 +35,13 @@ const STATUS_LABELS = {
   CANCELED: 'Cancelado',
 };
 
+const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+
 export default function AccountsReceivable() {
+  const adminDataStr = typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
+  const adminData = adminDataStr ? JSON.parse(adminDataStr) : null;
+  const userRole = adminData?.user?.role || adminData?.role || '';
+
   const [invoices, setInvoices] = useState([]);
   const [summary, setSummary] = useState({
     totalPending: 0,
@@ -72,7 +77,7 @@ export default function AccountsReceivable() {
       const headers = { 'Authorization': `Bearer ${token}` };
 
       // Carregar Summary
-      fetch(`${API_BASE_URL}/receivables/invoices/summary`, { headers })
+      fetch(`${API_BASE_URL}/admin/receivables/invoices/summary`, { headers })
         .then((r) => (r.ok ? r.json() : {}))
         .then((sum) => {
           if (sum && typeof sum.totalPending !== 'undefined') {
@@ -92,7 +97,7 @@ export default function AccountsReceivable() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const res = await fetch(`${API_BASE_URL}/receivables/invoices?${params.toString()}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices?${params.toString()}`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.data)) {
@@ -128,19 +133,27 @@ export default function AccountsReceivable() {
     setPage(1);
   };
 
+  if (userRole === 'KITCHEN' || userRole === 'DRIVER' || userRole === 'DELIVERY') {
+    return (
+      <div className="p-8 max-w-4xl mx-auto">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center backdrop-blur-md">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
+          <p className="text-slate-300 max-w-md mx-auto">
+            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui permissões para acessar Contas a Receber.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <PageContainer>
+    <>
       <div className="mx-auto max-w-7xl p-4 md:p-8">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <a
-              href="#/admin"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              <ArrowLeft size={20} />
-            </a>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">Contas a Receber</h1>
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">Contas a Receber</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Gestão financeira ERP, recebíveis, conciliação e estornos
               </p>
@@ -168,7 +181,7 @@ export default function AccountsReceivable() {
               </div>
             </div>
             <p className="mt-4 text-3xl font-black text-slate-900 dark:text-white">
-              R$ {Number(summary.totalPending || 0).toFixed(2)}
+              {formatCurrencySafe(summary?.totalPending ?? 0)}
             </p>
             <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
               {summary.countPending || 0} fatura(s) pendente(s)
@@ -185,7 +198,7 @@ export default function AccountsReceivable() {
               </div>
             </div>
             <p className="mt-4 text-3xl font-black text-slate-900 dark:text-white">
-              R$ {Number(summary.totalPaid || 0).toFixed(2)}
+              {formatCurrencySafe(summary?.totalPaid ?? 0)}
             </p>
             <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
               {summary.countPaid || 0} fatura(s) quitada(s)
@@ -202,7 +215,7 @@ export default function AccountsReceivable() {
               </div>
             </div>
             <p className="mt-4 text-3xl font-black text-slate-900 dark:text-white">
-              R$ {Number(summary.totalOverdue || 0).toFixed(2)}
+              {formatCurrencySafe(summary?.totalOverdue ?? 0)}
             </p>
             <p className="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
               {summary.countOverdue || 0} fatura(s) vencida(s)
@@ -380,7 +393,7 @@ export default function AccountsReceivable() {
                         <div className="text-right mr-2">
                           <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Valor Total</p>
                           <p className="text-lg font-black text-slate-900 dark:text-white">
-                            R$ {totalAmount.toFixed(2)}
+                            {formatCurrencySafe(totalAmount)}
                           </p>
                         </div>
 
@@ -432,9 +445,9 @@ export default function AccountsReceivable() {
                     <div className="w-full">
                       <div className="mb-1 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
                         <span className="text-emerald-600 dark:text-emerald-400">
-                          R$ {totalPaid.toFixed(2)} recebido ({progress.toFixed(0)}%)
+                          {formatCurrencySafe(totalPaid)} recebido ({progress.toFixed(0)}%)
                         </span>
-                        <span>R$ {remaining.toFixed(2)} restante</span>
+                        <span>{formatCurrencySafe(remaining)} restante</span>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                         <div
@@ -502,6 +515,6 @@ export default function AccountsReceivable() {
         onSuccess={loadData}
         invoice={selectedForReverse}
       />
-    </PageContainer>
+    </>
   );
 }

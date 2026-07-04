@@ -46,10 +46,10 @@ export default function ShiftAuditPage() {
   // Timer do turno
   const [elapsedTime, setElapsedTime] = useState('00h 00m 00s');
 
-  // Modais
   const [isOpenModalOpen, setIsOpenModalOpen] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [txModalType, setTxModalType] = useState('SANGRIA');
 
   useEffect(() => {
     const adminStr = window.localStorage.getItem('pizzaria-admin');
@@ -259,13 +259,33 @@ export default function ShiftAuditPage() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setIsCloseModalOpen(true)}
-                      className="flex items-center gap-2 rounded-xl bg-rose-500 px-5 py-3 font-bold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-600 active:scale-95"
-                    >
-                      <Lock size={18} />
-                      <span>Fechar Turno</span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => { setTxModalType('SUPRIMENTO'); setIsTxModalOpen(true); }}
+                        className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95"
+                        title="Aporte de Dinheiro no Caixa"
+                      >
+                        <PlusCircle size={16} />
+                        <span>+ Suprimento</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setTxModalType('SANGRIA'); setIsTxModalOpen(true); }}
+                        className="flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/20 transition hover:bg-amber-700 active:scale-95"
+                        title="Retirada / Sangria de Dinheiro"
+                      >
+                        <MinusCircle size={16} />
+                        <span>- Sangria</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsCloseModalOpen(true)}
+                        className="flex items-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-600 active:scale-95"
+                      >
+                        <Lock size={16} />
+                        <span>Fechar Turno</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -285,7 +305,7 @@ export default function ShiftAuditPage() {
               </button>
 
               <button
-                onClick={() => setIsTxModalOpen(true)}
+                onClick={() => { setTxModalType('SUPRIMENTO'); setIsTxModalOpen(true); }}
                 disabled={!isShiftOpen || loading}
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-5 font-bold text-slate-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 active:scale-95"
               >
@@ -296,7 +316,7 @@ export default function ShiftAuditPage() {
               </button>
 
               <button
-                onClick={() => setIsTxModalOpen(true)}
+                onClick={() => { setTxModalType('SANGRIA'); setIsTxModalOpen(true); }}
                 disabled={!isShiftOpen || loading}
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-5 font-bold text-slate-700 shadow-sm transition hover:bg-amber-50 hover:text-amber-700 disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 active:scale-95"
               >
@@ -668,6 +688,7 @@ export default function ShiftAuditPage() {
         onClose={() => setIsTxModalOpen(false)}
         currentShift={currentShift}
         adminData={adminData}
+        initialType={txModalType}
         onTransaction={() => {
           setIsTxModalOpen(false);
           loadData();
