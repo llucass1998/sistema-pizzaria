@@ -308,7 +308,7 @@ export function FiscalPage() {
               ))}
             </ul>
             <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500 italic">
-              Configure na aba "Configurações" abaixo. Nunca commite certificado ou credenciais no código-fonte.
+              Configure na aba &quot;Configurações&quot; abaixo. Nunca commite certificado ou credenciais no código-fonte.
             </p>
           </div>
         </div>

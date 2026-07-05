@@ -8,9 +8,10 @@ import CheckoutPage from './pages/CheckoutPage.jsx';
 import { AdminLayout } from './pages/admin/AdminLayout.jsx';
 import MockPaymentPage from './pages/MockPaymentPage.jsx';
 import OrderStatusPage from './pages/OrderStatusPage.jsx';
-import OnboardingPage from './pages/SaaS/OnboardingPage.jsx';
+import OnboardingPage from './pages/saas/OnboardingPage.jsx';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthModal } from './components/AuthModal.jsx';
+import { ProductCustomizationModal } from './components/ProductCustomizationModal.jsx';
 
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage.jsx').then((m) => ({ default: m.DashboardPage || m.default })));
 const OrdersPage = lazy(() => import('./pages/admin/OrdersPage.jsx').then((m) => ({ default: m.OrdersPage || m.default })));
@@ -39,7 +40,7 @@ const ReconciliationPage = lazy(() => import('./pages/admin/ReconciliationPage.j
 const FiscalPage = lazy(() => import('./pages/admin/FiscalPage.jsx').then((m) => ({ default: m.FiscalPage || m.default })));
 const IntegrationsPage = lazy(() => import('./pages/admin/IntegrationsPage.jsx').then((m) => ({ default: m.IntegrationsPage || m.default })));
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage.jsx').then((m) => ({ default: m.ReportsPage || m.default })));
-const SaasDashboardPage = lazy(() => import('./pages/SaaS/SaasDashboardPage.jsx').then((m) => ({ default: m.SaasDashboardPage || m.default })));
+const SaasDashboardPage = lazy(() => import('./pages/saas/SaasDashboardPage.jsx').then((m) => ({ default: m.SaasDashboardPage || m.default })));
 import { BottomNav } from './components/ui/BottomNav.jsx';
 import { CartDrawer } from './components/ui/CartDrawer.jsx';
 import { FloatingCartButton } from './components/ui/FloatingCartButton.jsx';
@@ -84,24 +85,28 @@ const ADMIN_ROUTE_ROLES = {
   kds: ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN'],
   dispatch: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
   settings: ['OWNER', 'ADMIN'],
-  purchases: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
-  invoices: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  purchases: ['OWNER', 'ADMIN', 'MANAGER'],
+  invoices: ['OWNER', 'ADMIN', 'MANAGER'],
   quotes: ['OWNER', 'ADMIN', 'MANAGER'],
   receivables: ['OWNER', 'ADMIN', 'MANAGER'],
   payables: ['OWNER', 'ADMIN', 'MANAGER'],
   caixa: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
   'fluxo-caixa': ['OWNER', 'ADMIN', 'MANAGER'],
   dre: ['OWNER', 'ADMIN', 'MANAGER'],
-  conciliacao: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
-  suppliers: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
-  fornecedores: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+  conciliacao: ['OWNER', 'ADMIN', 'MANAGER'],
+  suppliers: ['OWNER', 'ADMIN', 'MANAGER'],
+  fornecedores: ['OWNER', 'ADMIN', 'MANAGER'],
   customers: ['OWNER', 'ADMIN', 'MANAGER'],
   team: ['OWNER', 'ADMIN'],
   financeiro: ['OWNER', 'ADMIN', 'MANAGER'],
   relatorios: ['OWNER', 'ADMIN', 'MANAGER'],
   'accounts-receivable': ['OWNER', 'ADMIN', 'MANAGER'],
   fiscal: ['OWNER', 'ADMIN', 'MANAGER'],
-  integrations: ['OWNER', 'ADMIN', 'MANAGER'],
+  integrations: ['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER'],
+  estoque: ['OWNER', 'ADMIN', 'MANAGER'],
+  clientes: ['OWNER', 'ADMIN', 'MANAGER'],
+  motoboys: ['OWNER', 'ADMIN', 'MANAGER'],
+  drivers: ['OWNER', 'ADMIN', 'MANAGER'],
 };
 const addonOptions = [
   {
@@ -120,18 +125,19 @@ function getAddonTotal(addons) {
   return addons.reduce((total, addon) => total + addon.price, 0);
 }
 
-function getCartItemId(product, addons, variant, halfAndHalf) {
+function getCartItemId(product, addons, variant, halfAndHalf, crustId = null) {
   const productId = product.productId ?? product.id;
   const variantKey = variant?.id ?? 'sem-tamanho';
   const halfKey = halfAndHalf?.secondProductId
     ? `${halfAndHalf.secondProductId}-${halfAndHalf.secondVariantId ?? 'sem-tamanho'}`
     : 'inteira';
+  const crustKey = crustId || 'sem-borda';
   const addonKey =
     addons
       .map((addon) => addon.id)
       .sort()
       .join('-') || 'sem-adicional';
-  return `${productId}__${variantKey}__${halfKey}__${addonKey}`;
+  return `${productId}__${variantKey}__${halfKey}__${crustKey}__${addonKey}`;
 }
 
 function getCustomizationText({ variant, addons, halfAndHalf }) {
@@ -245,7 +251,7 @@ function getInitialDarkMode() {
 function getSavedAdminRole() {
   try {
     const session = JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
-    return session?.role || 'ADMIN';
+    return session?.role || session?.admin?.role || 'ADMIN';
   } catch {
     return 'ADMIN';
   }
@@ -272,7 +278,7 @@ function AccessDenied() {
 function ProtectedAdminRoute({ routeKey, children }) {
   const role = getSavedAdminRole();
   const allowedRoles = ADMIN_ROUTE_ROLES[routeKey] ?? [];
-  return allowedRoles.includes(role) ? children : <AccessDenied />;
+  return (role === 'SUPER_ADMIN' || allowedRoles.includes(role)) ? children : <AccessDenied />;
 }
 
 function getSavedCartItems() {
@@ -340,10 +346,8 @@ export default function PizzariaApp() {
   );
   const [storeSettings, setStoreSettings] = useState(null);
   const [productToCustomize, setProductToCustomize] = useState(null);
-  const [selectedAddonIds, setSelectedAddonIds] = useState([]);
-  const [selectedVariantId, setSelectedVariantId] = useState('');
-  const [isHalfAndHalf, setIsHalfAndHalf] = useState(false);
-  const [selectedHalfProductId, setSelectedHalfProductId] = useState('');
+  const [dbAddons, setDbAddons] = useState(addonOptions);
+  const [dbCrusts, setDbCrusts] = useState([]);
 
   const currentStore = useMemo(() => getStoreFromSettings(storeSettings ?? store), [storeSettings]);
   const navbarColor = normalizeHexColor(currentStore.navbarColor, DEFAULT_NAVBAR_COLOR);
@@ -554,75 +558,35 @@ export default function PizzariaApp() {
     };
   }, [isResolvingTenant, tenant]);
 
-  const selectedAddons = useMemo(() => {
-    const allOptions = [...addonOptions];
-    if (productToCustomize?.optionGroups) {
-      for (const group of productToCustomize.optionGroups) {
-        if (group.options) {
-          allOptions.push(...group.options);
+  useEffect(() => {
+    if (isResolvingTenant || !tenant) return;
+    let isMounted = true;
+
+    async function loadOptionsData() {
+      try {
+        const [addonsRes, crustsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/adicionais`),
+          fetch(`${API_BASE_URL}/bordas`),
+        ]);
+        if (isMounted && addonsRes.ok && crustsRes.ok) {
+          const adds = await addonsRes.json();
+          const crus = await crustsRes.json();
+          if (Array.isArray(adds) && adds.length > 0) setDbAddons(adds);
+          if (Array.isArray(crus)) setDbCrusts(crus);
         }
+      } catch {
+        // Fallback mantém addonOptions padrão
       }
     }
-    return allOptions.filter((opt) => selectedAddonIds.includes(opt.id));
-  }, [selectedAddonIds, productToCustomize]);
-  const selectedVariant = useMemo(
-    () => productToCustomize?.variants?.find((variant) => variant.id === selectedVariantId) ?? null,
-    [productToCustomize, selectedVariantId],
-  );
-  const halfAndHalfCandidates = useMemo(() => {
-    if (!productToCustomize?.allowHalfAndHalf || !selectedVariant) return [];
 
-    const group = productToCustomize.halfAndHalfGroup || productToCustomize.category;
-    return catalogProducts.filter((product) => {
-      if (
-        (product.productId ?? product.id) ===
-        (productToCustomize.productId ?? productToCustomize.id)
-      ) {
-        return false;
-      }
+    loadOptionsData();
 
-      const sameGroup = (product.halfAndHalfGroup || product.category) === group;
-      return (
-        product.allowHalfAndHalf &&
-        sameGroup &&
-        Boolean(findMatchingVariant(product, selectedVariant))
-      );
-    });
-  }, [catalogProducts, productToCustomize, selectedVariant]);
-  const selectedHalfProduct = useMemo(
-    () =>
-      halfAndHalfCandidates.find(
-        (product) => (product.productId ?? product.id) === selectedHalfProductId,
-      ) ??
-      halfAndHalfCandidates[0] ??
-      null,
-    [halfAndHalfCandidates, selectedHalfProductId],
-  );
-  const selectedHalfVariant = useMemo(
-    () => findMatchingVariant(selectedHalfProduct, selectedVariant),
-    [selectedHalfProduct, selectedVariant],
-  );
-  const halfAndHalfData =
-    isHalfAndHalf && selectedHalfProduct && selectedHalfVariant
-      ? {
-          firstProductId: productToCustomize?.productId ?? productToCustomize?.id,
-          firstProductName: productToCustomize?.name,
-          firstVariantId: selectedVariant?.id ?? null,
-          firstVariantName: selectedVariant?.name ?? '',
-          secondProductId: selectedHalfProduct.productId ?? selectedHalfProduct.id,
-          secondProductName: selectedHalfProduct.name,
-          secondVariantId: selectedHalfVariant.id,
-          secondVariantName: selectedHalfVariant.name,
-          priceRule: 'HIGHER_HALF_PRICE',
-        }
-      : null;
-  const customizationBasePrice = halfAndHalfData
-    ? Math.max(
-        Number(selectedVariant?.price ?? productToCustomize?.price ?? 0),
-        Number(selectedHalfVariant?.price ?? 0),
-      )
-    : Number(selectedVariant?.price ?? productToCustomize?.price ?? 0);
-  const customizationTotal = customizationBasePrice + getAddonTotal(selectedAddons);
+    return () => {
+      isMounted = false;
+    };
+  }, [isResolvingTenant, tenant]);
+
+  // Cálculos de customização encapsulados em ProductCustomizationModal
 
   const isAdminRoute = path.startsWith('/admin');
   const isSaasRoute = path.startsWith('/saas');
@@ -734,83 +698,22 @@ export default function PizzariaApp() {
     }
 
     setProductToCustomize(product);
-    setSelectedAddonIds([]);
-    setSelectedVariantId(product.variants?.[0]?.id ?? '');
-    setIsHalfAndHalf(false);
-    setSelectedHalfProductId('');
   }
 
-  function toggleAddon(addonId, group) {
-    if (group && group.maxChoices === 1) {
-      setSelectedAddonIds((currentIds) => {
-        // Remove all options from this group first
-        const groupOptionIds = group.options.map((opt) => opt.id);
-        const filtered = currentIds.filter((id) => !groupOptionIds.includes(id));
-        return [...filtered, addonId];
-      });
-      return;
-    }
-    setSelectedAddonIds((currentIds) =>
-      currentIds.includes(addonId)
-        ? currentIds.filter((id) => id !== addonId)
-        : [...currentIds, addonId],
-    );
-  }
-
-  function closeCustomizationModal() {
-    setProductToCustomize(null);
-    setSelectedAddonIds([]);
-    setSelectedVariantId('');
-    setIsHalfAndHalf(false);
-    setSelectedHalfProductId('');
-  }
-
-  function confirmAddToCart() {
-    if (!productToCustomize) {
-      return;
-    }
-
-    if (productToCustomize.variants?.length > 0 && !selectedVariant) {
-      return;
-    }
-
-    if (isHalfAndHalf && !halfAndHalfData) {
-      return;
-    }
-
+  function handleModalAddToCart(payload) {
     const itemId = getCartItemId(
-      productToCustomize,
-      selectedAddons,
-      selectedVariant,
-      halfAndHalfData,
+      { productId: payload.productId },
+      payload.addons || [],
+      { id: payload.variantId },
+      payload.halfAndHalf,
+      payload.crustId,
     );
-    const customizations = getCustomizationText({
-      variant: selectedVariant,
-      addons: selectedAddons,
-      halfAndHalf: halfAndHalfData,
-    });
-    const itemName = halfAndHalfData
-      ? `Meia-meia: ${halfAndHalfData.firstProductName} / ${halfAndHalfData.secondProductName}`
-      : productToCustomize.name;
 
     cartAddItem({
+      ...payload,
       id: itemId,
-      productId: productToCustomize.productId ?? productToCustomize.id,
-      name: itemName,
-      basePrice: customizationBasePrice,
-      price: customizationTotal,
-      qty: 1,
-      category: productToCustomize.category,
-      variantId: selectedVariant?.id ?? null,
-      variantName: selectedVariant?.name ?? '',
-      halfAndHalf: halfAndHalfData,
-      image: productToCustomize.image,
-      imageUrl: productToCustomize.imageUrl,
-      addons: selectedAddons,
-      customizations,
     });
-
-    closeCustomizationModal();
+    setProductToCustomize(null);
   }
 
   function updateCartItemQuantity(itemId, nextQuantity) {
@@ -1075,6 +978,10 @@ export default function PizzariaApp() {
                 <Route path="accounts-receivable" element={<ProtectedAdminRoute routeKey="accounts-receivable"><AccountsReceivable /></ProtectedAdminRoute>} />
                 <Route path="fiscal" element={<ProtectedAdminRoute routeKey="fiscal"><FiscalPage /></ProtectedAdminRoute>} />
                 <Route path="integrations" element={<ProtectedAdminRoute routeKey="integrations"><IntegrationsPage /></ProtectedAdminRoute>} />
+                <Route path="estoque" element={<ProtectedAdminRoute routeKey="estoque"><InventoryPage /></ProtectedAdminRoute>} />
+                <Route path="clientes" element={<ProtectedAdminRoute routeKey="clientes"><CRMPage /></ProtectedAdminRoute>} />
+                <Route path="motoboys" element={<ProtectedAdminRoute routeKey="motoboys"><DispatchPage defaultView="drivers" /></ProtectedAdminRoute>} />
+                <Route path="drivers" element={<ProtectedAdminRoute routeKey="drivers"><DispatchPage defaultView="drivers" /></ProtectedAdminRoute>} />
               </Route>
             </Routes>
           </HashRouter>
@@ -1110,215 +1017,15 @@ export default function PizzariaApp() {
           store={currentStore}
         />
 
-        {productToCustomize && (
-          <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 p-4">
-            <section className="w-full max-w-md flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl">
-              <div className="flex items-start gap-4 border-b border-slate-100 p-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-950 text-4xl">
-                  {productToCustomize.imageUrl ? (
-                    <img
-                      src={productToCustomize.imageUrl}
-                      alt={productToCustomize.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span>{productToCustomize.image}</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
-                    {productToCustomize.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    Escolha tamanho, meia-meia e adicionais antes de colocar no carrinho.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeCustomizationModal}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-all duration-200 ease-out hover:scale-105 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 active:scale-95 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
-                  aria-label="Fechar adicionais"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-3 p-4 flex-1 overflow-y-auto">
-                <div>
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <span>Preço base</span>
-                    <div className="h-px flex-1 border-t border-dashed border-slate-300 dark:border-slate-700"></div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {formatCurrency(customizationBasePrice)}
-                    </span>
-                  </div>
-                </div>
-
-                {productToCustomize.variants?.length > 0 && (
-                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <h3 className="mb-2 text-sm font-black text-slate-900 dark:text-white">
-                      Tamanho
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {productToCustomize.variants.map((variant) => (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedVariantId(variant.id);
-                            setSelectedHalfProductId('');
-                          }}
-                          className={`rounded-lg border-2 p-3 text-left transition ${
-                            selectedVariantId === variant.id
-                              ? 'border-red-600 bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300'
-                              : 'border-slate-200 bg-white text-slate-700 hover:border-red-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
-                          }`}
-                        >
-                          <span className="block text-sm font-black">{variant.name}</span>
-                          <span className="mt-1 block text-xs font-bold">
-                            {formatCurrency(variant.price)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {productToCustomize.allowHalfAndHalf && productToCustomize.variants?.length > 0 && (
-                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <label className="flex cursor-pointer items-center justify-between gap-3">
-                      <span>
-                        <span className="block text-sm font-black text-slate-900 dark:text-white">
-                          Montar meia-meia
-                        </span>
-                        <span className="block text-xs font-semibold text-slate-500">
-                          Cobra o maior valor entre as duas metades.
-                        </span>
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={isHalfAndHalf}
-                        onChange={(event) => {
-                          setIsHalfAndHalf(event.target.checked);
-                          setSelectedHalfProductId('');
-                        }}
-                        className="h-5 w-5 accent-red-600"
-                      />
-                    </label>
-
-                    {isHalfAndHalf && (
-                      <div className="mt-3">
-                        {halfAndHalfCandidates.length === 0 ? (
-                          <p className="rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                            Não há outro sabor compatível neste tamanho.
-                          </p>
-                        ) : (
-                          <select
-                            value={selectedHalfProduct?.productId ?? selectedHalfProduct?.id ?? ''}
-                            onChange={(event) => setSelectedHalfProductId(event.target.value)}
-                            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-red-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                          >
-                            {halfAndHalfCandidates.map((product) => {
-                              const halfVariant = findMatchingVariant(product, selectedVariant);
-                              return (
-                                <option
-                                  key={product.productId ?? product.id}
-                                  value={product.productId ?? product.id}
-                                >
-                                  {product.name} -{' '}
-                                  {formatCurrency(halfVariant?.price ?? product.price)}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {productToCustomize?.category !== 'bebidas' &&
-                productToCustomize?.optionGroups &&
-                productToCustomize.optionGroups.length > 0
-                  ? productToCustomize.optionGroups.map((group) => (
-                      <div key={group.id} className="mb-4">
-                        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">
-                          {group.name}
-                        </h3>
-                        <div className="space-y-2">
-                          {group.options?.map((addon) => (
-                            <label
-                              key={addon.id}
-                              className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border-2 border-slate-100 bg-white p-3 transition-all duration-200 ease-out hover:scale-[1.01] hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-950"
-                            >
-                              <span className="flex items-center gap-3">
-                                <input
-                                  type={group.maxChoices === 1 ? 'radio' : 'checkbox'}
-                                  name={`group_${group.id}`}
-                                  checked={selectedAddonIds.includes(addon.id)}
-                                  onChange={() => toggleAddon(addon.id, group)}
-                                  className="h-4 w-4 accent-red-600"
-                                />
-                                <span className="font-bold text-slate-800 dark:text-slate-200">
-                                  {addon.name}
-                                </span>
-                              </span>
-                              <span className="font-black text-red-600">
-                                + {formatCurrency(addon.price)}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                  : productToCustomize.category === 'pizzas' ||
-                      productToCustomize.category === 'pizzas-especiais' ||
-                      productToCustomize.category === 'pizzas-tradicionais' ||
-                      productToCustomize.category === 'pizzas-doces'
-                    ? addonOptions.map((addon) => (
-                        <label
-                          key={addon.id}
-                          className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border-2 border-slate-100 bg-white p-3 transition-all duration-200 ease-out hover:scale-[1.01] hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-950"
-                        >
-                          <span className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedAddonIds.includes(addon.id)}
-                              onChange={() => toggleAddon(addon.id)}
-                              className="h-4 w-4 accent-red-600"
-                            />
-                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                              {addon.name}
-                            </span>
-                          </span>
-                          <span className="font-black text-red-600">
-                            + {formatCurrency(addon.price)}
-                          </span>
-                        </label>
-                      ))
-                    : null}
-
-                <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-lg font-black text-slate-900 dark:text-slate-100">
-                  <span>Total do item</span>
-                  <span className="text-red-600">{formatCurrency(customizationTotal)}</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={confirmAddToCart}
-                  disabled={
-                    (productToCustomize.variants?.length > 0 && !selectedVariant) ||
-                    (isHalfAndHalf && !halfAndHalfData)
-                  }
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 py-3 font-black text-white transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <ShoppingCart size={20} />
-                  Adicionar ao carrinho
-                </button>
-              </div>
-            </section>
-          </div>
-        )}
+        <ProductCustomizationModal
+          isOpen={Boolean(productToCustomize)}
+          product={productToCustomize}
+          onClose={() => setProductToCustomize(null)}
+          onAddToCart={handleModalAddToCart}
+          catalogProducts={catalogProducts}
+          dbAddons={dbAddons}
+          dbCrusts={dbCrusts}
+        />
 
         <AuthModal
           isOpen={showLoginModal}

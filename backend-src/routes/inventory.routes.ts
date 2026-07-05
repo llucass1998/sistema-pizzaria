@@ -70,8 +70,24 @@ inventoryRouter.get(
       (item) => item.status === 'CRITICAL' || item.status === 'OUT',
     );
     const lowItems = serialized.filter((item) => item.status === 'LOW');
-    const purchaseSuggestion = serialized.reduce(
-      (sum, item) => sum + item.reorderQuantity * item.cost,
+
+    // purchaseSuggestion: lista detalhada de itens que precisam de reposição
+    const purchaseSuggestionItems = serialized
+      .filter((item) => item.status === 'OUT' || item.status === 'CRITICAL' || item.status === 'LOW')
+      .map((item) => ({
+        ingredientId: item.id,
+        ingredientName: item.name,
+        unit: item.unit,
+        currentStock: item.stock,
+        minStock: item.minStock,
+        suggestedQuantity: item.reorderQuantity,
+        cost: item.cost,
+        estimatedTotal: Number((item.reorderQuantity * item.cost).toFixed(2)),
+        status: item.status,
+      }));
+
+    const purchaseSuggestionTotal = purchaseSuggestionItems.reduce(
+      (sum, item) => sum + item.estimatedTotal,
       0,
     );
 
@@ -80,7 +96,8 @@ inventoryRouter.get(
       totalStockValue: Number(totalStockValue.toFixed(2)),
       criticalCount: criticalItems.length,
       lowCount: lowItems.length,
-      purchaseSuggestion: Number(purchaseSuggestion.toFixed(2)),
+      purchaseSuggestion: purchaseSuggestionItems,
+      purchaseSuggestionTotal: Number(purchaseSuggestionTotal.toFixed(2)),
       ingredients: serialized,
     });
   }),

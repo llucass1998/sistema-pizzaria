@@ -28,12 +28,17 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { downloadCsv, sanitizeCsvValue } from '../../utils/csvHelper.js';
+
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 // --- API Helpers ---
 async function fetchApi(endpoint, qs = '') {
   const adminData = window.localStorage.getItem('pizzaria-admin');
   const token = adminData ? JSON.parse(adminData).token : '';
-  const url = `/api/admin/reports/${endpoint}${qs ? `?${qs}` : ''}`;
+  const url = `${API_BASE_URL}/admin/reports/${endpoint}${qs ? `?${qs}` : ''}`;
 
   const res = await fetch(url, {
     headers: {
@@ -50,7 +55,9 @@ async function fetchApi(endpoint, qs = '') {
 }
 
 function formatCurrency(val) {
-  return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const num = Number(val);
+  if (isNaN(num)) return 'R$ 0,00';
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 // --- Components ---
@@ -137,12 +144,15 @@ export default function ReportsPage() {
     loadData();
   }, [loadData]);
 
-  // Export CSV
+  // Export CSV — sanitizeCsvValue importada do csvHelper.js
   const exportToCsv = (filename, data) => {
     if (!data || !data.length) return;
-    const headers = Object.keys(data[0]).join(',');
-    const rows = data.map((obj) => Object.values(obj).map((v) => `"${v}"`).join(',')).join('\n');
-    const csv = `${headers}\n${rows}`;
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.map(sanitizeCsvValue).join(','),
+      ...data.map((obj) => headers.map(k => sanitizeCsvValue(obj[k])).join(','))
+    ].join('\n');
+    const csv = "\uFEFF" + csvContent;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -151,6 +161,59 @@ export default function ReportsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const exportAllCsv = async () => {
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+    const now = new Date();
+    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+
+    const exportData = (filename, data, fallbackHeaders) => {
+      let headers = fallbackHeaders;
+      let rows = [];
+      if (data && data.length > 0) {
+        headers = Object.keys(data[0]);
+        rows = data;
+      }
+      
+      const csvContent = [
+        headers.map(sanitizeCsvValue).join(','),
+        ...rows.map((obj) => headers.map(k => sanitizeCsvValue(obj[k])).join(','))
+      ].join('\n');
+      const csv = "\uFEFF" + csvContent;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${filename}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    let resumoData = [];
+    if (summary) {
+      resumoData = [{
+        revenueRealized: summary.revenueRealized,
+        completedOrders: summary.completedOrders,
+        averageTicket: summary.averageTicket,
+        revenuePending: summary.revenuePending,
+        pendingOrders: summary.pendingOrders,
+        canceledAmount: summary.canceledAmount,
+        cancellationRate: summary.cancellationRate,
+        canceledOrdersCount: summary.canceledOrdersCount
+      }];
+    }
+    exportData(`relatorio-resumo-${dateStr}`, resumoData, ['revenueRealized', 'completedOrders', 'averageTicket', 'revenuePending', 'pendingOrders', 'canceledAmount', 'cancellationRate', 'canceledOrdersCount']);
+    await delay(200);
+
+    exportData(`relatorio-curva-abc-${dateStr}`, abcData, ['productId', 'productName', 'quantitySold', 'grossRevenue', 'abcClass', 'percentageOfRevenue']);
+    await delay(200);
+
+    exportData(`relatorio-mix-pagamentos-${dateStr}`, payments, ['label', 'totalAmount', 'ordersCount']);
+    await delay(200);
+
+    exportData(`relatorio-entregadores-${dateStr}`, driverRank, ['driverId', 'driverName', 'deliveriesCompleted', 'deliveryFees', 'revenueDelivered']);
   };
 
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
@@ -180,6 +243,14 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <button
+            onClick={exportAllCsv}
+            disabled={!summary}
+            title={!summary ? "Carregue os dados antes de exportar." : "📥 Exportar Tudo (CSV)"}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
+          >
+            📥 Exportar Tudo (CSV)
+          </button>
           <button
             onClick={loadData}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"

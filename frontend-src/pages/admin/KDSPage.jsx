@@ -112,71 +112,95 @@ function OrderCard({ order, onAction, isBusy }) {
         </p>
       ) : null}
 
-      <div className="mt-4 space-y-3">
-        {order.items.map((item) => (
-          <div
-            key={item.id}
-            className={`rounded-lg border p-3 transition ${
-              item.isDelayed
-                ? 'border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20'
-                : 'border-slate-100 dark:border-slate-800'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-black text-slate-900 dark:text-white">
-                  {item.quantity}x {item.displayName}
-                </p>
-                {item.customizations ? (
-                  <p className="mt-1 text-sm font-bold text-slate-500">{item.customizations}</p>
-                ) : null}
-                {item.halfAndHalf ? (
-                  <p className="mt-1 text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">
-                    Meia-meia
-                  </p>
-                ) : null}
-                {item.options?.length ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {item.options.map((option) => (
-                      <span
-                        key={option.id}
-                        className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                      >
-                        {optionLabel(option)}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+      <div className="mt-4 space-y-4">
+        {(() => {
+          const groups = {};
+          order.items.forEach((item) => {
+            const cat = item.product?.category?.name || 'Sem categoria';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(item);
+          });
+          const getPriority = (name) => {
+            const n = name.toLowerCase();
+            if (n.includes('pizza')) return 1;
+            if (n.includes('massa') || n.includes('prato')) return 2;
+            if (n.includes('sobremesa') || n.includes('doce')) return 3;
+            if (n.includes('bebida') || n.includes('suco') || n.includes('refri')) return 4;
+            if (name === 'Sem categoria') return 99;
+            return 10;
+          };
+          return Object.entries(groups).sort((a, b) => getPriority(a[0]) - getPriority(b[0])).map(([catName, items]) => (
+            <div key={catName} className="space-y-3">
+              <h4 className="rounded bg-slate-100 px-2 py-1 text-xs font-black uppercase tracking-wider text-slate-500 dark:bg-slate-800/50 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50">
+                {catName}
+              </h4>
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-lg border p-3 transition ${
+                    item.isDelayed
+                      ? 'border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20'
+                      : 'border-slate-100 dark:border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-black text-slate-900 dark:text-white">
+                        {item.quantity}x {item.displayName}
+                      </p>
+                      {item.customizations ? (
+                        <p className="mt-1 text-sm font-bold text-slate-500">{item.customizations}</p>
+                      ) : null}
+                      {item.halfAndHalf ? (
+                        <p className="mt-1 text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">
+                          Meia-meia
+                        </p>
+                      ) : null}
+                      {item.options?.length ? (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {item.options.map((option) => (
+                            <span
+                              key={option.id}
+                              className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {optionLabel(option)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {item.kdsStation ? (
-                    <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      {STATION_LABELS[item.kdsStation] || item.kdsStation}
-                    </span>
-                  ) : null}
-                  {item.isDelayed ? (
-                    <span className="animate-pulse rounded bg-red-100 px-2 py-0.5 text-[10px] font-black uppercase text-red-700 dark:bg-red-950 dark:text-red-300">
-                      ⏱️ SLA {item.prepTimeMinutes}m Excedido ({item.elapsedMinutes}m)
-                    </span>
-                  ) : item.prepTimeMinutes ? (
-                    <span className="text-[11px] font-bold text-slate-400">
-                      ⏱️ {item.elapsedMinutes}m / {item.prepTimeMinutes}m
-                    </span>
-                  ) : null}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {item.kdsStation ? (
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {STATION_LABELS[item.kdsStation] || item.kdsStation}
+                          </span>
+                        ) : null}
+                        {item.isDelayed ? (
+                          <span className="animate-pulse rounded bg-red-100 px-2 py-0.5 text-[10px] font-black uppercase text-red-700 dark:bg-red-950 dark:text-red-300">
+                            ⏱️ SLA {item.prepTimeMinutes}m Excedido ({item.elapsedMinutes}m)
+                          </span>
+                        ) : item.prepTimeMinutes ? (
+                          <span className="text-[11px] font-bold text-slate-400">
+                            ⏱️ {item.elapsedMinutes}m / {item.prepTimeMinutes}m
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isBusy || item.kdsStatus === 'READY'}
+                      onClick={() => onAction(`/items/${item.id}/ready`)}
+                      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700"
+                    >
+                      <PackageCheck size={16} />
+                      Pronto
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                disabled={isBusy || item.kdsStatus === 'READY'}
-                onClick={() => onAction(`/items/${item.id}/ready`)}
-                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700"
-              >
-                <PackageCheck size={16} />
-                Pronto
-              </button>
+              ))}
             </div>
-          </div>
-        ))}
+          ));
+        })()}
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-3">

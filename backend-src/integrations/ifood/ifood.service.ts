@@ -113,78 +113,11 @@ export class IfoodService {
     const eventsToAck: IfoodPollingEvent[] = [];
 
     for (const event of events) {
-      const id = eventId(event);
-      const orderId = externalOrderId(event);
-
       try {
-        await prisma.integrationEventLog.upsert({
-          where: {
-            tenantId_provider_eventId: {
-              tenantId: credential.tenantId,
-              provider: IntegrationProvider.IFOOD,
-              eventId: id,
-            },
-          },
-          update: {
-            payload: event as any,
-            eventType: eventType(event),
-            externalOrderId: orderId || null,
-            status: IntegrationEventStatus.RECEIVED,
-            error: null,
-          },
-          create: {
-            provider: IntegrationProvider.IFOOD,
-            eventId: id,
-            eventType: eventType(event),
-            externalOrderId: orderId || null,
-            payload: event as any,
-          } as any,
-        });
-
-        if (isOrderEvent(event)) {
-          const detail = await IfoodClient.getOrderDetail(credential, orderId);
-          const normalized = IfoodAdapter.normalizeOrder({
-            ...detail,
-            id: detail?.id ?? orderId,
-            merchantId: detail?.merchantId ?? event.merchantId ?? credential.merchantId,
-            code: detail?.code ?? event.code,
-            fullCode: detail?.fullCode ?? event.fullCode,
-          });
-
-          await ExternalOrderIngestionService.upsertExternalOrder(normalized);
-        }
-
-        await prisma.integrationEventLog.update({
-          where: {
-            tenantId_provider_eventId: {
-              tenantId: credential.tenantId,
-              provider: IntegrationProvider.IFOOD,
-              eventId: id,
-            },
-          },
-          data: {
-            status: IntegrationEventStatus.PROCESSED,
-            processedAt: new Date(),
-          },
-        });
+        await IfoodService.processEvent(credential, event);
         eventsToAck.push(event);
       } catch (error) {
-        await prisma.integrationEventLog
-          .update({
-            where: {
-              tenantId_provider_eventId: {
-                tenantId: credential.tenantId,
-                provider: IntegrationProvider.IFOOD,
-                eventId: id,
-              },
-            },
-            data: {
-              status: IntegrationEventStatus.FAILED,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          })
-          .catch(() => undefined);
-        logger.error('[iFood] Falha ao processar evento:', id, error);
+        logger.error('[iFood] Erro inesperado ao processar evento na fila de ack', error);
         eventsToAck.push(event);
       }
     }
@@ -215,6 +148,98 @@ export class IfoodService {
       where: { id: credential.id },
       data: { lastSyncAt: new Date() },
     });
+  }
+
+  static async processEvent(credential: IntegrationCredential, event: IfoodPollingEvent) {
+    const id = eventId(event);
+    const orderId = externalOrderId(event);
+
+    const existingLog = await prisma.integrationEventLog.findUnique({
+      where: {
+        tenantId_provider_eventId: {
+          tenantId: credential.tenantId,
+          provider: IntegrationProvider.IFOOD,
+          eventId: id,
+        },
+      },
+    });
+
+    if (existingLog && existingLog.status === IntegrationEventStatus.PROCESSED) {
+      logger.info(`[iFood] Evento ${id} ja foi processado anteriormente.`);
+      return;
+    }
+
+    try {
+      await prisma.integrationEventLog.upsert({
+        where: {
+          tenantId_provider_eventId: {
+            tenantId: credential.tenantId,
+            provider: IntegrationProvider.IFOOD,
+            eventId: id,
+          },
+        },
+        update: {
+          payload: event as any,
+          eventType: eventType(event),
+          externalOrderId: orderId || null,
+          status: IntegrationEventStatus.RECEIVED,
+          error: null,
+        },
+        create: {
+          tenantId: credential.tenantId,
+          provider: IntegrationProvider.IFOOD,
+          eventId: id,
+          eventType: eventType(event),
+          externalOrderId: orderId || null,
+          payload: event as any,
+        } as any,
+      });
+
+      if (isOrderEvent(event)) {
+        const detail = await IfoodClient.getOrderDetail(credential, orderId);
+        const normalized = IfoodAdapter.normalizeOrder({
+          ...detail,
+          id: detail?.id ?? orderId,
+          merchantId: detail?.merchantId ?? event.merchantId ?? credential.merchantId,
+          code: detail?.code ?? event.code,
+          fullCode: detail?.fullCode ?? event.fullCode,
+        });
+
+        await ExternalOrderIngestionService.upsertExternalOrder(normalized);
+      }
+
+      await prisma.integrationEventLog.update({
+        where: {
+          tenantId_provider_eventId: {
+            tenantId: credential.tenantId,
+            provider: IntegrationProvider.IFOOD,
+            eventId: id,
+          },
+        },
+        data: {
+          status: IntegrationEventStatus.PROCESSED,
+          processedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      await prisma.integrationEventLog
+        .update({
+          where: {
+            tenantId_provider_eventId: {
+              tenantId: credential.tenantId,
+              provider: IntegrationProvider.IFOOD,
+              eventId: id,
+            },
+          },
+          data: {
+            status: IntegrationEventStatus.FAILED,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        })
+        .catch(() => undefined);
+      logger.error('[iFood] Falha ao processar evento:', id, error);
+      throw error;
+    }
   }
 
   static async syncOrderStatus(orderId: string, status: string) {

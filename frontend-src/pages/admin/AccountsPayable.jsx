@@ -291,7 +291,7 @@ export default function AccountsPayable() {
                 Nenhuma conta encontrada
               </h3>
               <p className="mt-1 text-sm text-slate-400">
-                Tente alterar os filtros ou clique em "Nova Despesa" para cadastrar.
+                Tente alterar os filtros ou clique em &quot;Nova Despesa&quot; para cadastrar.
               </p>
             </div>
           ) : (
@@ -457,7 +457,7 @@ export default function AccountsPayable() {
                   {new Date(selectedForDetails.dueDate + 'T00:00:00').toLocaleDateString()}
                 </p>
                 {selectedForDetails.notes && (
-                  <p className="mt-2 text-xs italic text-slate-500">"{selectedForDetails.notes}"</p>
+                  <p className="mt-2 text-xs italic text-slate-500">&quot;{selectedForDetails.notes}&quot;</p>
                 )}
               </div>
 

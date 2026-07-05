@@ -35,11 +35,11 @@ export default function PurchasesPage() {
   if (userRole === 'KITCHEN' || userRole === 'DRIVER' || userRole === 'DELIVERY') {
     return (
       <div className="p-8 max-w-4xl mx-auto">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center backdrop-blur-md">
-          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4 animate-pulse" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
-          <p className="text-slate-300 max-w-md mx-auto">
-            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui permissões para acessar a gestão de Compras e Pedidos.
+        <div className="bg-white border border-red-200 rounded-2xl p-8 text-center shadow-sm">
+          <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-2xl font-black text-slate-950 mb-2">Acesso Restrito</h2>
+          <p className="text-slate-600 font-bold max-w-md mx-auto">
+            O seu perfil (<span className="text-red-600 font-black">{userRole}</span>) não possui permissões para acessar a gestão de Compras e Pedidos.
           </p>
         </div>
       </div>
@@ -192,29 +192,29 @@ export default function PurchasesPage() {
     switch (status) {
       case 'PAID':
       case 'RECEIVED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><CheckCircle2 className="w-3.5 h-3.5" /> Concluído</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle2 className="w-3.5 h-3.5" /> Concluído</span>;
       case 'APPROVED':
       case 'PARTIALLY_RECEIVED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20"><Truck className="w-3.5 h-3.5" /> Em Trânsito</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200"><Truck className="w-3.5 h-3.5" /> Em Trânsito</span>;
       case 'PENDING':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20"><Clock className="w-3.5 h-3.5" /> Pendente</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"><Clock className="w-3.5 h-3.5" /> Pendente</span>;
       case 'CANCELED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20"><XCircle className="w-3.5 h-3.5" /> Cancelado</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200"><XCircle className="w-3.5 h-3.5" /> Cancelado</span>;
       default:
-        return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">{status || 'N/A'}</span>;
+        return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">{status || 'N/A'}</span>;
     }
   };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-xl shadow-2xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent flex items-center gap-3">
-            <ShoppingBag className="w-8 h-8 text-indigo-500" />
+          <h1 className="text-3xl font-black text-slate-950 flex items-center gap-3">
+            <ShoppingBag className="w-8 h-8 text-indigo-600" />
             Compras & Pedidos
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-600 text-sm font-semibold mt-1">
             Gerencie pedidos de compra (POs), cotações com fornecedores e recebimento de mercadorias.
           </p>
         </div>
@@ -222,13 +222,13 @@ export default function PurchasesPage() {
           <button
             onClick={loadData}
             title="Atualizar dados"
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/60 active:scale-95"
+            className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 transition-all border border-slate-300 shadow-sm active:scale-95"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
             Nova Compra
@@ -238,49 +238,49 @@ export default function PurchasesPage() {
 
       {/* Resumo Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md group hover:border-indigo-500/30 transition-all">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-indigo-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total de Pedidos</p>
-              <h3 className="text-3xl font-bold text-white mt-1">{orders.length}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total de Pedidos</p>
+              <h3 className="text-3xl font-black text-slate-950 mt-1">{orders.length}</h3>
             </div>
-            <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-700 border border-indigo-200 group-hover:scale-110 transition-transform">
               <ShoppingBag className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md group hover:border-emerald-500/30 transition-all">
+        <div className="bg-white border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-emerald-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Volume Comprado</p>
-              <h3 className="text-2xl font-bold text-emerald-400 mt-1">{formatCurrencySafe(totalAmount)}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Volume Comprado</p>
+              <h3 className="text-2xl font-black text-emerald-700 mt-1">{formatCurrencySafe(totalAmount)}</h3>
             </div>
-            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-emerald-100 rounded-xl text-emerald-700 border border-emerald-200 group-hover:scale-110 transition-transform">
               <DollarSign className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md group hover:border-amber-500/30 transition-all">
+        <div className="bg-white border border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-amber-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Em Andamento</p>
-              <h3 className="text-3xl font-bold text-amber-400 mt-1">{pendingCount}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Em Andamento</p>
+              <h3 className="text-3xl font-black text-amber-700 mt-1">{pendingCount}</h3>
             </div>
-            <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-amber-100 rounded-xl text-amber-700 border border-amber-200 group-hover:scale-110 transition-transform">
               <Clock className="w-6 h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-md group hover:border-blue-500/30 transition-all">
+        <div className="bg-white border border-blue-200 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-blue-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Concluídos / Pagos</p>
-              <h3 className="text-3xl font-bold text-blue-400 mt-1">{completedCount}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Concluídos / Pagos</p>
+              <h3 className="text-3xl font-black text-blue-700 mt-1">{completedCount}</h3>
             </div>
-            <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-blue-100 rounded-xl text-blue-700 border border-blue-200 group-hover:scale-110 transition-transform">
               <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function PurchasesPage() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="relative flex-1">
           <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -296,15 +296,15 @@ export default function PurchasesPage() {
             placeholder="Buscar por fornecedor, número ou observações..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-400 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-slate-400 hidden sm:block" />
+          <Filter className="w-5 h-5 text-slate-500 hidden sm:block" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-800/60 border border-slate-700/60 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+            className="bg-white border border-slate-300 text-slate-900 font-bold rounded-xl px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:border-indigo-600 transition-all cursor-pointer"
           >
             <option value="ALL">Todos os Status</option>
             <option value="PENDING">Pendente</option>
@@ -317,30 +317,30 @@ export default function PurchasesPage() {
       </div>
 
       {/* Tabela de Pedidos */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
-            <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
+          <div className="p-12 text-center font-bold text-slate-600 flex flex-col items-center justify-center gap-3">
+            <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
             <span>Carregando compras e pedidos...</span>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-400 bg-red-500/5 m-4 rounded-xl border border-red-500/20 flex flex-col items-center gap-2">
-            <AlertCircle className="w-8 h-8 text-red-400" />
+          <div className="p-8 text-center text-red-700 bg-red-50 m-4 rounded-xl border border-red-200 flex flex-col items-center gap-2 font-bold">
+            <AlertCircle className="w-8 h-8 text-red-600" />
             <span>{error}</span>
-            <button onClick={loadData} className="mt-2 text-xs bg-red-500/20 text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-500/30">Tentar Novamente</button>
+            <button onClick={loadData} className="mt-2 text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200">Tentar Novamente</button>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-slate-800/60 rounded-full flex items-center justify-center text-slate-500 mb-4 border border-slate-700/50">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 mb-4 border border-slate-200">
               <ShoppingBag className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-1">Nenhum pedido encontrado</h3>
-            <p className="text-slate-400 text-sm max-w-md mb-6">
+            <h3 className="text-lg font-bold text-slate-950 mb-1">Nenhum pedido encontrado</h3>
+            <p className="text-slate-600 font-semibold text-sm max-w-md mb-6">
               Não encontramos nenhuma ordem de compra correspondente aos seus filtros ou ainda não há cadastros.
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Criar Primeiro Pedido
@@ -350,7 +350,7 @@ export default function PurchasesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-950/50">
+                <tr className="border-b border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider bg-slate-100">
                   <th className="p-4">Pedido / Data</th>
                   <th className="p-4">Fornecedor</th>
                   <th className="p-4">Itens</th>
@@ -360,34 +360,34 @@ export default function PurchasesPage() {
                   <th className="p-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-sm">
+              <tbody className="divide-y divide-slate-200 text-sm">
                 {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-800/30 transition-colors group">
+                  <tr key={order.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="p-4">
-                      <div className="font-bold text-white font-mono">#{order.id?.slice(0, 8)}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="font-bold text-slate-950 font-mono">#{order.id?.slice(0, 8)}</div>
+                      <div className="text-xs font-semibold text-slate-600">
                         {order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="font-semibold text-slate-200">{order.supplier?.name || 'Fornecedor Desconhecido'}</div>
+                      <div className="font-bold text-slate-800">{order.supplier?.name || 'Fornecedor Desconhecido'}</div>
                       {order.supplier?.cnpj && (
-                        <div className="text-xs text-slate-500 font-mono">{order.supplier.cnpj}</div>
+                        <div className="text-xs font-semibold text-slate-600 font-mono">{order.supplier.cnpj}</div>
                       )}
                     </td>
                     <td className="p-4">
-                      <div className="text-slate-300">
+                      <div className="font-bold text-slate-800">
                         {order.items?.length || 0} {order.items?.length === 1 ? 'insumo' : 'insumos'}
                       </div>
-                      <div className="text-xs text-slate-500 truncate max-w-xs">
+                      <div className="text-xs font-semibold text-slate-600 truncate max-w-xs">
                         {order.items?.slice(0, 2).map(i => i.ingredient?.name).join(', ')}
                         {order.items?.length > 2 ? '...' : ''}
                       </div>
                     </td>
-                    <td className="p-4 text-slate-300 text-xs">
+                    <td className="p-4 font-semibold text-slate-700 text-xs">
                       {order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('pt-BR') : 'Não informada'}
                     </td>
-                    <td className="p-4 text-right font-bold text-white font-mono">
+                    <td className="p-4 text-right font-bold text-slate-950 font-mono">
                       {formatCurrencySafe(order.totalAmount)}
                     </td>
                     <td className="p-4 text-center">
@@ -398,7 +398,7 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => { setSelectedOrder(order); setIsViewModalOpen(true); }}
                           title="Visualizar detalhes"
-                          className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-all border border-slate-700/50"
+                          className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-300"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -406,7 +406,7 @@ export default function PurchasesPage() {
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             title="Cancelar pedido"
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-all border border-red-500/20"
+                            className="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-all border border-red-200"
                           >
                             <XCircle className="w-4 h-4" />
                           </button>
@@ -423,16 +423,16 @@ export default function PurchasesPage() {
 
       {/* Modal Nova Compra */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <ShoppingBag className="w-6 h-6 text-indigo-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200 mb-6">
+              <h3 className="text-xl font-bold text-slate-950 flex items-center gap-2">
+                <ShoppingBag className="w-6 h-6 text-indigo-600" />
                 Novo Pedido de Compra (PO)
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors"
               >
                 ✕
               </button>
@@ -441,14 +441,14 @@ export default function PurchasesPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Fornecedor *
                   </label>
                   <select
                     value={formData.supplierId}
                     onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
                     required
-                    className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all"
+                    className="w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition-all"
                   >
                     <option value="">Selecione um fornecedor...</option>
                     {suppliers.map(sup => (
@@ -458,14 +458,14 @@ export default function PurchasesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Previsão de Entrega
                   </label>
                   <input
                     type="date"
                     value={formData.expectedDate}
                     onChange={(e) => setFormData({ ...formData, expectedDate: e.target.value })}
-                    className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all"
+                    className="w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition-all"
                   />
                 </div>
               </div>
@@ -473,13 +473,13 @@ export default function PurchasesPage() {
               {/* Itens do Pedido */}
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Insumos / Itens do Pedido *
                   </label>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20"
+                    className="text-xs text-indigo-700 hover:text-indigo-800 font-bold flex items-center gap-1 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200"
                   >
                     <Plus className="w-3.5 h-3.5" /> Adicionar Insumo
                   </button>
@@ -487,12 +487,12 @@ export default function PurchasesPage() {
 
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                   {formData.items.map((item, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-center gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                    <div key={index} className="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <select
                         value={item.ingredientId}
                         onChange={(e) => handleItemChange(index, 'ingredientId', e.target.value)}
                         required
-                        className="flex-1 w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                        className="flex-1 w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-600"
                       >
                         <option value="">Selecione o insumo...</option>
                         {ingredients.map(ing => (
@@ -509,9 +509,9 @@ export default function PurchasesPage() {
                           value={item.quantity}
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                           required
-                          className="w-24 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-right font-mono"
+                          className="w-24 bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-600 text-right font-mono"
                         />
-                        <span className="text-slate-400 text-xs font-bold">x R$</span>
+                        <span className="text-slate-600 text-xs font-bold">x R$</span>
                         <input
                           type="number"
                           step="0.01"
@@ -520,13 +520,13 @@ export default function PurchasesPage() {
                           value={item.unitPrice}
                           onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                           required
-                          className="w-28 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-right font-mono"
+                          className="w-28 bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-600 text-right font-mono"
                         />
                         {formData.items.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                           >
                             ✕
                           </button>
@@ -536,14 +536,14 @@ export default function PurchasesPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-end items-center mt-3 pt-3 border-t border-slate-800 text-sm">
-                  <span className="text-slate-400 mr-2 font-semibold">Total Estimado:</span>
-                  <span className="text-lg font-bold text-emerald-400 font-mono">{formatCurrencySafe(calculateTotal())}</span>
+                <div className="flex justify-end items-center mt-3 pt-3 border-t border-slate-200 text-sm">
+                  <span className="text-slate-600 mr-2 font-bold">Total Estimado:</span>
+                  <span className="text-lg font-black text-emerald-700 font-mono">{formatCurrencySafe(calculateTotal())}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Observações Gerais
                 </label>
                 <textarea
@@ -551,22 +551,22 @@ export default function PurchasesPage() {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Informações adicionais, prazos, condições de pagamento..."
                   rows={2}
-                  className="w-full bg-slate-800/80 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all"
+                  className="w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition-all"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Salvando...' : 'Confirmar Pedido'}
                 </button>
@@ -578,45 +578,45 @@ export default function PurchasesPage() {
 
       {/* Modal Detalhes / Visualização */}
       {isViewModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200">
               <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <h3 className="text-xl font-bold text-slate-950 flex items-center gap-2">
                   Pedido #{selectedOrder.id?.slice(0, 8)}
                 </h3>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs font-semibold text-slate-600">
                   Emitido em: {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 {getStatusBadge(selectedOrder.status)}
-                <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+                <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">✕</button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 text-sm">
+            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
               <div>
-                <span className="text-xs font-semibold text-slate-400 block uppercase">Fornecedor</span>
-                <span className="text-white font-bold">{selectedOrder.supplier?.name || 'N/A'}</span>
+                <span className="text-xs font-bold text-slate-600 block uppercase">Fornecedor</span>
+                <span className="text-slate-950 font-bold">{selectedOrder.supplier?.name || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-xs font-semibold text-slate-400 block uppercase">Previsão</span>
-                <span className="text-white font-bold">{selectedOrder.expectedDate ? new Date(selectedOrder.expectedDate).toLocaleDateString('pt-BR') : 'Não definida'}</span>
+                <span className="text-xs font-bold text-slate-600 block uppercase">Previsão</span>
+                <span className="text-slate-950 font-bold">{selectedOrder.expectedDate ? new Date(selectedOrder.expectedDate).toLocaleDateString('pt-BR') : 'Não definida'}</span>
               </div>
               {selectedOrder.notes && (
-                <div className="col-span-2 pt-2 border-t border-slate-700/40">
-                  <span className="text-xs font-semibold text-slate-400 block uppercase">Observações</span>
-                  <span className="text-slate-300 italic text-xs">{selectedOrder.notes}</span>
+                <div className="col-span-2 pt-2 border-t border-slate-200">
+                  <span className="text-xs font-bold text-slate-600 block uppercase">Observações</span>
+                  <span className="text-slate-800 italic text-xs font-semibold">{selectedOrder.notes}</span>
                 </div>
               )}
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Insumos Solicitados</h4>
-              <div className="bg-slate-950/50 rounded-xl border border-slate-800 overflow-hidden">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Insumos Solicitados</h4>
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
+                  <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold">
                     <tr>
                       <th className="p-3">Insumo</th>
                       <th className="p-3 text-right">Qtd</th>
@@ -624,13 +624,13 @@ export default function PurchasesPage() {
                       <th className="p-3 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-200">
                     {selectedOrder.items?.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/30">
-                        <td className="p-3 font-semibold text-slate-200">{item.ingredient?.name || 'Insumo'} ({item.ingredient?.unit || 'UN'})</td>
-                        <td className="p-3 text-right font-mono text-slate-300">{Number(item.quantity || 0)}</td>
-                        <td className="p-3 text-right font-mono text-slate-400">{formatCurrencySafe(item.unitPrice || item.unitCost)}</td>
-                        <td className="p-3 text-right font-mono font-bold text-white">{formatCurrencySafe(Number(item.quantity || 0) * Number(item.unitPrice || item.unitCost || 0))}</td>
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-800">{item.ingredient?.name || 'Insumo'} ({item.ingredient?.unit || 'UN'})</td>
+                        <td className="p-3 text-right font-mono font-semibold text-slate-700">{Number(item.quantity || 0)}</td>
+                        <td className="p-3 text-right font-mono font-semibold text-slate-700">{formatCurrencySafe(item.unitPrice || item.unitCost)}</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-950">{formatCurrencySafe(Number(item.quantity || 0) * Number(item.unitPrice || item.unitCost || 0))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -638,13 +638,13 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t border-slate-800">
-              <div className="text-xs text-slate-400">
-                Total de Itens: <strong className="text-white">{selectedOrder.items?.length || 0}</strong>
+            <div className="flex justify-between items-center pt-4 border-t border-slate-200 font-semibold">
+              <div className="text-xs text-slate-600 font-bold">
+                Total de Itens: <strong className="text-slate-950">{selectedOrder.items?.length || 0}</strong>
               </div>
               <div className="text-right">
-                <span className="text-xs text-slate-400 uppercase mr-2 font-bold">Total Geral:</span>
-                <span className="text-xl font-bold text-emerald-400 font-mono">{formatCurrencySafe(selectedOrder.totalAmount)}</span>
+                <span className="text-xs text-slate-600 uppercase mr-2 font-bold">Total Geral:</span>
+                <span className="text-xl font-black text-emerald-700 font-mono">{formatCurrencySafe(selectedOrder.totalAmount)}</span>
               </div>
             </div>
           </div>

@@ -65,7 +65,7 @@ app.use('/api', tenantRoutes);
 app.use('/api/public/saas', saasRoutes);
 
 // Webhooks de pagamento sao chamados por terceiros e validam assinatura no controller.
-app.use('/api/webhooks', webhookRoutes);
+app.use(['/api/webhooks', '/api/public/webhooks'], webhookRoutes);
 
 app.use(tenantGuard);
 

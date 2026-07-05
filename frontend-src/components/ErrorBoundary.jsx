@@ -34,7 +34,7 @@ export class ErrorBoundary extends React.Component {
             >
               Tentar Novamente
             </button>
-            {process.env.NODE_ENV !== 'production' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div className="mt-4 text-left overflow-auto rounded bg-slate-100 p-2 text-xs text-slate-700 dark:text-slate-300">
                 <p className="font-bold">{this.state.error.toString()}</p>
                 <pre>{this.state.errorInfo?.componentStack}</pre>

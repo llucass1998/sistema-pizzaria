@@ -58,7 +58,7 @@ export function AdminsPage() {
   }
 
   useEffect(() => {
-    if (['OWNER', 'ADMIN'].includes(sessionRole)) {
+    if (['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole)) {
       loadAdmins();
     } else {
       showError('Acesso negado. Apenas OWNER/ADMIN podem acessar esta página.');
@@ -214,7 +214,7 @@ export function AdminsPage() {
           </p>
         </div>
         
-        {!isCreating && ['OWNER', 'ADMIN'].includes(sessionRole) && (
+        {!isCreating && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) && (
           <button 
             onClick={() => setIsCreating(true)}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 font-bold rounded-xl transition shadow-md"
@@ -383,7 +383,7 @@ export function AdminsPage() {
                     </div>
                   </div>
                   
-                  {['OWNER', 'ADMIN'].includes(sessionRole) && (
+                  {['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) && (
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       <button 
                         onClick={() => handleResetPassword(admin)}
@@ -421,7 +421,7 @@ export function AdminsPage() {
                   <select
                     value={admin.role || 'ADMIN'}
                     disabled={
-                      !['OWNER', 'ADMIN'].includes(sessionRole) || 
+                      !['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) || 
                       (admin.role === 'OWNER' && sessionRole !== 'OWNER') ||
                       admin.id === sessionId
                     }

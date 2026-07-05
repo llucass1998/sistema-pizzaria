@@ -4,7 +4,7 @@ import { IntegrationProvider } from '../../generated/prisma/index.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
-import { requireAdmin } from '../middlewares/requireAdmin.js';
+import { requireRole } from '../middlewares/requireRole.js';
 import { getIdParam } from '../utils/request.js';
 import { normalizeText } from '../utils/normalize.js';
 import { IfoodService } from '../integrations/ifood/ifood.service.js';
@@ -43,7 +43,7 @@ function credentialDto(credential: any) {
 
 integrationRoutes.get(
   '/integrations/credentials',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (_req, res) => {
     const credentials = await prisma.integrationCredential.findMany({
       orderBy: [{ provider: 'asc' }, { createdAt: 'desc' }],
@@ -55,7 +55,7 @@ integrationRoutes.get(
 
 integrationRoutes.post(
   '/integrations/credentials',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
     const provider = parseProvider(req.body.provider);
@@ -104,7 +104,7 @@ integrationRoutes.post(
 
 integrationRoutes.put(
   '/integrations/credentials/:id',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
     const id = getIdParam(req, res);
     if (!id) return;
@@ -152,7 +152,7 @@ integrationRoutes.put(
 
 integrationRoutes.delete(
   '/integrations/credentials/:id',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
     const id = getIdParam(req, res);
     if (!id) return;
@@ -174,7 +174,7 @@ integrationRoutes.delete(
 
 integrationRoutes.post(
   '/integrations/ifood/poll-now',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
     const id = normalizeText(req.body.credentialId);
 
@@ -207,7 +207,7 @@ integrationRoutes.post(
 
 integrationRoutes.get(
   '/integrations/events',
-  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
     const provider = req.query.provider ? parseProvider(req.query.provider) : null;
     const events = await prisma.integrationEventLog.findMany({
@@ -217,5 +217,113 @@ integrationRoutes.get(
     });
 
     res.json(events);
+  }),
+);
+
+import { IfoodCatalogService } from '../integrations/ifood/ifood-catalog.service.js';
+import { IfoodMerchantService } from '../integrations/ifood/ifood-merchant.service.js';
+
+integrationRoutes.get(
+  '/integrations/ifood/catalog/preview',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (_req, res) => {
+    const tenantId = getTenantId();
+    const preview = await IfoodCatalogService.getCatalogPreview(tenantId);
+    res.json(preview);
+  }),
+);
+
+integrationRoutes.post(
+  '/integrations/ifood/catalog/sync',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const id = normalizeText(req.body.credentialId);
+    if (!id) {
+      res.status(400).json({ message: 'credentialId is required' });
+      return;
+    }
+    const credential = await prisma.integrationCredential.findFirst({
+      where: { id, provider: IntegrationProvider.IFOOD, isActive: true },
+    });
+    if (!credential) {
+      res.status(404).json({ message: 'Credencial ativa nao encontrada.' });
+      return;
+    }
+
+    const result = await IfoodCatalogService.syncCatalog(credential);
+    res.json(result);
+  }),
+);
+
+integrationRoutes.get(
+  '/integrations/ifood/merchant/status',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const id = normalizeText(req.query.credentialId);
+    if (!id) {
+      res.status(400).json({ message: 'credentialId is required' });
+      return;
+    }
+    const credential = await prisma.integrationCredential.findFirst({
+      where: { id, provider: IntegrationProvider.IFOOD, isActive: true },
+    });
+    if (!credential) {
+      res.status(404).json({ message: 'Credencial ativa nao encontrada.' });
+      return;
+    }
+
+    const status = await IfoodMerchantService.getStatus(credential);
+    res.json(status);
+  }),
+);
+
+integrationRoutes.post(
+  '/integrations/ifood/merchant/pause',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const id = normalizeText(req.body.credentialId);
+    const reason = normalizeText(req.body.reason);
+    if (!id) {
+      res.status(400).json({ message: 'credentialId is required' });
+      return;
+    }
+    if (!reason) {
+      res.status(400).json({ message: 'Motivo (reason) is required' });
+      return;
+    }
+    const credential = await prisma.integrationCredential.findFirst({
+      where: { id, provider: IntegrationProvider.IFOOD, isActive: true },
+    });
+    if (!credential) {
+      res.status(404).json({ message: 'Credencial ativa nao encontrada.' });
+      return;
+    }
+
+    const adminId = (req as any).admin?.id;
+    const result = await IfoodMerchantService.pauseMerchant(credential, reason, adminId);
+    res.json(result);
+  }),
+);
+
+integrationRoutes.post(
+  '/integrations/ifood/merchant/resume',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const id = normalizeText(req.body.credentialId);
+    if (!id) {
+      res.status(400).json({ message: 'credentialId is required' });
+      return;
+    }
+    const credential = await prisma.integrationCredential.findFirst({
+      where: { id, provider: IntegrationProvider.IFOOD, isActive: true },
+    });
+    if (!credential) {
+      res.status(404).json({ message: 'Credencial ativa nao encontrada.' });
+      return;
+    }
+
+    const adminId = (req as any).admin?.id;
+    const result = await IfoodMerchantService.resumeMerchant(credential, adminId);
+    res.json(result);
   }),
 );

@@ -26,6 +26,16 @@ async function main() {
     throw new Error('Tenant demo não encontrado.');
   }
 
+  await prisma.storeSetting.updateMany({
+    where: {
+      OR: [
+        { tenantId: tenant.id },
+        { pixKey: 'sua-chave-pix-aqui' }
+      ]
+    },
+    data: { pixKey: 'contato@riopizzas.com.br' }
+  });
+
   const adminEmail = 'e2e_admin_teste@example.com';
   let admin = await prisma.admin.findFirst({ where: { email: adminEmail } });
   if (!admin) {

@@ -12,8 +12,8 @@ const API_BASE_URL = import.meta.env.PROD
 function normalizeOption(option) {
   return {
     ...option,
-    price: Number(option.price ?? 0),
-    sortOrder: Number(option.sortOrder ?? 0),
+    price: isNaN(Number(option.price)) ? 0 : Number(option.price),
+    sortOrder: isNaN(Number(option.sortOrder)) ? 0 : Number(option.sortOrder),
     isAvailable: option.isAvailable ?? true,
     stockImpactType: option.stockImpactType ?? 'NO_STOCK_IMPACT',
     ingredientId: option.ingredientId ?? '',
@@ -199,6 +199,10 @@ export function OptionsPage() {
     }
   }
 
+  const totalStockImpactCount = useMemo(() => {
+    return [...addons, ...crusts].filter(i => i.stockImpactType && i.stockImpactType !== 'NO_STOCK_IMPACT').length;
+  }, [addons, crusts]);
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 flex items-center justify-center h-full min-h-[400px]">
@@ -209,10 +213,6 @@ export function OptionsPage() {
 
   const items = activeTab === 'addons' ? addons : crusts;
   const sortedItems = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
-  
-  const totalStockImpactCount = useMemo(() => {
-    return [...addons, ...crusts].filter(i => i.stockImpactType && i.stockImpactType !== 'NO_STOCK_IMPACT').length;
-  }, [addons, crusts]);
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">

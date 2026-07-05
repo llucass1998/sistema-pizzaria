@@ -77,6 +77,10 @@ function mapSettingsToForm(data = {}) {
     isOpen: data.isOpen ?? true,
     isMaintenance: data.isMaintenance ?? false,
     maintenanceMessage: data.maintenanceMessage ?? '',
+    notifyNewOrderWhatsApp: data.notifyNewOrderWhatsApp ?? false,
+    notifyLowStockWhatsApp: data.notifyLowStockWhatsApp ?? false,
+    notifyDeliveryDoneWhatsApp: data.notifyDeliveryDoneWhatsApp ?? false,
+    notificationWhatsAppNumber: data.notificationWhatsAppNumber ?? '',
   };
 }
 
@@ -133,6 +137,7 @@ function VisualAssetField({ label, hint, value, onChange, onUpload, isUploading 
 
 export function SettingsPage() {
   const [form, setForm] = useState(null);
+  const [activeTab, setActiveTab] = useState('LOJA');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingField, setUploadingField] = useState('');
@@ -160,7 +165,7 @@ export function SettingsPage() {
         }
       } catch (err) {
         console.error('Erro ao carregar configuracoes', err);
-        setError('Falha ao carregar configuracoes.');
+        showError('Falha ao carregar configuracoes da loja.');
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -280,22 +285,26 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-6 md:p-8">
-      <div className="mb-8">
+      <div className="mb-6">
         <h2 className="text-xl font-black text-slate-900 dark:text-white">
-          Configuracoes da Loja
+          Configurações da Loja
         </h2>
-        <p className="text-sm text-slate-500">Dados publicos, identidade visual, taxas e horarios.</p>
+        <p className="text-sm text-slate-500">Gerencie todos os aspectos do seu sistema.</p>
+      </div>
+
+      <div className="mb-6 flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+        <button type="button" onClick={() => setActiveTab('LOJA')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'LOJA' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Loja</button>
+        <button type="button" onClick={() => setActiveTab('VISUAL')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'VISUAL' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Visual</button>
+        <button type="button" onClick={() => setActiveTab('ENTREGA')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'ENTREGA' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Entrega e Taxas</button>
+        <button type="button" onClick={() => setActiveTab('FIDELIDADE')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'FIDELIDADE' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Fidelidade</button>
+        <button type="button" onClick={() => setActiveTab('NOTIFICACOES')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'NOTIFICACOES' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Notificações (WhatsApp)</button>
       </div>
 
       <Panel>
-        <PanelHeader
-          title="Geral e Integracoes"
-          description="Ajuste os dados que aparecem para seus clientes."
-          Icon={Settings}
-        />
-        <form onSubmit={saveSettings} className="grid gap-4 p-5 md:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <form onSubmit={saveSettings} className="p-5">
+          <div className={activeTab === 'LOJA' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-slate-200">
                   <Store className="h-4 w-4 text-emerald-600" />
@@ -344,10 +353,12 @@ export function SettingsPage() {
                 </div>
               </button>
             </div>
+            </div>
           </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          
+          <div className={activeTab === 'VISUAL' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-slate-200">
                   <Palette className="h-4 w-4 text-red-600" />
@@ -504,11 +515,13 @@ export function SettingsPage() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+          
+          <div className={activeTab === 'LOJA' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
               <Star className="h-4 w-4 text-amber-500" />
               Mais pedido da noite
             </h3>
@@ -558,8 +571,11 @@ export function SettingsPage() {
             onChange={(value) => updateField('pixMerchantName', value)}
           />
           <Field label="Cidade PIX" value={form.pixCity} onChange={(value) => updateField('pixCity', value)} />
-          <Field
-            label="Taxa de entrega (R$)"
+          </div>
+
+          <div className={activeTab === 'ENTREGA' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <Field
+              label="Taxa de entrega (R$)"
             value={form.deliveryFee}
             onChange={(value) => updateField('deliveryFee', value)}
             type="number"
@@ -569,10 +585,12 @@ export function SettingsPage() {
             value={form.serviceFee}
             onChange={(value) => updateField('serviceFee', value)}
             type="number"
-          />
+            />
+          </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
-            <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+          <div className={activeTab === 'LOJA' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-300">
               Modo Manutenção
             </h3>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -606,10 +624,12 @@ export function SettingsPage() {
                 />
               </div>
             )}
+            </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
-            <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+          <div className={activeTab === 'FIDELIDADE' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-300">
               Programa de Fidelidade (CRM)
             </h3>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -629,8 +649,41 @@ export function SettingsPage() {
               </select>
             </div>
           </div>
+          </div>
 
-          <div className="pt-2 md:col-span-2">
+          <div className={activeTab === 'NOTIFICACOES' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                Notificações via WhatsApp
+              </h3>
+              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Configure alertas automáticos para você (loja) ou clientes.</p>
+              
+              <Field
+                label="Número WhatsApp p/ Alertas (Admin)"
+                value={form.notificationWhatsAppNumber}
+                onChange={(value) => updateField('notificationWhatsAppNumber', value)}
+                placeholder="Ex: 5511999999999"
+                className="mb-4"
+              />
+
+              <div className="space-y-4">
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" checked={form.notifyNewOrderWhatsApp} onChange={e => updateField('notifyNewOrderWhatsApp', e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Receber alerta de novo pedido no painel</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" checked={form.notifyLowStockWhatsApp} onChange={e => updateField('notifyLowStockWhatsApp', e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Receber alerta de estoque crítico (Insumos)</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" checked={form.notifyDeliveryDoneWhatsApp} onChange={e => updateField('notifyDeliveryDoneWhatsApp', e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Notificar cliente quando o pedido for entregue (WIP)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t mt-6 border-slate-200 dark:border-slate-800 md:col-span-2 flex justify-end">
             <button
               type="submit"
               disabled={!canSave}
@@ -643,7 +696,8 @@ export function SettingsPage() {
         </form>
       </Panel>
 
-      <DeliverySettings
+      <div className={activeTab === 'ENTREGA' ? 'mt-6 block' : 'hidden'}>
+        <DeliverySettings
         deliveryFeeMode={form.deliveryFeeMode || 'FIXED'}
         onModeChange={(mode) => {
           updateField('deliveryFeeMode', mode);
@@ -652,6 +706,7 @@ export function SettingsPage() {
           // So just updating the field is enough.
         }}
       />
+      </div>
     </div>
   );
 }

@@ -16,7 +16,8 @@ import {
   ShoppingBag,
   Award,
   Calendar,
-  UserCheck
+  UserCheck,
+  Download
 } from 'lucide-react';
 import { Panel } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
@@ -42,7 +43,7 @@ export function CRMPage() {
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
   const adminRole = adminDataStr ? JSON.parse(adminDataStr).role : '';
   const allowedRoles = ['OWNER', 'ADMIN', 'MANAGER'];
-  const hasPermission = allowedRoles.includes(adminRole);
+  const hasPermission = adminRole === 'SUPER_ADMIN' || allowedRoles.includes(adminRole);
 
   useEffect(() => {
     if (!hasPermission) return;
@@ -164,6 +165,49 @@ export function CRMPage() {
     }
   };
 
+  const handleExportCsv = () => {
+    if (filteredCustomers.length === 0) {
+      showError('Nenhum cliente para exportar neste segmento.');
+      return;
+    }
+
+    const sanitizeCsvValue = (value) => {
+      const raw = value == null ? "" : String(value);
+      const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+      return `"${safe.replace(/"/g, '""')}"`;
+    };
+
+    const now = new Date();
+    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+    const filename = `crm-clientes-segmento-${dateStr}.csv`;
+
+    const rows = [['nome', 'email', 'telefone', 'segmento', 'totalOrders', 'totalSpent', 'lastOrderDate', 'loyaltyBalance']];
+    
+    filteredCustomers.forEach(c => {
+      rows.push([
+        c.name || '',
+        c.email || '',
+        c.phone || '',
+        c.segment || '',
+        c.totalOrders || 0,
+        c.totalSpent || 0,
+        c.lastOrderDate ? new Date(c.lastOrderDate).toISOString() : '',
+        c.loyaltyBalance || 0
+      ]);
+    });
+
+    const csv = "\uFEFF" + rows.map((row) => row.map(sanitizeCsvValue).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const getSegmentBadge = (segment) => {
     switch (segment) {
       case 'VIP':
@@ -233,6 +277,15 @@ export function CRMPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Segmentação inteligente, histórico de consumo, ticket médio e engajamento via WhatsApp
           </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <Download size={16} />
+            Exportar CSV
+          </button>
         </div>
       </div>
 

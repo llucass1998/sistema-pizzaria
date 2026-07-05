@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { getStoreSettings } from '../services/storeSettings.service.js';
 import { getTenantId } from '../core/context/TenantContext.js';
+import { updateTenantFsSettings } from '../services/tenantSettingsFs.service.js';
 
 const DEFAULT_NAVBAR_COLOR = '#970F0F';
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/;
@@ -68,6 +69,10 @@ export const updateStoreSettingsSchema = z.object({
   featuredProductId: z.string().nullable().optional(),
   isMaintenance: z.boolean().optional(),
   maintenanceMessage: z.string().nullable().optional(),
+  notifyNewOrderWhatsApp: z.boolean().optional(),
+  notifyLowStockWhatsApp: z.boolean().optional(),
+  notifyDeliveryDoneWhatsApp: z.boolean().optional(),
+  notificationWhatsAppNumber: z.string().optional(),
 });
 
 export const SettingsController = {
@@ -161,6 +166,14 @@ export const SettingsController = {
       } as any,
     });
 
-    res.json(settings);
+    const fsPayload: Record<string, any> = {};
+    if (payload.notifyNewOrderWhatsApp !== undefined) fsPayload['notifyNewOrderWhatsApp'] = payload.notifyNewOrderWhatsApp;
+    if (payload.notifyLowStockWhatsApp !== undefined) fsPayload['notifyLowStockWhatsApp'] = payload.notifyLowStockWhatsApp;
+    if (payload.notifyDeliveryDoneWhatsApp !== undefined) fsPayload['notifyDeliveryDoneWhatsApp'] = payload.notifyDeliveryDoneWhatsApp;
+    if (payload.notificationWhatsAppNumber !== undefined) fsPayload['notificationWhatsAppNumber'] = payload.notificationWhatsAppNumber;
+
+    const fsSettings = await updateTenantFsSettings(tenantId, fsPayload);
+
+    res.json({ ...settings, ...fsSettings });
   },
 };

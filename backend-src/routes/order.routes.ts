@@ -644,7 +644,7 @@ orderRoutes.post(
       // Se for pagamento online (ex: PIX ou Cartão ONLINE), geramos o link de pagamento
       if (
         cardPaymentMode === 'ONLINE' ||
-        (paymentMethod === 'PIX' && process.env.ENABLE_ONLINE_PIX !== 'false')
+        (paymentMethod === 'PIX' && process.env.ENABLE_ONLINE_PIX === 'true')
       ) {
         const intent = await PaymentGatewayService.createPaymentLink(
           order.id,
@@ -1091,12 +1091,19 @@ orderRoutes.post(
     }
 
     // 2. Resolver Itens
-    const productIds = [...new Set(rawItems.map((item) => normalizeText(item.productId)))].filter(
-      Boolean,
-    ) as string[];
-    const variantIds = [...new Set(rawItems.map((item) => normalizeText(item.variantId)))].filter(
-      Boolean,
-    ) as string[];
+    const halfAndHalfInputs = rawItems.map(getHalfAndHalfInput);
+    const productIds = [
+      ...new Set([
+        ...rawItems.map((item) => normalizeText(item.productId)),
+        ...halfAndHalfInputs.map((item) => item?.secondProductId ?? ''),
+      ]),
+    ].filter(Boolean) as string[];
+    const variantIds = [
+      ...new Set([
+        ...rawItems.map((item) => normalizeText(item.variantId)),
+        ...halfAndHalfInputs.map((item) => item?.secondVariantId ?? ''),
+      ]),
+    ].filter(Boolean) as string[];
     const optionIds = [...new Set(rawItems.flatMap((item) => getItemOptionIds(item)))];
 
     const [foundProducts, foundVariants, globalOptions, productOptions] = await Promise.all([
@@ -1150,8 +1157,45 @@ orderRoutes.post(
         return;
       }
 
+      const halfAndHalfInput = getHalfAndHalfInput(item);
+      let halfAndHalfData: any = null;
+      let secondProduct: any = undefined;
+      let secondVariant: any = undefined;
+
+      if (halfAndHalfInput) {
+        if (!halfAndHalfInput.secondProductId) {
+          res.status(400).json({ message: `Selecione o segundo sabor da meia-meia de "${product.name}".` });
+          return;
+        }
+        secondProduct = productsById.get(halfAndHalfInput.secondProductId);
+        if (!secondProduct || !secondProduct.isAvailable || !secondProduct.allowHalfAndHalf) {
+          res.status(400).json({ message: `O sabor compatível selecionado não está disponível.` });
+          return;
+        }
+        secondVariant = halfAndHalfInput.secondVariantId
+          ? variantsById.get(halfAndHalfInput.secondVariantId)
+          : undefined;
+        if (halfAndHalfInput.secondVariantId && (!secondVariant || !secondVariant.isAvailable)) {
+          res.status(400).json({ message: `O tamanho selecionado para a metade não está disponível.` });
+          return;
+        }
+        halfAndHalfData = {
+          firstProductId: product.id,
+          firstProductName: product.name,
+          firstVariantId: variant?.id ?? null,
+          firstVariantName: variant?.name ?? null,
+          secondProductId: secondProduct.id,
+          secondProductName: secondProduct.name,
+          secondVariantId: secondVariant?.id ?? null,
+          secondVariantName: secondVariant?.name ?? null,
+          priceRule: 'HIGHER_HALF_PRICE',
+        };
+      }
+
       const quantity = Number(item.quantity) || 1;
-      const baseUnitPrice = Number(variant?.price ?? product.price);
+      const baseUnitPrice = halfAndHalfData
+        ? Math.max(Number(variant?.price ?? product.price), Number(secondVariant?.price ?? secondProduct?.price ?? 0))
+        : Number(variant?.price ?? product.price);
       const optionsTotal = selectedOptions.reduce((sum, opt) => sum + Number(opt.price), 0);
       const unitPrice = baseUnitPrice + optionsTotal;
       const itemTotal = unitPrice * quantity;
@@ -1159,6 +1203,9 @@ orderRoutes.post(
       subtotal += itemTotal;
 
       const computedCustomizations = [
+        halfAndHalfData
+          ? `Meia-meia: ${halfAndHalfData.firstProductName} / ${halfAndHalfData.secondProductName}`
+          : '',
         variant ? `Tamanho: ${variant.name}` : '',
         ...selectedOptions.map((opt) => `${opt.name} (+R$ ${Number(opt.price).toFixed(2)})`),
       ]
@@ -1175,13 +1222,15 @@ orderRoutes.post(
       orderItems.push({
         productId: product.id,
         variantId: variant?.id ?? null,
-        displayName: product.name,
+        displayName: halfAndHalfData
+          ? `Meia-meia: ${halfAndHalfData.firstProductName} / ${halfAndHalfData.secondProductName}`
+          : product.name,
         customizations: computedCustomizations || null,
         variantName: variant?.name ?? null,
         optionsSnapshot:
-          selectedOptions.length > 0
+          selectedOptions.length > 0 || halfAndHalfData
             ? JSON.stringify({
-                halfAndHalf: null,
+                halfAndHalf: halfAndHalfData,
                 options: selectedOptions.map(optionStockSnapshot),
               })
             : null,

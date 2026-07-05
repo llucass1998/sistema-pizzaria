@@ -19,9 +19,11 @@ import {
   Layers,
   ShieldAlert,
   RefreshCw,
-  AlertOctagon
+  AlertOctagon,
+  Download
 } from 'lucide-react';
 import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
+import { downloadCsv } from '../../utils/csvHelper.js';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { formatCurrency, formatCurrencySafe } from '../../data/menuData.js';
 
@@ -84,7 +86,7 @@ export function InventoryPage() {
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
   const adminRole = adminDataStr ? JSON.parse(adminDataStr).role : '';
   const allowedRoles = ['OWNER', 'ADMIN', 'MANAGER'];
-  const hasPermission = allowedRoles.includes(adminRole);
+  const hasPermission = adminRole === 'SUPER_ADMIN' || allowedRoles.includes(adminRole);
 
   useEffect(() => {
     if (hasPermission) {
@@ -395,6 +397,44 @@ export function InventoryPage() {
     }
   };
 
+  const handleExportPurchaseOrder = () => {
+    const itemsToBuy = (data.summary?.purchaseSuggestion && Array.isArray(data.summary.purchaseSuggestion))
+      ? data.summary.purchaseSuggestion
+      : data.ingredients.filter(i => i.status === 'OUT' || i.status === 'CRITICAL' || i.status === 'LOW').map(i => ({
+          name: i.name,
+          unit: i.unit,
+          currentStock: i.stock,
+          minStock: i.minStock,
+          suggestedPurchase: Math.max(0, i.minStock - i.stock) || 1,
+          estimatedCost: i.cost
+        }));
+
+    if (itemsToBuy.length === 0) {
+      showError('Não há insumos em situação crítica ou baixa para gerar pedido.');
+      return;
+    }
+
+    const headers = ['Insumo', 'Unidade', 'Estoque Atual', 'Estoque Mínimo', 'Sugestão de Compra', 'Custo Estimado Unit.', 'Custo Estimado Total'];
+    const rows = [headers];
+    itemsToBuy.forEach(item => {
+      const q = item.suggestedQuantity || item.suggestedPurchase || 1;
+      const c = item.cost || item.estimatedCost || 0;
+      rows.push([
+        item.ingredientName || item.name || 'Desconhecido',
+        item.unit || '',
+        item.currentStock || 0,
+        item.minStock || 0,
+        q,
+        c,
+        (q * c).toFixed(2)
+      ]);
+    });
+
+    const now = new Date();
+    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    downloadCsv(`pedido-compra-${dateStr}.csv`, rows);
+  };
+
   if (!hasPermission) {
     return (
       <div className="mx-auto max-w-7xl p-4 md:p-8">
@@ -431,7 +471,14 @@ export function InventoryPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportPurchaseOrder}
+            className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+          >
+            <Download size={18} />
+            Gerar Pedido de Compra (CSV)
+          </button>
           <button
             onClick={loadAllData}
             title="Atualizar dados"

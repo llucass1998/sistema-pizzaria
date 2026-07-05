@@ -21,7 +21,7 @@ export function requireRole(allowedRoles: string[]) {
       (req as any).adminId = decoded.id;
       (req as any).adminRole = decoded.role;
 
-      if (!allowedRoles.includes(decoded.role)) {
+      if (decoded.role !== 'SUPER_ADMIN' && !allowedRoles.includes(decoded.role)) {
         res.status(403).json({ message: 'Acesso negado para o seu perfil.' });
         return;
       }

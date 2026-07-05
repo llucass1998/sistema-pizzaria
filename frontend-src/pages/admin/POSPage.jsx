@@ -19,6 +19,7 @@ import {
 } from '../../components/admin/ShiftModals.jsx';
 import { POSQuickPayModal } from '../../components/admin/POSQuickPayModal.jsx';
 import { POSReceiptModal } from '../../components/admin/POSReceiptModal.jsx';
+import { ProductCustomizationModal } from '../../components/ProductCustomizationModal.jsx';
 
 const API_BASE_URL = import.meta.env.PROD
   ? '/api'
@@ -55,9 +56,8 @@ export function POSPage() {
 
   // Modal State for Product Options
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedVariant, setSelectedVariant] = useState('');
-  const [selectedAddons, setSelectedAddons] = useState([]);
-  const [selectedCrust, setSelectedCrust] = useState('');
+  const [dbAddons, setDbAddons] = useState([]);
+  const [dbCrusts, setDbCrusts] = useState([]);
 
   // Authentication
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
@@ -78,9 +78,11 @@ export function POSPage() {
         }
         setIsShiftLoading(false);
 
-        const [catRes, prodRes] = await Promise.all([
+        const [catRes, prodRes, addsRes, crusRes] = await Promise.all([
           fetch(`${API_BASE_URL}/categorias?includeInactive=true`, { headers }),
           fetch(`${API_BASE_URL}/produtos`, { headers }),
+          fetch(`${API_BASE_URL}/adicionais`, { headers }),
+          fetch(`${API_BASE_URL}/bordas`, { headers }),
         ]);
 
         if (!catRes.ok || !prodRes.ok) throw new Error('Erro ao carregar cardápio');
@@ -93,6 +95,8 @@ export function POSPage() {
         if (activeCats.length > 0) setActiveCategory(activeCats[0].id);
 
         setProducts(Array.isArray(prodData) ? prodData.filter((p) => p.isAvailable) : []);
+        if (addsRes.ok) setDbAddons(await addsRes.json().catch(() => []));
+        if (crusRes.ok) setDbCrusts(await crusRes.json().catch(() => []));
       } catch (err) {
         setError('Falha ao carregar cardápio. Tente novamente.');
       } finally {
@@ -196,9 +200,6 @@ export function POSPage() {
             showSuccess(`${foundProduct.name} (${foundVariant.name}) adicionado!`);
           } else if (foundProduct.variants?.length > 0 || foundProduct.allowSizes) {
             setSelectedProduct(foundProduct);
-            setSelectedVariant(foundProduct.variants?.[0]?.id || '');
-            setSelectedAddons([]);
-            setSelectedCrust('');
             showSuccess(`Selecione o tamanho para ${foundProduct.name}`);
           } else {
             addToCart(foundProduct, null, [], null);
@@ -249,30 +250,30 @@ export function POSPage() {
       return;
     }
 
-    if (product.variants?.length > 0 || product.allowSizes) {
+    if (
+      product.variants?.length > 0 ||
+      product.allowSizes ||
+      product.allowHalfAndHalf ||
+      product.optionGroups?.length > 0 ||
+      product.category === 'pizzas' ||
+      product.category === 'pizzas-tradicionais' ||
+      product.category === 'pizzas-especiais' ||
+      product.category === 'pizzas-doces'
+    ) {
       setSelectedProduct(product);
-      setSelectedVariant(product.variants?.[0]?.id || '');
-      setSelectedAddons([]);
-      setSelectedCrust('');
     } else {
-      addToCart(product, null, [], null);
+      addToCart({ productId: product.id, name: product.name, price: product.price });
     }
   };
 
-  const addToCart = (product, variantId, addonIds, crustId) => {
-    const selectedVariantData = variantId
-      ? product.variants?.find((v) => v.id === variantId)
-      : null;
-
-    const addonArr = addonIds || [];
-    const crustVal = crustId || null;
-
+  const addToCart = (payload) => {
     const existingIndex = cart.findIndex(
       (item) =>
-        item.productId === product.id &&
-        item.variantId === (variantId || null) &&
-        item.crustId === crustVal &&
-        JSON.stringify((item.addonIds || []).slice().sort()) === JSON.stringify(addonArr.slice().sort())
+        item.productId === payload.productId &&
+        item.variantId === (payload.variantId || null) &&
+        item.crustId === (payload.crustId || null) &&
+        JSON.stringify(item.halfAndHalf || null) === JSON.stringify(payload.halfAndHalf || null) &&
+        JSON.stringify((item.addonIds || []).slice().sort()) === JSON.stringify((payload.addonIds || []).slice().sort())
     );
 
     if (existingIndex > -1) {
@@ -284,14 +285,16 @@ export function POSPage() {
     } else {
       const newItem = {
         cartId: crypto.randomUUID(),
-        productId: product.id,
-        name: product.name,
-        variantId: variantId || null,
-        addonIds: addonArr,
-        crustId: crustVal,
+        productId: payload.productId,
+        name: payload.name || payload.displayName,
+        variantId: payload.variantId || null,
+        addonIds: payload.addonIds || [],
+        crustId: payload.crustId || null,
+        halfAndHalf: payload.halfAndHalf || null,
         quantity: 1,
-        price: Number(selectedVariantData?.price ?? product.price),
-        variantName: selectedVariantData?.name ?? '',
+        price: Number(payload.price ?? 0),
+        variantName: payload.variantName ?? '',
+        customizationsText: payload.customizations ?? '',
       };
       setCart((prev) => [...prev, newItem]);
     }
@@ -335,7 +338,8 @@ export function POSPage() {
           productId: item.productId,
           variantId: item.variantId || null,
           quantity: item.quantity,
-          optionIds: [...item.addonIds, item.crustId].filter(Boolean),
+          optionIds: [...(item.addonIds || []), item.crustId].filter(Boolean),
+          halfAndHalf: item.halfAndHalf || null,
           notes: '',
         })),
         paymentMethod,
@@ -566,6 +570,9 @@ export function POSPage() {
                     {item.variantName && (
                       <span className="text-xs text-slate-500">Tamanho: {item.variantName}</span>
                     )}
+                    {item.customizationsText && (
+                      <span className="text-xs text-slate-500 line-clamp-2">{item.customizationsText}</span>
+                    )}
                     <span className="text-red-600 font-black text-sm mt-1">
                       {formatCurrency(item.price)}
                     </span>
@@ -657,64 +664,15 @@ export function POSPage() {
         </div>
       </div>
 
-      {/* Modal Simples de Variações */}
-      {selectedProduct && (
-        <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setSelectedProduct(null)}
-        >
-          <div
-            className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="font-black text-lg">Opções: {selectedProduct.name}</h3>
-            </div>
-
-            <div className="p-4 overflow-y-auto flex-1">
-              {selectedProduct.variants?.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-bold text-sm text-slate-500 mb-2 uppercase">
-                    Selecione o Tamanho
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedProduct.variants.map((v) => (
-                      <button
-                        key={v.id}
-                        onClick={() => setSelectedVariant(v.id)}
-                        className={`p-3 rounded-xl border-2 text-left transition ${selectedVariant === v.id ? 'border-red-600 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-700'}`}
-                      >
-                        <div className="font-bold">{v.name}</div>
-                        <div className="text-red-600 text-sm font-black mt-1">
-                          {formatCurrency(v.price)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex gap-3">
-              <button
-                onClick={() => setSelectedProduct(null)}
-                className="flex-1 py-3 font-bold text-slate-600 bg-slate-100 rounded-xl"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() =>
-                  addToCart(selectedProduct, selectedVariant, selectedAddons, selectedCrust)
-                }
-                disabled={selectedProduct.variants?.length > 0 && !selectedVariant}
-                className="flex-1 py-3 font-black text-white bg-red-600 rounded-xl disabled:opacity-50"
-              >
-                Adicionar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProductCustomizationModal
+        isOpen={Boolean(selectedProduct)}
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={addToCart}
+        catalogProducts={products}
+        dbAddons={dbAddons}
+        dbCrusts={dbCrusts}
+      />
 
       <OpenShiftModal
         isOpen={isOpenShiftModalOpen}
@@ -752,7 +710,7 @@ export function POSPage() {
       />
 
       {/* Rodapé de Atalhos (não sai na impressão) */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-slate-900 text-slate-300 text-xs px-4 py-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20 no-print">
+      <div className="fixed bottom-0 left-0 right-0 lg:left-[var(--sidebar-width,0px)] transition-all duration-300 bg-slate-900 text-slate-300 text-xs px-4 py-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20 no-print">
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-bold"><strong className="text-red-500">F1</strong> Buscar</span>
           <span className="font-bold"><strong className="text-red-500">F2</strong> Nova Venda</span>

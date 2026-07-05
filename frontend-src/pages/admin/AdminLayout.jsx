@@ -30,7 +30,9 @@ import {
   PinOff,
   ChevronDown,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useState, useMemo, Suspense, useEffect, useCallback } from 'react';
 import pizzariaLogo from '../../assets/rio-pizzas-logo.png';
@@ -107,21 +109,6 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
     localStorage.setItem('adminSidebarGroups', JSON.stringify(newGroups));
   };
 
-  // Remove Dark Mode from the entire document when rendering Admin
-  useEffect(() => {
-    const htmlEl = document.documentElement;
-    const wasDark = htmlEl.classList.contains('dark');
-    
-    if (wasDark) {
-      htmlEl.classList.remove('dark');
-    }
-    
-    return () => {
-      if (wasDark) {
-        htmlEl.classList.add('dark');
-      }
-    };
-  }, []);
 
   const adminDataString = window.localStorage.getItem('pizzaria-admin');
 
@@ -433,6 +420,24 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               </span>
             )}
           </button>
+
+          <button
+            onClick={onToggleTheme}
+            title={!expanded ? (isDarkMode ? 'Modo claro' : 'Modo escuro') : undefined}
+            className={`flex items-center py-2 text-sm font-bold text-blue-200 hover:text-white hover:bg-white/5 rounded-lg transition relative group ${
+              expanded ? 'px-3 gap-2 w-full justify-start' : 'px-0 w-full justify-center'
+            }`}
+          >
+            {isDarkMode ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
+            <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+              {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
+            </span>
+            {!expanded && (
+              <span className="hidden lg:block absolute left-[84px] w-max bg-slate-900 text-white text-xs font-bold px-2 py-1 rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-[60] shadow-xl">
+                {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
+              </span>
+            )}
+          </button>
         </div>
       </div>
     </>
@@ -440,7 +445,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
   return (
     <div
-      className="flex h-screen w-full bg-slate-50 text-slate-900 overflow-hidden relative transition-all duration-300"
+      className={`flex h-screen w-full overflow-hidden relative transition-all duration-300 ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}
       style={{ "--sidebar-width": sidebarWidth }}
     >
       {/* Desktop & Notebook Sidebar */}
@@ -473,22 +478,29 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       {/* Área Principal Única (Compartilhada entre Desktop e Mobile) */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative transition-all duration-300">
         {/* Cabeçalho Mobile (Apenas visível em telas menores) */}
-        <header className="flex lg:hidden h-16 bg-white border-b border-slate-200 items-center px-4 shrink-0 shadow-sm justify-between z-30 relative">
+        <header className={`flex lg:hidden h-16 border-b items-center px-4 shrink-0 shadow-sm justify-between z-30 relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <div className="flex min-w-0 flex-1 items-center">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               aria-label="Abrir menu mobile"
             >
               <Menu size={24} />
             </button>
-            <span className="ml-2 truncate font-black text-slate-900">
+            <span className={`ml-2 truncate font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
               Pizzaria ADM
             </span>
           </div>
+          <button
+            onClick={onToggleTheme}
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+            title={isDarkMode ? 'Modo claro' : 'Modo escuro'}
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 print:overflow-visible print:bg-white relative">
+        <div className={`flex-1 overflow-y-auto overflow-x-hidden print:overflow-visible print:bg-white relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <Outlet />
           </Suspense>
