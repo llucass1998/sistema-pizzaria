@@ -18,7 +18,7 @@ echo "[2/5] Criando commit..."
 git commit -m "$COMMIT_MSG" || true
 
 echo "[3/5] Enviando para o GitHub..."
-git push || true
+# git push || true
 
 # Reconstruindo imagens ANTES de derrubar (Zero Downtime Build)
 echo "   Build da API..."
