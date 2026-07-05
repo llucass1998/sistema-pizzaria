@@ -55,7 +55,7 @@ export function FiscalPage() {
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
   const adminRole = adminDataStr ? JSON.parse(adminDataStr).role : '';
   const allowedRoles = ['OWNER', 'ADMIN', 'MANAGER'];
-  const hasPermission = allowedRoles.includes(adminRole);
+  const hasPermission = adminRole === 'SUPER_ADMIN' || allowedRoles.includes(adminRole);
 
   useEffect(() => {
     if (hasPermission) {
@@ -274,6 +274,45 @@ export function FiscalPage() {
           </button>
         </div>
       </div>
+
+      {/* ─── Banner de Homologação ─── */}
+      {settings.environment === 'HOMOLOGACAO' && (
+        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600 p-4 flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" size={22} />
+            <div className="flex-1">
+              <p className="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                ⚠️ Modo Homologação / Simulação — Documentos sem validade fiscal real
+              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                Os documentos emitidos aqui são <strong>demonstrativos</strong> e <strong>não têm validade jurídica ou fiscal</strong>.
+                Nenhum dado é enviado à SEFAZ. Para emissão real de NFC-e, configure o ambiente de produção abaixo.
+              </p>
+            </div>
+          </div>
+          <div className="ml-8 bg-white dark:bg-slate-900 rounded-lg border border-amber-200 dark:border-amber-800 p-3">
+            <p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2 uppercase">O que falta para produção:</p>
+            <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+              {[
+                { ok: !!settings.certificateUrl, label: 'Certificado A1 (.pfx) configurado' },
+                { ok: !!settings.certificatePassword, label: 'Senha do certificado definida' },
+                { ok: !!settings.tokenSefaz, label: 'Token / CSC da SEFAZ informado' },
+                { ok: settings.environment === 'PRODUCAO', label: 'Ambiente configurado como PRODUÇÃO' },
+              ].map(({ ok, label }) => (
+                <li key={label} className="flex items-center gap-2">
+                  <span className={`inline-block w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black ${ok ? 'bg-green-500 text-white' : 'bg-red-400 text-white'}`}>
+                    {ok ? '✓' : '✗'}
+                  </span>
+                  <span className={ok ? 'line-through opacity-60' : ''}>{label}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500 italic">
+              Configure na aba "Configurações" abaixo. Nunca commite certificado ou credenciais no código-fonte.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Linha de KPIs Executivos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

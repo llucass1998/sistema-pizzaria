@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { formatCurrencySafe } from '../../data/menuData.js';
-import { DollarSign, ShoppingBag, Clock, TrendingUp, RefreshCw, AlertCircle, ShieldAlert, CheckCircle2, ArrowRight, BarChart3, Scale, Layers } from 'lucide-react';
+import { DollarSign, ShoppingBag, Clock, TrendingUp, RefreshCw, AlertCircle, ShieldAlert, CheckCircle2, ArrowRight, BarChart3, Scale, Layers, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, Line
 } from 'recharts';
 
 const API_BASE_URL = import.meta.env.PROD 
@@ -242,28 +242,72 @@ export function DashboardPage() {
         ))}
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        {/* Gráfico de Faturamento por Hora */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Faturamento por Hora</h3>
-          {charts?.revenueByHour?.length > 0 ? (
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={charts.revenueByHour} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="hour" stroke="#64748b" fontSize={12} />
-                  <YAxis stroke="#64748b" fontSize={12} tickFormatter={(val) => `R$ ${val}`} />
-                  <RechartsTooltip 
-                    formatter={(value) => [formatCurrencySafe(value), "Faturamento"]}
-                    labelStyle={{ color: '#0f172a' }}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 4, fill: '#0ea5e9' }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
+      {/* ── Gráfico hora-a-hora + Pico de Vendas ── */}
+      {(() => {
+        // Preencher todas as 24h, mesmo zeradas
+        const ALL_HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
+        const rawByHour = charts?.revenueByHour ?? [];
+        const hourMap = new Map(rawByHour.map(d => [d.hour, d]));
+        const fullHourData = ALL_HOURS.map(h => ({
+          hour: h,
+          revenue: hourMap.get(h)?.revenue ?? 0,
+          orders: hourMap.get(h)?.orders ?? 0,
+        }));
+        const peakHour = fullHourData.reduce((best, cur) => cur.orders > (best?.orders ?? 0) ? cur : best, null);
+        const hasData = fullHourData.some(d => d.orders > 0);
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            {/* Card Pico de Vendas */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                  <Zap size={20} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Pico de Vendas</h3>
+              </div>
+              {hasData && peakHour ? (
+                <>
+                  <p className="text-4xl font-black text-amber-600 dark:text-amber-400">{peakHour.hour}</p>
+                  <p className="text-sm text-slate-500 mt-1">{peakHour.orders} pedido{peakHour.orders !== 1 ? 's' : ''} nesta hora</p>
+                  <p className="text-sm font-semibold text-emerald-600 mt-0.5">{formatCurrencySafe(peakHour.revenue)}</p>
+                </>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Sem pedidos no período</p>
+              )}
             </div>
-          ) : <EmptyState />}
-        </div>
+
+            {/* Gráfico hora-a-hora — faturamento + quantidade */}
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Pedidos &amp; Faturamento por Hora</h3>
+              {hasData ? (
+                <div className="h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={fullHourData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="hour" stroke="#94a3b8" fontSize={10} interval={2} />
+                      <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                      <RechartsTooltip
+                        formatter={(value, name) => [
+                          name === 'revenue' ? formatCurrencySafe(value) : `${value} pedido${value !== 1 ? 's' : ''}`,
+                          name === 'revenue' ? 'Faturamento' : 'Pedidos',
+                        ]}
+                        labelStyle={{ color: '#0f172a', fontWeight: 'bold' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend formatter={(v) => v === 'orders' ? 'Pedidos' : 'Faturamento'} />
+                      <Bar yAxisId="left" dataKey="orders" fill="#f97316" opacity={0.8} radius={[3, 3, 0, 0]} barSize={8} name="orders" />
+                      <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2} dot={false} name="revenue" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <EmptyState />}
+            </div>
+          </div>
+        );
+      })()}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
         {/* Gráfico de Pedidos por Status */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">

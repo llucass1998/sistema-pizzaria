@@ -86,6 +86,29 @@ inventoryRouter.get(
   }),
 );
 
+// GET /low-stock
+// Retorna apenas ingredientes abaixo do estoque mínimo (LOW, CRITICAL, OUT).
+// Usado pelo sidebar/dashboard para exibir badge de alerta.
+inventoryRouter.get(
+  '/low-stock',
+  asyncHandler(async (_req, res) => {
+    const ingredients = await prisma.ingredient.findMany({
+      orderBy: { name: 'asc' },
+    });
+
+    const serialized = ingredients.map(serializeIngredient);
+    const lowStock = serialized.filter(
+      (item) => item.status === 'CRITICAL' || item.status === 'OUT' || item.status === 'LOW',
+    );
+
+    res.json({
+      count: lowStock.length,
+      criticalCount: lowStock.filter((i) => i.status === 'CRITICAL' || i.status === 'OUT').length,
+      items: lowStock,
+    });
+  }),
+);
+
 inventoryRouter.get(
   '/ingredients',
   asyncHandler(async (req, res) => {

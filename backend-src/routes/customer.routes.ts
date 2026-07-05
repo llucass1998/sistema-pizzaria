@@ -249,3 +249,144 @@ customerRoutes.post(
     res.status(400).json({ message: 'Informe email e senha para entrar.' });
   }),
 );
+
+// ─── GET /account/me ──────────────────────────────────────────────────────────
+// Retorna os dados do cliente autenticado.
+// Requer token de cliente (requireCustomer).
+import { requireCustomer } from '../middlewares/requireCustomer.js';
+
+customerRoutes.get(
+  '/account/me',
+  requireCustomer,
+  asyncHandler(async (req, res) => {
+    const customerId = (req as any).customerId;
+    const tenantId = getTenantId();
+
+    const customer = await prisma.customer.findFirst({
+      where: { id: customerId, tenantId },
+      select: customerSelect,
+    });
+
+    if (!customer) {
+      res.status(404).json({ message: 'Cliente não encontrado.' });
+      return;
+    }
+
+    res.json(customer);
+  }),
+);
+
+// ─── PUT /account/me ──────────────────────────────────────────────────────────
+// Atualiza dados do cliente autenticado (nome, telefone, cpf, endereço).
+customerRoutes.put(
+  '/account/me',
+  requireCustomer,
+  asyncHandler(async (req, res) => {
+    const customerId = (req as any).customerId;
+    const tenantId = getTenantId();
+
+    // Verificar que o cliente existe neste tenant
+    const existing = await prisma.customer.findFirst({
+      where: { id: customerId, tenantId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: 'Cliente não encontrado.' });
+      return;
+    }
+
+    const input = getCustomerInput(req.body ?? {});
+
+    // Validações opcionais de campos enviados
+    if (input.name) {
+      const nameError = validateLength(input.name, 'Nome', FIELD_LIMITS.NAME, true);
+      if (nameError) {
+        res.status(400).json({ message: nameError.message });
+        return;
+      }
+    }
+
+    if (input.phone) {
+      const err = validateLength(input.phone, 'Telefone', FIELD_LIMITS.PHONE);
+      if (err) {
+        res.status(400).json({ message: err.message });
+        return;
+      }
+    }
+
+    const updated = await prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        ...(input.name ? { name: input.name } : {}),
+        ...(input.phone !== undefined ? { phone: input.phone } : {}),
+        ...(input.cpf !== undefined ? { cpf: input.cpf } : {}),
+        ...(input.street !== undefined ? { street: input.street } : {}),
+        ...(input.neighborhood !== undefined ? { neighborhood: input.neighborhood } : {}),
+        ...(input.city !== undefined ? { city: input.city } : {}),
+        ...(input.cep !== undefined ? { cep: input.cep } : {}),
+      },
+      select: customerSelect,
+    });
+
+    res.json(updated);
+  }),
+);
+
+// ─── GET /account/orders ──────────────────────────────────────────────────────
+// Lista pedidos paginados do cliente autenticado.
+customerRoutes.get(
+  '/account/orders',
+  requireCustomer,
+  asyncHandler(async (req, res) => {
+    const customerId = (req as any).customerId;
+    const tenantId = getTenantId();
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 10));
+    const status = (req.query.status as string) || '';
+
+    const where: any = { customerId, tenantId };
+    if (status) {
+      where.status = status;
+    }
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          status: true,
+          total: true,
+          fulfillmentType: true,
+          paymentMethod: true,
+          createdAt: true,
+          street: true,
+          neighborhood: true,
+          notes: true,
+          items: {
+            select: {
+              id: true,
+              quantity: true,
+              total: true,
+              displayName: true,
+              product: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    res.json({
+      orders,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
+  }),
+);

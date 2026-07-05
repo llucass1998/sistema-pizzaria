@@ -424,7 +424,7 @@ export function OrdersPage() {
       </div>
     </div>
     
-    <PrintReceipt order={printingOrder} />
+    <PrintReceipt order={printingOrder} storeName={undefined} />
     </>
   );
 }
