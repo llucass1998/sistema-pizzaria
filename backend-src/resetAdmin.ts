@@ -56,6 +56,7 @@ async function resetAdminAccess() {
         data: {
           name: 'Administrador ERP',
           passwordHash,
+          role: 'OWNER', // Garante acesso total ao sistema
         },
       })
     : await prisma.admin.create({
@@ -64,6 +65,7 @@ async function resetAdminAccess() {
           name: 'Administrador ERP',
           email: ADMIN_EMAIL,
           passwordHash,
+          role: 'OWNER', // Garante acesso total ao sistema
         },
       });
 

@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copiar configuracoes e dependencias
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copiar codigo fonte e configuracoes (Vite, Tailwind, etc.)
 COPY . .

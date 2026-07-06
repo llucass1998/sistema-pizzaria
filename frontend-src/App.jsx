@@ -66,7 +66,7 @@ import {
 
 const API_BASE_URL = import.meta.env.PROD
   ? '/api'
-  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+  : (import.meta.env.VITE_API_URL ?? '/api');
 const savedCustomerKey = 'pizzaria-customer';
 const savedThemeKey = 'pizzaria-theme';
 const savedCartKey = 'pizzaria-cart';
