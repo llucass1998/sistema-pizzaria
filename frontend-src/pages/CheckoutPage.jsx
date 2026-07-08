@@ -169,6 +169,13 @@ function getPaymentSummary(paymentMethod, cardPaymentMode, cashChangeFor) {
   return `${methodLabel} - ${modeLabel}`;
 }
 
+function parseDepositMethods(value) {
+  return String(value || 'PIX_ONLINE,CARD_ONLINE,MERCADOPAGO')
+    .split(',')
+    .map((method) => method.trim().toUpperCase())
+    .filter(Boolean);
+}
+
 function getOrderDisplayNumber(order) {
   const numericId = String(order?.id ?? '').replace(/\D/g, '');
 
@@ -215,6 +222,13 @@ function normalizeOrder(order, fallbackItems, fallbackTotal) {
     paymentUrl: order?.paymentUrl,
     paymentStatus: order?.paymentStatus || 'PENDING',
     paymentMethod: order?.paymentMethod,
+    paymentMode: order?.paymentMode || 'FULL',
+    depositPercent: safeNumber(order?.depositPercent),
+    depositAmount: safeNumber(order?.depositAmount),
+    remainingAmount: safeNumber(order?.remainingAmount),
+    amountPaid: safeNumber(order?.amountPaid),
+    amountDue: safeNumber(order?.amountDue),
+    remainingPaymentStatus: order?.remainingPaymentStatus,
   };
 }
 
@@ -246,6 +260,7 @@ export default function CartPage({
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('PIX');
   const [cardPaymentMode, setCardPaymentMode] = useState('ON_DELIVERY');
+  const [paymentMode, setPaymentMode] = useState('FULL');
   const [cashChangeFor, setCashChangeFor] = useState('');
   const [copyFeedback, setCopyFeedback] = useState('');
   const [pixQrCodeDataUrl, setPixQrCodeDataUrl] = useState('');
@@ -412,6 +427,35 @@ export default function CartPage({
     () => getPaymentSummary(paymentMethod, cardPaymentMode, cashChangeFor),
     [cardPaymentMode, cashChangeFor, paymentMethod],
   );
+  const depositPercent = Math.min(
+    99,
+    Math.max(1, Number(storeSettings?.depositPercent ?? store?.depositPercent ?? 50) || 50),
+  );
+  const depositMethods = useMemo(
+    () => parseDepositMethods(storeSettings?.depositRequiredMethods ?? store?.depositRequiredMethods),
+    [storeSettings?.depositRequiredMethods, store?.depositRequiredMethods],
+  );
+  const isGatewayEnabled = Boolean(storeSettings?.gatewayEnabled || store?.gatewayEnabled);
+  const canUseDepositWithCurrentMethod =
+    Boolean(storeSettings?.depositEnabled ?? store?.depositEnabled) &&
+    ((paymentMethod === 'PIX' && isGatewayEnabled && depositMethods.includes('PIX_ONLINE')) ||
+      (isCardPayment &&
+        cardPaymentMode === 'ONLINE' &&
+        (depositMethods.includes('CARD_ONLINE') || depositMethods.includes('MERCADOPAGO'))));
+  const depositAmount = useMemo(
+    () => Number(((checkoutTotal * depositPercent) / 100).toFixed(2)),
+    [checkoutTotal, depositPercent],
+  );
+  const remainingAmount = useMemo(
+    () => Number(Math.max(0, checkoutTotal - depositAmount).toFixed(2)),
+    [checkoutTotal, depositAmount],
+  );
+
+  useEffect(() => {
+    if (!canUseDepositWithCurrentMethod && paymentMode === 'DEPOSIT') {
+      setPaymentMode('FULL');
+    }
+  }, [canUseDepositWithCurrentMethod, paymentMode]);
 
   useEffect(() => {
     let isActive = true;
@@ -470,8 +514,9 @@ export default function CartPage({
         if (res.ok) {
           const updated = await res.json();
           const st = updated.paymentStatus || updated.financialStatus || updated.status;
-          if (st === 'PAID' || st === 'COMPLETED' || updated.status === 'PREPARING' || updated.status === 'READY') {
-            setOrderPaymentStatus('PAID');
+          if (st === 'PAID' || st === 'COMPLETED' || st === 'PARTIALLY_PAID') {
+            setLastOrder((current) => (current ? { ...current, ...updated } : updated));
+            setOrderPaymentStatus(st === 'PARTIALLY_PAID' ? 'PARTIALLY_PAID' : 'PAID');
             showSuccess('🎉 Pagamento PIX confirmado com sucesso!');
           }
         }
@@ -585,6 +630,10 @@ export default function CartPage({
         deliveryFeeResult.message || 'Entrega indisponivel para as informacoes fornecidas.';
     }
 
+    if (paymentMode === 'DEPOSIT' && !canUseDepositWithCurrentMethod) {
+      errors.paymentMode = 'Entrada online indisponivel para a forma de pagamento escolhida.';
+    }
+
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -644,6 +693,11 @@ export default function CartPage({
       }
     }
 
+    if (paymentMode === 'DEPOSIT' && !canUseDepositWithCurrentMethod) {
+      showError('Escolha PIX online ou cartao online para pagar entrada.');
+      return;
+    }
+
     if (!customer?.token) {
       showInfo('Entre ou cadastre-se para finalizar seu pedido.');
       onLoginClick?.();
@@ -678,6 +732,7 @@ export default function CartPage({
         .join(' | '),
       paymentMethod,
       cardPaymentMode: isCardPayment ? cardPaymentMode : undefined,
+      paymentMode,
       couponCode: couponCode || undefined,
       useLoyaltyBalance: useLoyaltyBalance || undefined,
       items: cartItems.map((item) => ({
@@ -785,6 +840,15 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
             </p>
           </div>
 
+          {lastOrder.paymentStatus === 'PARTIALLY_PAID' && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+              <p className="text-sm font-black uppercase">Entrada paga</p>
+              <p className="mt-1 text-sm font-bold">
+                Voce ja pagou {formatCurrencySafe(lastOrder.amountPaid || lastOrder.depositAmount)}. Falta pagar {formatCurrencySafe(lastOrder.amountDue || lastOrder.remainingAmount)} na {lastOrder.fulfillmentType === 'DELIVERY' ? 'entrega' : 'retirada'}.
+              </p>
+            </div>
+          )}
+
           {isPixOrder && (
             <div className="mt-8 rounded-2xl border-2 border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-950 sm:p-8">
               <div className="text-center">
@@ -796,7 +860,7 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 </p>
               </div>
 
-              {orderPaymentStatus === 'PAID' ? (
+              {orderPaymentStatus === 'PAID' || orderPaymentStatus === 'PARTIALLY_PAID' ? (
                 <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-6 text-center text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 animate-bounce">
                   <p className="text-xl font-black">🎉 Pagamento PIX Confirmado!</p>
                   <p className="mt-1 text-sm font-bold">
@@ -1318,6 +1382,54 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 </div>
               </div>
             )}
+
+            {(storeSettings?.depositEnabled || store?.depositEnabled) && (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                <p className="mb-3 text-sm font-black uppercase text-slate-500 dark:text-slate-400">
+                  Forma de confirmacao
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('FULL')}
+                    className={`rounded-xl border-2 p-3 text-left transition-colors ${
+                      paymentMode === 'FULL'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
+                        : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <span className="block font-bold text-slate-900 dark:text-slate-100">
+                      Pagar valor total agora
+                    </span>
+                    <span className="mt-1 block text-sm font-medium text-slate-500">
+                      Confirma o pedido com pagamento integral.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => canUseDepositWithCurrentMethod && setPaymentMode('DEPOSIT')}
+                    disabled={!canUseDepositWithCurrentMethod}
+                    className={`rounded-xl border-2 p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      paymentMode === 'DEPOSIT'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
+                        : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <span className="block font-bold text-slate-900 dark:text-slate-100">
+                      Pagar {depositPercent}% agora
+                    </span>
+                    <span className="mt-1 block text-sm font-medium text-slate-500">
+                      {storeSettings?.depositLabel || store?.depositLabel || 'Pague a entrada agora e o restante na entrega.'}
+                    </span>
+                  </button>
+                </div>
+                {!canUseDepositWithCurrentMethod && (
+                  <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                    Para usar entrada, escolha cartao online ou PIX online quando o gateway estiver ativo.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
 
@@ -1477,6 +1589,18 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                     <div className="flex justify-between gap-4 font-bold text-green-600">
                       <span>Cashback utilizado:</span>
                       <span>-{formatCurrencySafe(loyaltyDiscountAmount)}</span>
+                    </div>
+                  )}
+                  {paymentMode === 'DEPOSIT' && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                      <div className="flex justify-between gap-4">
+                        <span>Entrada agora:</span>
+                        <span>{formatCurrencySafe(depositAmount)}</span>
+                      </div>
+                      <div className="mt-1 flex justify-between gap-4">
+                        <span>Restante na entrega/retirada:</span>
+                        <span>{formatCurrencySafe(remainingAmount)}</span>
+                      </div>
                     </div>
                   )}
                 </div>

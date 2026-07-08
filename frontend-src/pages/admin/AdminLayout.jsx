@@ -26,11 +26,8 @@ import {
   Receipt,
   Globe,
   Building2,
-  Pin,
-  PinOff,
   ChevronDown,
   ChevronRight,
-  AlertTriangle,
   Sun,
   Moon
 } from 'lucide-react';
@@ -80,7 +77,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       localStorage.removeItem('adminSidebarPinned');
       localStorage.removeItem('sidebarPinned');
       localStorage.removeItem('adminSidebarFixed');
-    } catch (e) {
+    } catch {
       // Ignorar erros de armazenamento
     }
   }, []);
@@ -102,7 +99,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
     }
   });
 
-  const toggleGroup = (groupKey) => {
+  const toggleGroup = (event, groupKey) => {
+    event?.preventDefault();
+    event?.stopPropagation();
     if (!sidebarExpanded) return; // No modo compacto, não mexe na sanfona
     const newGroups = { ...openGroups, [groupKey]: !openGroups[groupKey] };
     setOpenGroups(newGroups);
@@ -223,6 +222,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       {/* Botões do Topo: Dashboard e PDV (Caixa) Único */}
       <div className="flex flex-col gap-1.5 p-2.5 border-b border-white/10 shrink-0">
         <button
+          type="button"
           onClick={() => { navigate('/admin/dashboard'); setIsSidebarOpen(false); }}
           title={!expanded ? "Dashboard" : undefined}
           className={`flex items-center px-3 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 relative group overflow-hidden ${
@@ -236,6 +236,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         </button>
 
         <button
+          type="button"
           onClick={() => { navigate('/admin/pos'); setIsSidebarOpen(false); }}
           title={!expanded ? "PDV (Caixa)" : undefined}
           className={`flex items-center px-3 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 relative group overflow-hidden ${
@@ -254,7 +255,8 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         {operationItems.length > 0 && (
           <div className="flex flex-col">
             <button
-              onClick={() => toggleGroup('operation')}
+              type="button"
+              onClick={(event) => toggleGroup(event, 'operation')}
               title={!expanded ? 'Operação' : undefined}
               className={`flex items-center justify-between w-full px-3 py-2.5 text-blue-50 hover:bg-white/10 rounded-xl transition-all duration-200 group relative ${
                 !expanded ? 'justify-center' : ''
@@ -290,7 +292,8 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         {allErpItems.length > 0 && (
           <div className="flex flex-col">
             <button
-              onClick={() => toggleGroup('erp')}
+              type="button"
+              onClick={(event) => toggleGroup(event, 'erp')}
               title={!expanded ? 'ERP & Financeiro' : undefined}
               className={`flex items-center justify-between w-full px-3 py-2.5 text-blue-50 hover:bg-white/10 rounded-xl transition-all duration-200 group relative ${
                 !expanded ? 'justify-center' : ''
@@ -326,7 +329,8 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         {managementItems.length > 0 && (
           <div className="flex flex-col">
             <button
-              onClick={() => toggleGroup('management')}
+              type="button"
+              onClick={(event) => toggleGroup(event, 'management')}
               title={!expanded ? 'Cadastros & Gestão' : undefined}
               className={`flex items-center justify-between w-full px-3 py-2.5 text-blue-50 hover:bg-white/10 rounded-xl transition-all duration-200 group relative ${
                 !expanded ? 'justify-center' : ''
@@ -404,6 +408,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
           )}
 
           <button
+            type="button"
             onClick={handleLogout}
             title={!expanded ? 'Sair do Painel' : undefined}
             className={`flex items-center py-2 text-sm font-bold text-rose-400 hover:text-rose-300 hover:bg-white/5 rounded-lg transition relative group ${
@@ -422,6 +427,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
           </button>
 
           <button
+            type="button"
             onClick={onToggleTheme}
             title={!expanded ? (isDarkMode ? 'Modo claro' : 'Modo escuro') : undefined}
             className={`flex items-center py-2 text-sm font-bold text-blue-200 hover:text-white hover:bg-white/5 rounded-lg transition relative group ${
@@ -481,6 +487,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
         <header className={`flex lg:hidden h-16 border-b items-center px-4 shrink-0 shadow-sm justify-between z-30 relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <div className="flex min-w-0 flex-1 items-center">
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               aria-label="Abrir menu mobile"
@@ -492,6 +499,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
             </span>
           </div>
           <button
+            type="button"
             onClick={onToggleTheme}
             className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
             title={isDarkMode ? 'Modo claro' : 'Modo escuro'}

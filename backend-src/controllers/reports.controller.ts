@@ -140,6 +140,11 @@ export class ReportsController {
           status: true,
           paymentStatus: true,
           total: true,
+          paymentMode: true,
+          depositAmount: true,
+          remainingAmount: true,
+          amountPaid: true,
+          amountDue: true,
         },
       });
 
@@ -147,8 +152,29 @@ export class ReportsController {
       const canceledOrders = orders.filter(isOrderCanceled);
       const pendingOrders = orders.filter((o) => !isOrderCompleted(o) && !isOrderCanceled(o));
 
-      const revenueRealized = completedOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
-      const revenuePending = pendingOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+      const totalSold = orders
+        .filter((o) => !isOrderCanceled(o))
+        .reduce((acc, o) => acc + Number(o.total || 0), 0);
+      const totalReceived = orders
+        .filter((o) => !isOrderCanceled(o))
+        .reduce((acc, o) => acc + Number(o.amountPaid || (o.paymentStatus === 'PAID' ? o.total : 0) || 0), 0);
+      const depositReceived = orders
+        .filter((o) => !isOrderCanceled(o) && o.paymentMode === 'DEPOSIT')
+        .reduce((acc, o) => acc + Math.min(Number(o.depositAmount || 0), Number(o.amountPaid || 0)), 0);
+      const pendingBalance = orders
+        .filter((o) => !isOrderCanceled(o))
+        .reduce((acc, o) => acc + Number(o.amountDue || 0), 0);
+      const remainingReceived = orders
+        .filter((o) => !isOrderCanceled(o) && o.paymentMode === 'DEPOSIT')
+        .reduce(
+          (acc, o) =>
+            acc + Math.max(0, Number(o.amountPaid || 0) - Number(o.depositAmount || 0)),
+          0,
+        );
+      const partiallyPaidOrders = orders.filter((o) => o.paymentStatus === 'PARTIALLY_PAID').length;
+      const paidOrders = orders.filter((o) => o.paymentStatus === 'PAID').length;
+      const revenueRealized = totalReceived;
+      const revenuePending = pendingBalance || pendingOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
       const canceledAmount = canceledOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
 
       const totalOrdersCount = orders.length;
@@ -167,6 +193,13 @@ export class ReportsController {
       res.json({
         revenueRealized: Number(revenueRealized.toFixed(2)),
         revenuePending: Number(revenuePending.toFixed(2)),
+        totalSold: Number(totalSold.toFixed(2)),
+        totalReceived: Number(totalReceived.toFixed(2)),
+        depositReceived: Number(depositReceived.toFixed(2)),
+        remainingReceived: Number(remainingReceived.toFixed(2)),
+        pendingBalance: Number(pendingBalance.toFixed(2)),
+        partiallyPaidOrders,
+        paidOrders,
         canceledAmount: Number(canceledAmount.toFixed(2)),
         totalOrders: totalOrdersCount,
         completedOrders: completedOrdersCount,

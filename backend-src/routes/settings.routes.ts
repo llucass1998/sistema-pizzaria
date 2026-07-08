@@ -13,6 +13,12 @@ export const settingsRoutes = Router();
 
 // ─── GET /configuracoes ────────────────────────────────────────────────────────
 settingsRoutes.get('/configuracoes', asyncHandler(SettingsController.getSettings));
+settingsRoutes.get(
+  ['/admin/settings', '/admin/store-settings'],
+  requireAdmin,
+  requireRole(['OWNER', 'ADMIN']),
+  asyncHandler(SettingsController.getSettings),
+);
 
 // ─── PUT /configuracoes/taxa-entrega ──────────────────────────────────────────
 settingsRoutes.put(

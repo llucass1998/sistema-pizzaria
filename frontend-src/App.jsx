@@ -70,6 +70,7 @@ const API_BASE_URL = import.meta.env.PROD
 const savedCustomerKey = 'pizzaria-customer';
 const savedThemeKey = 'pizzaria-theme';
 const savedCartKey = 'pizzaria-cart';
+const ADMIN_SESSION_ROLES = ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN', 'DRIVER', 'INTEGRATION_MANAGER'];
 const ADMIN_ROUTE_ROLES = {
   dashboard: ['OWNER', 'ADMIN', 'MANAGER'],
   orders: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'],
@@ -257,6 +258,31 @@ function getSavedAdminRole() {
   }
 }
 
+function isAdminSessionPayload(session) {
+  const role = session?.role || session?.admin?.role;
+  return Boolean(session?.admin || ADMIN_SESSION_ROLES.includes(role));
+}
+
+function getSavedCustomerSession() {
+  try {
+    const savedCustomer = JSON.parse(window.localStorage.getItem(savedCustomerKey) ?? 'null');
+
+    if (!savedCustomer) {
+      return null;
+    }
+
+    if (isAdminSessionPayload(savedCustomer)) {
+      window.localStorage.removeItem(savedCustomerKey);
+      return null;
+    }
+
+    return savedCustomer;
+  } catch {
+    window.localStorage.removeItem(savedCustomerKey);
+    return null;
+  }
+}
+
 function AdminIndexRedirect() {
   const role = getSavedAdminRole();
   return <Navigate to={role === 'DRIVER' ? '/admin/dispatch' : '/admin/dashboard'} replace />;
@@ -319,10 +345,7 @@ export default function PizzariaApp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
-  const [currentCustomer, setCurrentCustomer] = useState(() => {
-    const savedCustomer = window.localStorage.getItem(savedCustomerKey);
-    return savedCustomer ? JSON.parse(savedCustomer) : null;
-  });
+  const [currentCustomer, setCurrentCustomer] = useState(getSavedCustomerSession);
   const cartItems = useCartStore((state) => state.items);
   const cartSetItems = useCartStore((state) => state.setItems);
   const cartAddItem = useCartStore((state) => state.addItem);
@@ -454,6 +477,19 @@ export default function PizzariaApp() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    try {
+      const adminSession = JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
+      if (path === '/conta' && isAdminSessionPayload(adminSession)) {
+        window.localStorage.removeItem(savedCustomerKey);
+        setCurrentCustomer(null);
+        window.location.hash = '/admin/dashboard';
+      }
+    } catch {
+      // Sessao admin invalida nao deve bloquear o fluxo publico.
+    }
+  }, [path]);
 
   useEffect(() => {
     if (isResolvingTenant || !tenant) return;
@@ -636,18 +672,20 @@ export default function PizzariaApp() {
       setAuthError('');
       const result = await submitAuthRequest('/login', { email, password });
 
-      if (result.role === 'ADMIN') {
-        // Salva a sessao do administrador e redireciona
+      if (isAdminSessionPayload(result)) {
+        // Salva a sessao do administrador e redireciona para o painel admin.
         window.localStorage.setItem(
           'pizzaria-admin',
-          JSON.stringify({ admin: result.admin, token: result.token }),
+          JSON.stringify({ admin: result.admin, token: result.token, role: result.role || result.admin?.role }),
         );
+        window.localStorage.removeItem(savedCustomerKey);
+        setCurrentCustomer(null);
         setShowLoginModal(false);
         setIsAccountMenuOpen(false);
         setAuthError('');
         setEmail('');
         setPassword('');
-        window.location.hash = '/admin';
+        window.location.hash = '/admin/dashboard';
       } else {
         finishAuth(result);
       }

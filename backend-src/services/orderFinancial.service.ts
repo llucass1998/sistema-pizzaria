@@ -6,10 +6,19 @@ const OFFICIAL_PAYMENT_METHODS = new Set([
   'ONLINE_CARD',
 ]);
 
+const PAYMENT_MODES = new Set(['FULL', 'DEPOSIT']);
+const PAYMENT_TRANSACTION_TYPES = new Set([
+  'FULL_PAYMENT',
+  'DEPOSIT_PAYMENT',
+  'REMAINING_PAYMENT',
+  'REFUND',
+]);
+
 export const FINANCIAL_STATUS = {
   PENDING: 'PENDING',
   PAID: 'PAID',
   PARTIALLY_PAID: 'PARTIALLY_PAID',
+  FAILED: 'FAILED',
   CANCELED: 'CANCELED',
   REFUNDED: 'REFUNDED',
 } as const;
@@ -21,6 +30,69 @@ export function normalizePaymentMethod(value: unknown, fallback = 'CASH') {
     .trim()
     .toUpperCase();
   return OFFICIAL_PAYMENT_METHODS.has(normalized) ? normalized : fallback;
+}
+
+export function normalizePaymentMode(value: unknown, fallback = 'FULL') {
+  const normalized = String(value ?? '')
+    .trim()
+    .toUpperCase();
+  return PAYMENT_MODES.has(normalized) ? normalized : fallback;
+}
+
+export function normalizePaymentTransactionType(value: unknown, fallback = 'FULL_PAYMENT') {
+  const normalized = String(value ?? '')
+    .trim()
+    .toUpperCase();
+  return PAYMENT_TRANSACTION_TYPES.has(normalized) ? normalized : fallback;
+}
+
+export function moneyToCents(value: unknown) {
+  const numberValue = Number(value ?? 0);
+  if (!Number.isFinite(numberValue)) return 0;
+  return Math.round(numberValue * 100);
+}
+
+export function centsToMoney(cents: number) {
+  return Number((Math.max(0, Math.round(cents)) / 100).toFixed(2));
+}
+
+export function calculateDepositAmounts(totalAmount: unknown, depositPercent: unknown) {
+  const totalCents = moneyToCents(totalAmount);
+  const percent = Number(depositPercent ?? 50);
+  const safePercent = Number.isFinite(percent) && percent > 0 && percent < 100 ? percent : 50;
+  const depositCents = Math.round((totalCents * safePercent) / 100);
+  const remainingCents = Math.max(0, totalCents - depositCents);
+
+  return {
+    depositPercent: safePercent,
+    depositAmount: centsToMoney(depositCents),
+    remainingAmount: centsToMoney(remainingCents),
+  };
+}
+
+export function isPaidStatus(status: unknown) {
+  return ['PAID', 'COMPLETED'].includes(String(status ?? '').toUpperCase());
+}
+
+export function getAmountPaidFromOrder(order: {
+  amountPaid?: unknown;
+  paymentStatus?: string | null;
+  total?: unknown;
+  invoice?: {
+    status?: string | null;
+    payments?: Array<{ amount: unknown; status?: string | null }> | null;
+  } | null;
+}) {
+  const consolidated = Number(order.amountPaid ?? 0);
+  if (Number.isFinite(consolidated) && consolidated > 0) return consolidated;
+
+  const paidFromInvoice =
+    order.invoice?.payments
+      ?.filter((payment) => isPaidStatus(payment.status ?? 'COMPLETED'))
+      .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0) ?? 0;
+
+  if (paidFromInvoice > 0) return Number(paidFromInvoice.toFixed(2));
+  return getOrderPaymentStatus(order) === FINANCIAL_STATUS.PAID ? Number(order.total ?? 0) : 0;
 }
 
 export function normalizeInvoiceStatus(status: string) {

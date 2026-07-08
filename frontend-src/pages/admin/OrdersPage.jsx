@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Printer, FileText } from 'lucide-react';
+import { Printer, FileText, CreditCard, X } from 'lucide-react';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { formatCurrency } from '../../data/menuData.js';
 import { PrintReceipt } from '../../components/admin/PrintReceipt.jsx';
@@ -45,6 +45,11 @@ export function OrdersPage() {
   const [error, setError] = useState('');
   const [liveStatus, setLiveStatus] = useState('connecting');
   const [printingOrder, setPrintingOrder] = useState(null);
+  const [paymentFilter, setPaymentFilter] = useState('ALL');
+  const [remainingPaymentOrder, setRemainingPaymentOrder] = useState(null);
+  const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('CASH');
+  const [remainingPaymentNote, setRemainingPaymentNote] = useState('');
+  const [isPayingRemaining, setIsPayingRemaining] = useState(false);
   const { showSuccess, showError } = useToast();
   const eventSourceRef = useRef(null);
   const pollingIntervalRef = useRef(null);
@@ -55,6 +60,27 @@ export function OrdersPage() {
     setTimeout(() => {
       window.print();
     }, 150);
+  }
+
+  function getPaymentBadge(order) {
+    if (order.paymentStatus === 'PAID') {
+      return { label: 'Pago integral', className: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    }
+    if (order.paymentStatus === 'PARTIALLY_PAID') {
+      return { label: '50% pago / saldo pendente', className: 'bg-amber-100 text-amber-800 border-amber-200' };
+    }
+    if (order.paymentStatus === 'FAILED' || order.paymentStatus === 'CANCELED') {
+      return { label: 'Pagamento falhou', className: 'bg-rose-100 text-rose-800 border-rose-200' };
+    }
+    return { label: 'Pagamento pendente', className: 'bg-slate-100 text-slate-700 border-slate-200' };
+  }
+
+  function matchesPaymentFilter(order) {
+    if (paymentFilter === 'ALL') return true;
+    if (paymentFilter === 'PENDING') return order.paymentStatus === 'PENDING';
+    if (paymentFilter === 'PARTIALLY_PAID') return order.paymentStatus === 'PARTIALLY_PAID';
+    if (paymentFilter === 'PAID') return order.paymentStatus === 'PAID';
+    return true;
   }
   
   // Keep track of pending order IDs to know when a NEW one arrives
@@ -287,6 +313,39 @@ export function OrdersPage() {
     }
   }
 
+  async function registerRemainingPayment(event) {
+    event.preventDefault();
+    if (!remainingPaymentOrder) return;
+    try {
+      setIsPayingRemaining(true);
+      const adminData = getAdminSession();
+      if (!adminData?.token) throw new Error('Sessao administrativa expirada.');
+
+      const response = await fetch(`${API_BASE_URL}/admin/orders/${remainingPaymentOrder.id}/pay-remaining`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminData.token}`,
+        },
+        body: JSON.stringify({
+          method: remainingPaymentMethod,
+          amount: Number(remainingPaymentOrder.amountDue || remainingPaymentOrder.remainingAmount || 0),
+          note: remainingPaymentNote,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Nao foi possivel registrar o restante.');
+      setOrders((current) => current.map((order) => (order.id === data.id ? data : order)));
+      setRemainingPaymentOrder(null);
+      setRemainingPaymentNote('');
+      showSuccess('Pagamento do restante registrado.');
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Erro ao registrar pagamento.');
+    } finally {
+      setIsPayingRemaining(false);
+    }
+  }
+
   function handleNextStatus(order) {
     const sequence = [
       'PENDING',
@@ -310,7 +369,7 @@ export function OrdersPage() {
 
   const ordersByStatus = {};
   columns.forEach((col) => {
-    ordersByStatus[col.id] = orders.filter((o) => o.status === col.id);
+    ordersByStatus[col.id] = orders.filter((o) => o.status === col.id && matchesPaymentFilter(o));
   });
 
   if (isLoading) {
@@ -330,6 +389,16 @@ export function OrdersPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">Acompanhe e avance o status dos pedidos.</p>
         </div>
         <div className="flex items-center gap-3">
+          <select
+            value={paymentFilter}
+            onChange={(event) => setPaymentFilter(event.target.value)}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <option value="ALL">Todos</option>
+            <option value="PENDING">Pagamento pendente</option>
+            <option value="PARTIALLY_PAID">50% pago</option>
+            <option value="PAID">Pago integral</option>
+          </select>
           <span
             className={`rounded-full px-3 py-1 text-xs font-black uppercase ${
               liveStatus === 'connected'
@@ -407,6 +476,18 @@ export function OrdersPage() {
                     </span>
                   </div>
 
+                  <div className="mb-3 space-y-2">
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${getPaymentBadge(order).className}`}>
+                      {getPaymentBadge(order).label}
+                    </span>
+                    {order.paymentStatus === 'PARTIALLY_PAID' && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs font-bold text-amber-900">
+                        <p>Entrada: {formatCurrency(order.amountPaid || order.depositAmount || 0)}</p>
+                        <p>Saldo: {formatCurrency(order.amountDue || order.remainingAmount || 0)}</p>
+                      </div>
+                    )}
+                  </div>
+
                   {column.id !== 'DELIVERED' && column.id !== 'CANCELED' && (
                     <button
                       type="button"
@@ -414,6 +495,16 @@ export function OrdersPage() {
                       className="mt-auto w-full rounded-lg bg-slate-50 dark:bg-slate-950 py-2.5 text-xs font-black text-slate-700 dark:text-slate-300 transition hover:bg-slate-900 hover:text-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-800 active:scale-95"
                     >
                       Avançar Status
+                    </button>
+                  )}
+                  {order.paymentStatus === 'PARTIALLY_PAID' && Number(order.amountDue || order.remainingAmount || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRemainingPaymentOrder(order)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2.5 text-xs font-black text-white transition hover:bg-emerald-700 active:scale-95"
+                    >
+                      <CreditCard size={15} />
+                      Registrar pagamento do restante
                     </button>
                   )}
                 </div>
@@ -424,6 +515,64 @@ export function OrdersPage() {
       </div>
     </div>
     
+    {remainingPaymentOrder && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
+        <form
+          onSubmit={registerRemainingPayment}
+          className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                Registrar pagamento do restante
+              </h2>
+              <p className="mt-1 text-sm font-bold text-slate-500">
+                Saldo pendente: {formatCurrency(remainingPaymentOrder.amountDue || remainingPaymentOrder.remainingAmount || 0)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRemainingPaymentOrder(null)}
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <label className="mb-3 block">
+            <span className="mb-1 block text-xs font-black uppercase text-slate-500">Forma de pagamento</span>
+            <select
+              value={remainingPaymentMethod}
+              onChange={(event) => setRemainingPaymentMethod(event.target.value)}
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+            >
+              <option value="CASH">Dinheiro</option>
+              <option value="PIX">PIX manual</option>
+              <option value="DEBIT_CARD">Cartao de debito</option>
+              <option value="CREDIT_CARD">Cartao de credito</option>
+            </select>
+          </label>
+          <label className="mb-5 block">
+            <span className="mb-1 block text-xs font-black uppercase text-slate-500">Observacao</span>
+            <textarea
+              value={remainingPaymentNote}
+              onChange={(event) => setRemainingPaymentNote(event.target.value)}
+              className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              placeholder="Opcional"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={isPayingRemaining}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-black text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          >
+            <CreditCard size={17} />
+            {isPayingRemaining ? 'Registrando...' : 'Confirmar pagamento'}
+          </button>
+        </form>
+      </div>
+    )}
+
     <PrintReceipt order={printingOrder} storeName={undefined} />
     </>
   );

@@ -134,16 +134,16 @@ model Tenant {
   abandonedCarts  AbandonedCart[]
 
   // ERP & Financials
-  suppliers        Supplier[]
-  inboundInvoices  InboundInvoice[]
-  quotes           Quote[]
-  accountPayables  AccountPayable[]
-  payablePayments  PayablePayment[]
-  purchaseRequests PurchaseRequest[]
-  purchaseOrders   PurchaseOrder[]
-  purchaseReceipts PurchaseReceipt[]
+  suppliers           Supplier[]
+  inboundInvoices     InboundInvoice[]
+  quotes              Quote[]
+  accountPayables     AccountPayable[]
+  payablePayments     PayablePayment[]
+  purchaseRequests    PurchaseRequest[]
+  purchaseOrders      PurchaseOrder[]
+  purchaseReceipts    PurchaseReceipt[]
   manufacturingOrders ManufacturingOrder[]
-  wasteRecords     WasteRecord[]
+  wasteRecords        WasteRecord[]
 
   // Delivery
   deliveryZones       DeliveryZone[]
@@ -156,23 +156,23 @@ model Tenant {
 }
 
 model MenuCategory {
-  id               String    @id @default(uuid())
+  id               String      @id @default(uuid())
   tenantId         String
-  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   slug             String
   name             String
   description      String?
   icon             String?
   imageUrl         String?
-  sortOrder        Int       @default(0)
-  isActive         Boolean   @default(true)
-  allowSizes       Boolean   @default(false)
+  sortOrder        Int         @default(0)
+  isActive         Boolean     @default(true)
+  allowSizes       Boolean     @default(false)
   allowHalfAndHalf Boolean     @default(false)
   halfAndHalfGroup String?
   kdsStation       KdsStation? @default(GENERAL)
   prepTimeMinutes  Int?        @default(10)
   createdAt        DateTime    @default(now())
-  updatedAt        DateTime  @updatedAt
+  updatedAt        DateTime    @updatedAt
   products         Product[]
 
   @@unique([tenantId, slug])
@@ -180,27 +180,27 @@ model MenuCategory {
 }
 
 model Product {
-  id            String               @id @default(uuid())
-  tenantId      String
-  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  categoryId    String?
-  menuCategory  MenuCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  name          String
-  barcode       String?
-  description   String?
-  category      String               @default("pizzas")
-  price         Decimal
-  imageUrl      String?
-  kdsStation    KdsStation?
-  prepTimeMinutes Int?
-  isAvailable   Boolean              @default(true)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  orderItems    OrderItem[]
-  recipes       Recipe[]
-  variants      ProductVariant[]
-  optionGroups  ProductOptionGroup[]
-  storeSettings StoreSetting[]       @relation("StoreFeaturedProduct")
+  id                  String               @id @default(uuid())
+  tenantId            String
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId          String?
+  menuCategory        MenuCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name                String
+  barcode             String?
+  description         String?
+  category            String               @default("pizzas")
+  price               Decimal
+  imageUrl            String?
+  kdsStation          KdsStation?
+  prepTimeMinutes     Int?
+  isAvailable         Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  orderItems          OrderItem[]
+  recipes             Recipe[]
+  variants            ProductVariant[]
+  optionGroups        ProductOptionGroup[]
+  storeSettings       StoreSetting[]       @relation("StoreFeaturedProduct")
   manufacturingOrders ManufacturingOrder[]
 
   @@unique([tenantId, barcode])
@@ -318,80 +318,92 @@ model Customer {
 }
 
 model Admin {
-  id           String   @id @default(uuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name         String
-  email        String
-  passwordHash String?
-  role         String   @default("ADMIN")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  shifts       Shift[]
-  closedShifts Shift[]  @relation("ClosedShifts")
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  passwordHash  String?
+  role          String   @default("ADMIN")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  shifts        Shift[]
+  closedShifts  Shift[]  @relation("ClosedShifts")
   driverProfile Driver?
 
   @@unique([tenantId, email])
 }
 
 model Order {
-  id                 String             @id @default(uuid())
-  tenantId           String
-  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customerId         String
-  customer           Customer           @relation(fields: [customerId], references: [id])
-  fulfillmentType    String
-  origin             OrderOrigin        @default(SITE_PROPRIO)
-  externalId         String?
-  externalMerchantId String?
-  status             String             @default("PENDING")
-  paymentMethod      String?
-  paymentStatus      String             @default("PENDING")
-  paidAt             DateTime?
-  paymentProvider    String?
-  paymentExternalId  String?
-  paymentUrl         String?
-  driverId           String?
-  driver             Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
-  street             String?
-  number             String?
-  neighborhood       String?
-  complement         String?
-  deliveryFee        Decimal            @default(0)
-  subtotal           Decimal
-  total              Decimal
-  notes              String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  items              OrderItem[]
-  statusEvents       OrderStatusEvent[]
-  paymentTransactions PaymentTransaction[]
-  invoice            Invoice?
-  fiscalDocument     FiscalDocument?
+  id                     String               @id @default(uuid())
+  tenantId               String
+  tenant                 Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId             String
+  customer               Customer             @relation(fields: [customerId], references: [id])
+  fulfillmentType        String
+  origin                 OrderOrigin          @default(SITE_PROPRIO)
+  externalId             String?
+  externalMerchantId     String?
+  status                 String               @default("PENDING")
+  paymentMethod          String?
+  paymentStatus          String               @default("PENDING")
+  paymentMode            String               @default("FULL")
+  depositPercent         Decimal?
+  depositAmount          Decimal              @default(0)
+  remainingAmount        Decimal              @default(0)
+  amountPaid             Decimal              @default(0)
+  amountDue              Decimal              @default(0)
+  remainingPaymentStatus String               @default("NOT_APPLICABLE")
+  remainingPaidAt        DateTime?
+  paidAt                 DateTime?
+  paymentProvider        String?
+  paymentExternalId      String?
+  paymentUrl             String?
+  driverId               String?
+  driver                 Driver?              @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  street                 String?
+  number                 String?
+  neighborhood           String?
+  complement             String?
+  deliveryFee            Decimal              @default(0)
+  subtotal               Decimal
+  total                  Decimal
+  notes                  String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  items                  OrderItem[]
+  statusEvents           OrderStatusEvent[]
+  paymentTransactions    PaymentTransaction[]
+  invoice                Invoice?
+  fiscalDocument         FiscalDocument?
 
   @@unique([tenantId, origin, externalId])
   @@index([tenantId, origin, createdAt])
 }
 
 model PaymentTransaction {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider    String
-  externalId  String
-  amount      Decimal
-  currency    String   @default("BRL")
-  status      String   @default("PENDING")
-  rawStatus   String?
-  paymentUrl  String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider       String
+  externalId     String
+  type           String    @default("FULL_PAYMENT")
+  amount         Decimal
+  currency       String    @default("BRL")
+  status         String    @default("PENDING")
+  rawStatus      String?
+  paymentUrl     String?
+  idempotencyKey String?
+  paidAt         DateTime?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([tenantId, provider, externalId])
   @@index([tenantId, orderId])
+  @@index([tenantId, type, status])
   @@index([provider, externalId])
 }
 
@@ -500,32 +512,38 @@ model OrderStatusEvent {
 }
 
 model StoreSetting {
-  id                 String   @id @default(uuid())
-  tenantId           String   @unique
-  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  isOpen             Boolean  @default(true)
-  isMaintenance      Boolean  @default(false)
-  maintenanceMessage String?  @default("Voltamos em breve!")
-  storeName          String   @default("Pizzaria")
-  hours              String   @default("18:00 - 23:30")
-  address            String   @default("Av. Principal, 123")
-  phone              String   @default("(11) 9999-9999")
-  whatsappNumber     String   @default("5511999999999")
-  pixKey             String   @default("sua-chave-pix-aqui")
-  pixMerchantName    String   @default("Pizzaria")
-  pixCity            String   @default("Rio de Janeiro")
-  deliveryFeeMode    String   @default("FIXED") // FIXED, NEIGHBORHOOD, DISTANCE
-  deliveryFee        Decimal  @default(0)
-  serviceFee         Decimal  @default(2)
-  logoUrl            String?
-  faviconUrl         String?
-  appleTouchIconUrl  String?
-  openGraphImageUrl  String?
-  navbarColor        String   @default("#970F0F")
-  brandColor         String   @default("#970F0F")
-  featuredProductId  String?
-  featuredProduct    Product? @relation("StoreFeaturedProduct", fields: [featuredProductId], references: [id])
-  updatedAt          DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  tenantId               String   @unique
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isOpen                 Boolean  @default(true)
+  isMaintenance          Boolean  @default(false)
+  maintenanceMessage     String?  @default("Voltamos em breve!")
+  storeName              String   @default("Pizzaria")
+  hours                  String   @default("18:00 - 23:30")
+  address                String   @default("Av. Principal, 123")
+  phone                  String   @default("(11) 9999-9999")
+  whatsappNumber         String   @default("5511999999999")
+  pixKey                 String   @default("sua-chave-pix-aqui")
+  pixMerchantName        String   @default("Pizzaria")
+  pixCity                String   @default("Rio de Janeiro")
+  gatewayEnabled         Boolean  @default(false)
+  depositEnabled         Boolean  @default(false)
+  depositPercent         Decimal  @default(50)
+  depositRequiredMethods String   @default("PIX_ONLINE,CARD_ONLINE,MERCADOPAGO")
+  allowPayRestOnDelivery Boolean  @default(true)
+  depositLabel           String   @default("Pague 50% agora e o restante na entrega.")
+  deliveryFeeMode        String   @default("FIXED") // FIXED, NEIGHBORHOOD, DISTANCE
+  deliveryFee            Decimal  @default(0)
+  serviceFee             Decimal  @default(2)
+  logoUrl                String?
+  faviconUrl             String?
+  appleTouchIconUrl      String?
+  openGraphImageUrl      String?
+  navbarColor            String   @default("#970F0F")
+  brandColor             String   @default("#970F0F")
+  featuredProductId      String?
+  featuredProduct        Product? @relation("StoreFeaturedProduct", fields: [featuredProductId], references: [id])
+  updatedAt              DateTime @updatedAt
 }
 
 model Ingredient {
@@ -899,7 +917,7 @@ model AccountPayable {
   canceledAt      DateTime?
   paidAt          DateTime?
 
-  payments        PayablePayment[]
+  payments PayablePayment[]
 
   @@index([tenantId, status])
   @@index([tenantId, dueDate])
@@ -928,16 +946,16 @@ model PayablePayment {
 /// Solicitacao de Cotacao (RFQ) enviada a um fornecedor.
 /// Status: DRAFT | SENT | APPROVED | CONVERTED | REJECTED
 model PurchaseRequest {
-  id         String    @id @default(uuid())
-  tenantId   String
-  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  supplierId String?
-  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  status     String    @default("DRAFT")
-  notes      String?
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  status       String    @default("DRAFT")
+  notes        String?
   expectedDate DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   items          PurchaseRequestItem[]
   purchaseOrders PurchaseOrder[]
@@ -1044,7 +1062,7 @@ model ManufacturingOrder {
   product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   quantity Decimal
-  status   String @default("DRAFT")
+  status   String  @default("DRAFT")
   notes    String?
 
   outputIngredientId    String?
@@ -1072,8 +1090,8 @@ model WasteRecord {
   ingredientId String
   ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
   quantity     Decimal
-  reason       String     // EXPIRED, DAMAGED, MISTAKE, QUALITY_REJECT, OTHER
-  registeredBy String     // Nome do funcionario
+  reason       String // EXPIRED, DAMAGED, MISTAKE, QUALITY_REJECT, OTHER
+  registeredBy String // Nome do funcionario
   notes        String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

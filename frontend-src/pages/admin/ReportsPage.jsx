@@ -195,6 +195,13 @@ export default function ReportsPage() {
     if (summary) {
       resumoData = [{
         revenueRealized: summary.revenueRealized,
+        totalSold: summary.totalSold,
+        totalReceived: summary.totalReceived,
+        depositReceived: summary.depositReceived,
+        remainingReceived: summary.remainingReceived,
+        pendingBalance: summary.pendingBalance,
+        partiallyPaidOrders: summary.partiallyPaidOrders,
+        paidOrders: summary.paidOrders,
         completedOrders: summary.completedOrders,
         averageTicket: summary.averageTicket,
         revenuePending: summary.revenuePending,
@@ -204,7 +211,7 @@ export default function ReportsPage() {
         canceledOrdersCount: summary.canceledOrdersCount
       }];
     }
-    exportData(`relatorio-resumo-${dateStr}`, resumoData, ['revenueRealized', 'completedOrders', 'averageTicket', 'revenuePending', 'pendingOrders', 'canceledAmount', 'cancellationRate', 'canceledOrdersCount']);
+    exportData(`relatorio-resumo-${dateStr}`, resumoData, ['revenueRealized', 'totalSold', 'totalReceived', 'depositReceived', 'remainingReceived', 'pendingBalance', 'partiallyPaidOrders', 'paidOrders', 'completedOrders', 'averageTicket', 'revenuePending', 'pendingOrders', 'canceledAmount', 'cancellationRate', 'canceledOrdersCount']);
     await delay(200);
 
     exportData(`relatorio-curva-abc-${dateStr}`, abcData, ['productId', 'productName', 'quantitySold', 'grossRevenue', 'abcClass', 'percentageOfRevenue']);
@@ -363,6 +370,32 @@ export default function ReportsPage() {
                 icon={TrendingDown}
                 colorClass="text-rose-600 dark:text-rose-400"
                 trend="down"
+              />
+            </div>
+          )}
+
+          {summary && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard
+                title="Entradas recebidas"
+                value={formatCurrency(summary.depositReceived)}
+                subtitle={`${summary.partiallyPaidOrders || 0} pedidos com saldo pendente`}
+                icon={DollarSign}
+                colorClass="text-amber-600 dark:text-amber-400"
+              />
+              <StatCard
+                title="Restantes recebidos"
+                value={formatCurrency(summary.remainingReceived)}
+                subtitle="Pagamentos finais registrados"
+                icon={TrendingUp}
+                colorClass="text-emerald-600 dark:text-emerald-400"
+              />
+              <StatCard
+                title="Saldo a receber"
+                value={formatCurrency(summary.pendingBalance)}
+                subtitle="Valor pendente de pedidos"
+                icon={Clock}
+                colorClass="text-blue-600 dark:text-blue-400"
               />
             </div>
           )}

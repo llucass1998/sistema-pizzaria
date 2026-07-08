@@ -67,6 +67,13 @@ tenantRoutes.get(
       pixKey: settings?.pixKey,
       pixMerchantName: settings?.pixMerchantName,
       pixCity: settings?.pixCity,
+      gatewayEnabled: settings?.gatewayEnabled ?? false,
+      depositEnabled: settings?.depositEnabled ?? false,
+      depositPercent: settings?.depositPercent ?? 50,
+      depositRequiredMethods:
+        settings?.depositRequiredMethods ?? 'PIX_ONLINE,CARD_ONLINE,MERCADOPAGO',
+      allowPayRestOnDelivery: settings?.allowPayRestOnDelivery ?? true,
+      depositLabel: settings?.depositLabel ?? 'Pague 50% agora e o restante na entrega.',
     });
   })
 );

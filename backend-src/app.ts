@@ -103,6 +103,7 @@ app.use(
   cartRoutes,
   integrationRoutes,
 );
+app.use('/api/admin', integrationRoutes);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api', deliveryRoutes);
 app.use('/api/pos', posRouter);
@@ -131,6 +132,7 @@ app.use('/api/admin/inventory/waste', requireAuth, wasteRouter);
 app.use('/api/admin/recipes', recipeRouter);
 app.use('/api/fiscal', fiscalRoutes);
 app.use('/api/admin/fiscal', requireAuth, fiscalRoutes);
+app.use('/api/admin/nfce', requireAuth, fiscalRoutes);
 app.use('/api/admin/dispatch', requireAuth, dispatchRoutes);
 app.use('/api/admin/kds', kdsRouter);
 app.use('/api/admin/manufacturing', requireAuth, manufacturingRouter);

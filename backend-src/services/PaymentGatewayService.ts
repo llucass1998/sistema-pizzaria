@@ -15,6 +15,12 @@ export interface PaymentIntent {
   pixQrCodeBase64?: string;
 }
 
+export type PaymentTransactionType =
+  | 'FULL_PAYMENT'
+  | 'DEPOSIT_PAYMENT'
+  | 'REMAINING_PAYMENT'
+  | 'REFUND';
+
 export interface NormalizedPaymentWebhook {
   provider: PaymentProvider;
   eventId: string;
@@ -23,6 +29,8 @@ export interface NormalizedPaymentWebhook {
   status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'CANCELED' | 'REFUNDED' | 'CHARGED_BACK';
   rawStatus: string;
   amount?: number;
+  transactionType?: PaymentTransactionType;
+  paymentMode?: 'FULL' | 'DEPOSIT';
   payload: Record<string, unknown>;
 }
 
@@ -121,6 +129,11 @@ export class PaymentGatewayService {
     customerName: string,
     customerEmail?: string,
     paymentMethod?: string,
+    options: {
+      paymentMode?: 'FULL' | 'DEPOSIT';
+      transactionType?: PaymentTransactionType;
+      metadata?: Record<string, unknown>;
+    } = {},
   ): Promise<PaymentIntent> {
     const provider = getConfiguredProvider();
 
@@ -132,12 +145,20 @@ export class PaymentGatewayService {
           tenantId,
           customerName,
           customerEmail,
+          options,
         );
       }
-      return this.createMercadoPagoPreference(orderId, amount, tenantId, customerName, customerEmail);
+      return this.createMercadoPagoPreference(
+        orderId,
+        amount,
+        tenantId,
+        customerName,
+        customerEmail,
+        options,
+      );
     }
 
-    return this.createMockPaymentLink(orderId, amount, tenantId, paymentMethod);
+    return this.createMockPaymentLink(orderId, amount, tenantId, paymentMethod, options);
   }
 
   static async normalizeWebhook(req: Request): Promise<NormalizedPaymentWebhook> {
@@ -156,6 +177,11 @@ export class PaymentGatewayService {
     amount: number,
     tenantId: string,
     paymentMethod?: string,
+    options: {
+      paymentMode?: 'FULL' | 'DEPOSIT';
+      transactionType?: PaymentTransactionType;
+      metadata?: Record<string, unknown>;
+    } = {},
   ): PaymentIntent {
     if (process.env.NODE_ENV === 'production' && process.env.PAYMENT_ALLOW_MOCK !== 'true') {
       throw new Error('Gateway MOCK bloqueado em producao. Configure PAYMENT_GATEWAY=MERCADOPAGO.');
@@ -178,7 +204,14 @@ export class PaymentGatewayService {
       externalId,
       paymentUrl,
       rawStatus: 'PENDING',
-      metadata: { tenantId, mode: 'demo', method: paymentMethod ?? 'ONLINE' },
+      metadata: {
+        tenantId,
+        mode: 'demo',
+        method: paymentMethod ?? 'ONLINE',
+        paymentMode: options.paymentMode ?? 'FULL',
+        transactionType: options.transactionType ?? 'FULL_PAYMENT',
+        ...(options.metadata ?? {}),
+      },
       pixQrCode: mockPixCode,
       pixQrCodeBase64: isPix ? '' : undefined,
     };
@@ -190,6 +223,11 @@ export class PaymentGatewayService {
     tenantId: string,
     customerName: string,
     customerEmail?: string,
+    options: {
+      paymentMode?: 'FULL' | 'DEPOSIT';
+      transactionType?: PaymentTransactionType;
+      metadata?: Record<string, unknown>;
+    } = {},
   ): Promise<PaymentIntent> {
     const accessToken = requireEnv('MERCADOPAGO_ACCESS_TOKEN');
     const publicUrl = getPublicUrl();
@@ -217,6 +255,9 @@ export class PaymentGatewayService {
         metadata: {
           order_id: orderId,
           tenant_id: tenantId,
+          payment_mode: options.paymentMode ?? 'FULL',
+          transaction_type: options.transactionType ?? 'FULL_PAYMENT',
+          ...(options.metadata ?? {}),
         },
       }),
     });
@@ -238,7 +279,14 @@ export class PaymentGatewayService {
       externalId: String(data.id),
       paymentUrl: `${publicUrl}/#/order/${orderId}`,
       rawStatus: data.status ?? 'pending',
-      metadata: { tenantId, orderId, method: 'PIX' },
+      metadata: {
+        tenantId,
+        orderId,
+        method: 'PIX',
+        paymentMode: options.paymentMode ?? 'FULL',
+        transactionType: options.transactionType ?? 'FULL_PAYMENT',
+        ...(options.metadata ?? {}),
+      },
       pixQrCode: qrCode,
       pixQrCodeBase64: qrCodeBase64,
     };
@@ -250,6 +298,11 @@ export class PaymentGatewayService {
     tenantId: string,
     customerName: string,
     customerEmail?: string,
+    options: {
+      paymentMode?: 'FULL' | 'DEPOSIT';
+      transactionType?: PaymentTransactionType;
+      metadata?: Record<string, unknown>;
+    } = {},
   ): Promise<PaymentIntent> {
     const accessToken = requireEnv('MERCADOPAGO_ACCESS_TOKEN');
     const publicUrl = getPublicUrl();
@@ -282,6 +335,9 @@ export class PaymentGatewayService {
         metadata: {
           order_id: orderId,
           tenant_id: tenantId,
+          payment_mode: options.paymentMode ?? 'FULL',
+          transaction_type: options.transactionType ?? 'FULL_PAYMENT',
+          ...(options.metadata ?? {}),
         },
         back_urls: {
           success: `${publicUrl}/#/order/${orderId}`,
@@ -311,7 +367,13 @@ export class PaymentGatewayService {
       externalId: data.id,
       paymentUrl,
       rawStatus: data.status ?? 'PENDING',
-      metadata: { tenantId, orderId },
+      metadata: {
+        tenantId,
+        orderId,
+        paymentMode: options.paymentMode ?? 'FULL',
+        transactionType: options.transactionType ?? 'FULL_PAYMENT',
+        ...(options.metadata ?? {}),
+      },
     };
   }
 
@@ -337,6 +399,12 @@ export class PaymentGatewayService {
       status: mapMockStatus(rawStatus),
       rawStatus,
       amount: Number(body.amount ?? 0) || undefined,
+      transactionType: String(
+        body.transactionType ?? safeJson(body.metadata).transactionType ?? 'FULL_PAYMENT',
+      ).toUpperCase() as PaymentTransactionType,
+      paymentMode: String(body.paymentMode ?? safeJson(body.metadata).paymentMode ?? 'FULL').toUpperCase() as
+        | 'FULL'
+        | 'DEPOSIT',
       payload: body,
     };
   }
@@ -370,6 +438,12 @@ export class PaymentGatewayService {
       status: mapMercadoPagoStatus(rawStatus),
       rawStatus,
       amount: Number(payment.transaction_amount ?? 0) || undefined,
+      transactionType: String(
+        metadata.transaction_type ?? metadata.transactionType ?? 'FULL_PAYMENT',
+      ).toUpperCase() as PaymentTransactionType,
+      paymentMode: String(metadata.payment_mode ?? metadata.paymentMode ?? 'FULL').toUpperCase() as
+        | 'FULL'
+        | 'DEPOSIT',
       payload: {
         notification: body,
         payment: {

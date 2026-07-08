@@ -26,6 +26,7 @@ backup_*.sql
 *.sql
 !prisma/migrations/20260701185000_order_payment_fields/migration.sql
 !prisma/migrations/20260701193000_driver_admin_link/migration.sql
+!prisma/migrations/20260707190000_deposit_payment_50/migration.sql
 
 # Logs e arquivos de depuração temporários
 *.log

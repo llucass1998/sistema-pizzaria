@@ -18,10 +18,12 @@ export function requireRole(allowedRoles: string[]) {
         return;
       }
 
-      (req as any).adminId = decoded.id;
-      (req as any).adminRole = decoded.role;
+      const role = (req as any).adminRole || decoded.role;
 
-      if (decoded.role !== 'SUPER_ADMIN' && !allowedRoles.includes(decoded.role)) {
+      (req as any).adminId = (req as any).adminId || decoded.id;
+      (req as any).adminRole = role;
+
+      if (role !== 'SUPER_ADMIN' && !allowedRoles.includes(role)) {
         res.status(403).json({ message: 'Acesso negado para o seu perfil.' });
         return;
       }

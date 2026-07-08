@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { basePrisma } from '../lib/prisma.js';
 import { logger } from '../utils/logger.js';
-import { FINANCIAL_STATUS, normalizePaymentMethod } from '../services/orderFinancial.service.js';
+import {
+  centsToMoney,
+  FINANCIAL_STATUS,
+  moneyToCents,
+  normalizePaymentMethod,
+  normalizePaymentTransactionType,
+} from '../services/orderFinancial.service.js';
 import { PaymentGatewayService } from '../services/PaymentGatewayService.js';
 import { emitOrderEvent } from '../services/orderEvents.service.js';
 
@@ -69,7 +75,10 @@ export const WebhookController = {
                 },
               ],
             },
-        include: { invoice: { include: { payments: true } } },
+        include: {
+          invoice: { include: { payments: true } },
+          paymentTransactions: true,
+        },
       });
 
       if (!order) {
@@ -91,6 +100,16 @@ export const WebhookController = {
 
       const paidAt = new Date();
       const method = normalizePaymentMethod(order.paymentMethod, 'ONLINE_CARD');
+      const existingTransaction = order.paymentTransactions.find(
+        (transaction) =>
+          transaction.provider === event.provider && transaction.externalId === event.externalId,
+      );
+      const transactionType = normalizePaymentTransactionType(
+        existingTransaction?.type ?? event.transactionType,
+        event.paymentMode === 'DEPOSIT' ? 'DEPOSIT_PAYMENT' : 'FULL_PAYMENT',
+      );
+      const approvedAmountCents = moneyToCents(event.amount ?? existingTransaction?.amount ?? order.total);
+      const isAlreadyPaid = existingTransaction?.status === FINANCIAL_STATUS.PAID;
       const nextPaymentStatus = getPaymentStatusForOrder(event.status);
 
       await basePrisma.$transaction(async (tx) => {
@@ -111,9 +130,11 @@ export const WebhookController = {
             },
           },
           update: {
+            type: transactionType,
             status: nextPaymentStatus,
             rawStatus: event.rawStatus,
             amount: Number(event.amount ?? order.total).toFixed(2),
+            paidAt: event.status === 'APPROVED' ? paidAt : existingTransaction?.paidAt,
             metadata: event.payload as any,
           },
           create: {
@@ -121,12 +142,34 @@ export const WebhookController = {
             orderId: order.id,
             provider: event.provider,
             externalId: event.externalId,
+            type: transactionType,
             amount: Number(event.amount ?? order.total).toFixed(2),
             status: nextPaymentStatus,
             rawStatus: event.rawStatus,
+            idempotencyKey: `${order.id}:${transactionType}`,
+            paidAt: event.status === 'APPROVED' ? paidAt : null,
             metadata: event.payload as any,
           },
         });
+
+        const currentAmountPaidCents = moneyToCents((order as any).amountPaid ?? 0);
+        const currentAmountDueCents = moneyToCents((order as any).amountDue ?? order.total);
+        const totalCents = moneyToCents(order.total);
+        const deltaPaidCents = event.status === 'APPROVED' && !isAlreadyPaid ? approvedAmountCents : 0;
+        const amountPaidCents =
+          transactionType === 'FULL_PAYMENT' && event.status === 'APPROVED'
+            ? totalCents
+            : Math.min(totalCents, currentAmountPaidCents + deltaPaidCents);
+        const amountDueCents =
+          transactionType === 'FULL_PAYMENT' && event.status === 'APPROVED'
+            ? 0
+            : Math.max(0, currentAmountDueCents - deltaPaidCents);
+        const orderPaymentStatus =
+          event.status === 'APPROVED'
+            ? amountDueCents === 0
+              ? FINANCIAL_STATUS.PAID
+              : FINANCIAL_STATUS.PARTIALLY_PAID
+            : nextPaymentStatus;
 
         await tx.order.update({
           where: { id: order.id },
@@ -136,7 +179,15 @@ export const WebhookController = {
                 ? 'PREPARING'
                 : order.status,
             paymentMethod: method,
-            paymentStatus: nextPaymentStatus,
+            paymentStatus: orderPaymentStatus,
+            amountPaid: centsToMoney(amountPaidCents).toFixed(2),
+            amountDue: centsToMoney(amountDueCents).toFixed(2),
+            remainingPaymentStatus:
+              order.paymentMode === 'DEPOSIT'
+                ? amountDueCents === 0
+                  ? FINANCIAL_STATUS.PAID
+                  : 'PENDING'
+                : 'NOT_APPLICABLE',
             paidAt: event.status === 'APPROVED' ? paidAt : order.paidAt,
             paymentExternalId: event.externalId,
           },
@@ -144,22 +195,22 @@ export const WebhookController = {
 
         const invoice = await tx.invoice.upsert({
           where: { orderId: order.id },
-          update: { status: nextPaymentStatus },
+          update: { status: orderPaymentStatus },
           create: {
             tenantId: order.tenantId,
             orderId: order.id,
             totalAmount: order.total,
-            status: nextPaymentStatus,
+            status: orderPaymentStatus,
           },
           include: { payments: true },
         });
 
-        if (shouldCreateFinancialPayment(event.status)) {
+        if (shouldCreateFinancialPayment(event.status) && !isAlreadyPaid) {
           const totalPaid = invoice.payments.reduce(
             (sum, payment) => sum + Number(payment.amount),
             0,
           );
-          const remaining = Number(order.total) - totalPaid;
+          const remaining = Math.min(centsToMoney(approvedAmountCents), Number(order.total) - totalPaid);
           if (remaining > 0.009) {
             await tx.payment.create({
               data: {
@@ -184,7 +235,11 @@ export const WebhookController = {
       });
 
       const newOrderStatus = event.status === 'APPROVED' && order.status === 'PENDING' ? 'PREPARING' : order.status;
-      emitOrderEvent(order.tenantId, 'order-updated', { id: order.id, status: newOrderStatus, paymentStatus: nextPaymentStatus } as any);
+      const emittedPaymentStatus =
+        event.status === 'APPROVED' && transactionType === 'DEPOSIT_PAYMENT'
+          ? FINANCIAL_STATUS.PARTIALLY_PAID
+          : nextPaymentStatus;
+      emitOrderEvent(order.tenantId, 'order-updated', { id: order.id, status: newOrderStatus, paymentStatus: emittedPaymentStatus } as any);
       if (newOrderStatus !== order.status) {
         emitOrderEvent(order.tenantId, 'order-status-changed', { orderId: order.id, status: newOrderStatus, oldStatus: order.status } as any);
       }

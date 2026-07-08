@@ -1,50 +1,39 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  calculatePaymentState,
-  FINANCIAL_STATUS,
-  getOrderPaymentStatus,
-  getPrimaryPaymentMethod,
-  normalizePaymentMethod,
+  calculateDepositAmounts,
+  centsToMoney,
+  moneyToCents,
+  normalizePaymentMode,
+  normalizePaymentTransactionType,
 } from './orderFinancial.service.js';
 
-describe('order financial rules', () => {
-  it('normalizes official payment methods and falls back safely', () => {
-    expect(normalizePaymentMethod('pix')).toBe('PIX');
-    expect(normalizePaymentMethod(' debit_card ')).toBe('DEBIT_CARD');
-    expect(normalizePaymentMethod('invalid', 'CASH')).toBe('CASH');
-  });
-
-  it('calculates pending, partial and paid payment states', () => {
-    expect(calculatePaymentState(100, 0)).toMatchObject({
-      orderPaymentStatus: FINANCIAL_STATUS.PENDING,
-      remainingAmount: 100,
-    });
-
-    expect(calculatePaymentState(100, 40)).toMatchObject({
-      orderPaymentStatus: FINANCIAL_STATUS.PARTIALLY_PAID,
-      amountPaid: 40,
-      remainingAmount: 60,
-    });
-
-    expect(calculatePaymentState(100, 100)).toMatchObject({
-      orderPaymentStatus: FINANCIAL_STATUS.PAID,
-      amountPaid: 100,
-      remainingAmount: 0,
+describe('orderFinancial deposit helpers', () => {
+  it('calculates a 50 percent deposit using cents-safe rounding', () => {
+    expect(calculateDepositAmounts(101.99, 50)).toEqual({
+      depositPercent: 50,
+      depositAmount: 51,
+      remainingAmount: 50.99,
     });
   });
 
-  it('prioritizes canceled orders and resolves payment method fallback', () => {
-    expect(getOrderPaymentStatus({ status: 'CANCELED', paymentStatus: 'PAID' })).toBe(
-      FINANCIAL_STATUS.CANCELED,
-    );
-    expect(getOrderPaymentStatus({ status: 'PENDING', invoice: { status: 'PARTIAL' } })).toBe(
-      FINANCIAL_STATUS.PARTIALLY_PAID,
-    );
-    expect(
-      getPrimaryPaymentMethod({
-        invoice: { payments: [{ method: 'PIX' }] },
-      }),
-    ).toBe('PIX');
+  it('falls back to 50 percent for invalid percentages', () => {
+    expect(calculateDepositAmounts(80, -10)).toMatchObject({
+      depositPercent: 50,
+      depositAmount: 40,
+      remainingAmount: 40,
+    });
+  });
+
+  it('normalizes payment mode and transaction type defensively', () => {
+    expect(normalizePaymentMode('deposit')).toBe('DEPOSIT');
+    expect(normalizePaymentMode('weird')).toBe('FULL');
+    expect(normalizePaymentTransactionType('remaining_payment')).toBe('REMAINING_PAYMENT');
+    expect(normalizePaymentTransactionType('bad')).toBe('FULL_PAYMENT');
+  });
+
+  it('converts money through cents without floating point leftovers', () => {
+    expect(moneyToCents(10.015)).toBe(1002);
+    expect(centsToMoney(1002)).toBe(10.02);
   });
 });

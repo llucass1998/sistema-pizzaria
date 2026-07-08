@@ -39,9 +39,13 @@ import { InventoryService } from '../services/inventory.service.js';
 import { PaymentGatewayService } from '../services/PaymentGatewayService.js';
 import { ProductAvailabilityService } from '../services/ProductAvailabilityService.js';
 import {
+  calculateDepositAmounts,
   createOrderInvoice,
+  centsToMoney,
   FINANCIAL_STATUS,
+  moneyToCents,
   normalizePaymentMethod,
+  normalizePaymentMode,
 } from '../services/orderFinancial.service.js';
 import { addOrderEventClient, emitOrderEvent } from '../services/orderEvents.service.js';
 
@@ -141,6 +145,29 @@ function enrichOrderWithPix(order: any) {
     pixQrCode: meta.pixQrCode || order.pixQrCode,
     pixQrCodeBase64: meta.pixQrCodeBase64 || order.pixQrCodeBase64,
   };
+}
+
+function getDepositRequiredMethods(settings: any) {
+  return String(settings.depositRequiredMethods ?? 'PIX_ONLINE,CARD_ONLINE,MERCADOPAGO')
+    .split(',')
+    .map((method) => method.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function canUseDepositForPayment(settings: any, paymentMethod: string, cardPaymentMode: string) {
+  if (settings.depositEnabled !== true) return false;
+  const methods = getDepositRequiredMethods(settings);
+  if (paymentMethod === 'PIX') {
+    return process.env.ENABLE_ONLINE_PIX === 'true' && methods.includes('PIX_ONLINE');
+  }
+  if (['CREDIT_CARD', 'DEBIT_CARD', 'ONLINE_CARD'].includes(paymentMethod)) {
+    return cardPaymentMode === 'ONLINE' && (methods.includes('CARD_ONLINE') || methods.includes('MERCADOPAGO'));
+  }
+  return false;
+}
+
+function buildPaymentIdempotencyKey(orderId: string, type: string) {
+  return `${orderId}:${type}`;
 }
 
 orderRoutes.get(
@@ -577,6 +604,24 @@ orderRoutes.post(
       res.status(400).json({ message: 'Pagamento online exige confirmacao pelo gateway.' });
       return;
     }
+    const requestedPaymentMode = normalizePaymentMode(req.body.paymentMode, 'FULL');
+    const paymentMode =
+      requestedPaymentMode === 'DEPOSIT' && canUseDepositForPayment(settings, paymentMethod, cardPaymentMode)
+        ? 'DEPOSIT'
+        : 'FULL';
+    if (requestedPaymentMode === 'DEPOSIT' && paymentMode !== 'DEPOSIT') {
+      res.status(400).json({
+        message:
+          'Pagamento com entrada indisponivel para a forma escolhida. Use PIX online ou cartao online configurado.',
+      });
+      return;
+    }
+    const depositData =
+      paymentMode === 'DEPOSIT'
+        ? calculateDepositAmounts(total, settings.depositPercent ?? 50)
+        : { depositPercent: null, depositAmount: 0, remainingAmount: 0 };
+    const initialAmountDue = paymentMode === 'DEPOSIT' ? total : total;
+    const initialRemainingStatus = paymentMode === 'DEPOSIT' ? 'PENDING' : 'NOT_APPLICABLE';
 
     const address = (req.body.address ?? {}) as Record<string, unknown>;
 
@@ -604,6 +649,13 @@ orderRoutes.post(
             total: total.toFixed(2),
             paymentMethod,
             paymentStatus: FINANCIAL_STATUS.PENDING,
+            paymentMode,
+            depositPercent: depositData.depositPercent,
+            depositAmount: depositData.depositAmount.toFixed(2),
+            remainingAmount: depositData.remainingAmount.toFixed(2),
+            amountPaid: '0.00',
+            amountDue: initialAmountDue.toFixed(2),
+            remainingPaymentStatus: initialRemainingStatus,
             paidAt: null,
             notes,
             items: { create: orderItems },
@@ -643,16 +695,29 @@ orderRoutes.post(
 
       // Se for pagamento online (ex: PIX ou Cartão ONLINE), geramos o link de pagamento
       if (
+        paymentMode === 'DEPOSIT' ||
         cardPaymentMode === 'ONLINE' ||
         (paymentMethod === 'PIX' && process.env.ENABLE_ONLINE_PIX === 'true')
       ) {
+        const transactionType = paymentMode === 'DEPOSIT' ? 'DEPOSIT_PAYMENT' : 'FULL_PAYMENT';
+        const chargeAmount = paymentMode === 'DEPOSIT' ? depositData.depositAmount : total;
         const intent = await PaymentGatewayService.createPaymentLink(
           order.id,
-          total,
+          chargeAmount,
           tenantId,
           customer.name,
           customer.email,
           paymentMethod,
+          {
+            paymentMode,
+            transactionType,
+            metadata: {
+              depositPercent: depositData.depositPercent,
+              depositAmount: depositData.depositAmount,
+              remainingAmount: depositData.remainingAmount,
+              totalAmount: total,
+            },
+          },
         );
 
         await prisma.order.update({
@@ -673,10 +738,12 @@ orderRoutes.post(
             },
           },
           update: {
-            amount: total.toFixed(2),
+            type: transactionType,
+            amount: chargeAmount.toFixed(2),
             status: FINANCIAL_STATUS.PENDING,
             rawStatus: intent.rawStatus ?? 'PENDING',
             paymentUrl: intent.paymentUrl,
+            idempotencyKey: buildPaymentIdempotencyKey(order.id, transactionType),
             metadata: {
               ...(intent.metadata ?? {}),
               pixQrCode: intent.pixQrCode,
@@ -688,10 +755,12 @@ orderRoutes.post(
             orderId: order.id,
             provider: intent.provider,
             externalId: intent.externalId,
-            amount: total.toFixed(2),
+            type: transactionType,
+            amount: chargeAmount.toFixed(2),
             status: FINANCIAL_STATUS.PENDING,
             rawStatus: intent.rawStatus ?? 'PENDING',
             paymentUrl: intent.paymentUrl,
+            idempotencyKey: buildPaymentIdempotencyKey(order.id, transactionType),
             metadata: {
               ...(intent.metadata ?? {}),
               pixQrCode: intent.pixQrCode,
@@ -724,7 +793,7 @@ orderRoutes.post(
 // ─── GET /pedidos ──────────────────────────────────────────────────────────────
 // Lista todos os pedidos (admin). Ordenado por data desc, com paginacao basica.
 orderRoutes.get(
-  '/pedidos',
+  ['/pedidos', '/admin/orders'],
   requireAdmin,
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
@@ -750,6 +819,8 @@ orderRoutes.get(
         include: {
           customer: true,
           items: { include: { product: true } },
+          paymentTransactions: true,
+          invoice: { include: { payments: true } },
         },
       }),
       prisma.order.count({ where: whereClause }),
@@ -802,6 +873,165 @@ orderRoutes.get(
       statusCounts,
       orders,
     });
+  }),
+);
+
+orderRoutes.post(
+  '/admin/orders/:orderId/pay-remaining',
+  requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']),
+  asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
+    const orderId = normalizeText(req.params.orderId);
+    const method = normalizePaymentMethod(req.body.method, 'CASH');
+    const note = normalizeText(req.body.note) || null;
+    const requestedAmountCents =
+      req.body.amount === undefined || req.body.amount === null
+        ? null
+        : moneyToCents(req.body.amount);
+
+    if (!orderId) {
+      res.status(400).json({ message: 'Pedido invalido.' });
+      return;
+    }
+
+    const updatedOrder = await basePrisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        include: { invoice: { include: { payments: true } } },
+      });
+
+      if (!order) {
+        throw Object.assign(new Error('Pedido nao encontrado.'), { statusCode: 404 });
+      }
+
+      const amountDueCents = moneyToCents((order as any).amountDue ?? order.total);
+      if (amountDueCents <= 0 || order.paymentStatus === FINANCIAL_STATUS.PAID) {
+        throw Object.assign(new Error('Este pedido nao possui saldo pendente.'), { statusCode: 409 });
+      }
+
+      const paymentAmountCents = requestedAmountCents ?? amountDueCents;
+      if (paymentAmountCents <= 0) {
+        throw Object.assign(new Error('Valor do pagamento deve ser maior que zero.'), {
+          statusCode: 400,
+        });
+      }
+      if (paymentAmountCents > amountDueCents) {
+        throw Object.assign(new Error('Valor informado nao pode ultrapassar o saldo pendente.'), {
+          statusCode: 400,
+        });
+      }
+
+      const idempotencyKey = buildPaymentIdempotencyKey(order.id, 'REMAINING_PAYMENT');
+      const existingRemaining = await tx.paymentTransaction.findFirst({
+        where: {
+          tenantId,
+          orderId: order.id,
+          type: 'REMAINING_PAYMENT',
+          status: FINANCIAL_STATUS.PAID,
+        },
+      });
+      if (existingRemaining) {
+        throw Object.assign(new Error('Pagamento do restante ja foi registrado.'), {
+          statusCode: 409,
+        });
+      }
+
+      const paidAt = new Date();
+      const amountPaidCents = moneyToCents((order as any).amountPaid ?? 0) + paymentAmountCents;
+      const nextDueCents = Math.max(0, amountDueCents - paymentAmountCents);
+      const nextPaymentStatus =
+        nextDueCents === 0 ? FINANCIAL_STATUS.PAID : FINANCIAL_STATUS.PARTIALLY_PAID;
+
+      await tx.paymentTransaction.create({
+        data: {
+          tenantId,
+          orderId: order.id,
+          provider: 'MANUAL',
+          externalId: `${idempotencyKey}:${Date.now()}`,
+          type: 'REMAINING_PAYMENT',
+          amount: centsToMoney(paymentAmountCents).toFixed(2),
+          status: FINANCIAL_STATUS.PAID,
+          rawStatus: 'MANUAL_CONFIRMED',
+          idempotencyKey,
+          paidAt,
+          metadata: {
+            method,
+            note,
+            adminId: (req as any).adminId ?? null,
+          },
+        },
+      });
+
+      const invoice =
+        order.invoice ??
+        (await tx.invoice.create({
+          data: {
+            tenantId,
+            orderId: order.id,
+            totalAmount: order.total,
+            status: nextPaymentStatus,
+          },
+        }));
+
+      await tx.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amount: centsToMoney(paymentAmountCents).toFixed(2),
+          method,
+          status: 'COMPLETED',
+          paymentDate: paidAt,
+        },
+      });
+
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: { status: nextPaymentStatus },
+      });
+
+      const activeShift = await tx.shift.findFirst({
+        where: { tenantId, status: 'OPEN' },
+      });
+      if (activeShift) {
+        await tx.cashTransaction.create({
+          data: {
+            tenantId,
+            shiftId: activeShift.id,
+            type: 'SALE',
+            amount: centsToMoney(paymentAmountCents).toFixed(2),
+            description: `Pagamento restante Pedido #${order.id.slice(0, 8)}`,
+            paymentMethodId: method,
+          },
+        });
+      }
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: nextPaymentStatus,
+          amountPaid: centsToMoney(amountPaidCents).toFixed(2),
+          amountDue: centsToMoney(nextDueCents).toFixed(2),
+          remainingPaymentStatus: nextDueCents === 0 ? FINANCIAL_STATUS.PAID : 'PARTIAL',
+          remainingPaidAt: nextDueCents === 0 ? paidAt : null,
+          paidAt: nextPaymentStatus === FINANCIAL_STATUS.PAID ? paidAt : order.paidAt,
+        },
+      });
+
+      return tx.order.findFirst({
+        where: { id: order.id, tenantId },
+        include: {
+          customer: true,
+          items: { include: { product: true } },
+          paymentTransactions: true,
+          invoice: { include: { payments: true } },
+        },
+      });
+    }).catch((error: any) => {
+      throw Object.assign(error, { statusCode: error.statusCode ?? 500 });
+    });
+
+    emitOrderEvent(tenantId, 'order-updated', updatedOrder as any);
+    res.json(updatedOrder);
   }),
 );
 

@@ -138,7 +138,7 @@ adminRoutes.post(
 adminRoutes.use(couponRoutes);
 
 adminRoutes.get(
-  '/admin/dashboard/summary',
+  ['/admin/dashboard', '/admin/dashboard/summary'],
   requireAdmin,
   requireRole(['OWNER', 'ADMIN', 'MANAGER']),
   asyncHandler(async (_req, res) => {
@@ -324,7 +324,7 @@ adminRoutes.get(
 );
 
 adminRoutes.get(
-  '/admin/clientes',
+  ['/admin/clientes', '/admin/customers', '/admin/crm'],
   requireAdmin,
   requireRole(['OWNER', 'ADMIN', 'MANAGER']),
   asyncHandler(async (_req, res) => {
@@ -399,7 +399,7 @@ adminRoutes.get(
 // ─── ADMIN USERS MANAGEMENT ────────────────────────────────────────────────────
 
 adminRoutes.get(
-  '/admin/users',
+  ['/admin/users', '/admin/permissions'],
   requireAdmin,
   requireRole(['OWNER', 'ADMIN']),
   asyncHandler(async (_req, res) => {

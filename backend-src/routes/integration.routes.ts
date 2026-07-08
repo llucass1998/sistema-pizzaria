@@ -4,6 +4,7 @@ import { IntegrationProvider } from '../../generated/prisma/index.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
+import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireRole } from '../middlewares/requireRole.js';
 import { getIdParam } from '../utils/request.js';
 import { normalizeText } from '../utils/normalize.js';
@@ -11,6 +12,7 @@ import { IfoodService } from '../integrations/ifood/ifood.service.js';
 
 export const integrationRoutes = Router();
 
+integrationRoutes.use(requireAdmin);
 
 
 function parseProvider(value: unknown) {
@@ -42,6 +44,18 @@ function credentialDto(credential: any) {
 }
 
 integrationRoutes.get(
+  '/integrations',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (_req, res) => {
+    const credentials = await prisma.integrationCredential.findMany({
+      orderBy: [{ provider: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    res.json(credentials.map(credentialDto));
+  }),
+);
+
+integrationRoutes.get(
   '/integrations/credentials',
   requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (_req, res) => {
@@ -50,6 +64,22 @@ integrationRoutes.get(
     });
 
     res.json(credentials.map(credentialDto));
+  }),
+);
+
+integrationRoutes.get(
+  '/integrations/ifood',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (_req, res) => {
+    const credentials = await prisma.integrationCredential.findMany({
+      where: { provider: IntegrationProvider.IFOOD },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    res.json({
+      provider: 'IFOOD',
+      credentials: credentials.map(credentialDto),
+    });
   }),
 );
 

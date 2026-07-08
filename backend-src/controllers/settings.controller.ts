@@ -60,6 +60,16 @@ export const updateStoreSettingsSchema = z.object({
   pixKey: z.string().optional(),
   pixMerchantName: z.string().optional(),
   pixCity: z.string().optional(),
+  gatewayEnabled: z.boolean().optional(),
+  depositEnabled: z.boolean().optional(),
+  depositPercent: z.coerce
+    .number()
+    .gt(0, 'Percentual da entrada deve ser maior que 0.')
+    .lt(100, 'Percentual da entrada deve ser menor que 100.')
+    .optional(),
+  depositRequiredMethods: z.string().max(200).optional(),
+  allowPayRestOnDelivery: z.boolean().optional(),
+  depositLabel: z.string().max(200).optional(),
   logoUrl: optionalAssetUrlSchema,
   faviconUrl: optionalAssetUrlSchema,
   appleTouchIconUrl: optionalAssetUrlSchema,
@@ -112,6 +122,16 @@ export const SettingsController = {
         pixMerchantName:
           payload.pixMerchantName ?? payload.storeName ?? currentSettings.pixMerchantName,
         pixCity: payload.pixCity ?? currentSettings.pixCity,
+        ...(payload.gatewayEnabled !== undefined ? { gatewayEnabled: payload.gatewayEnabled } : {}),
+        ...(payload.depositEnabled !== undefined ? { depositEnabled: payload.depositEnabled } : {}),
+        ...(payload.depositPercent !== undefined ? { depositPercent: payload.depositPercent } : {}),
+        ...(payload.depositRequiredMethods !== undefined
+          ? { depositRequiredMethods: payload.depositRequiredMethods }
+          : {}),
+        ...(payload.allowPayRestOnDelivery !== undefined
+          ? { allowPayRestOnDelivery: payload.allowPayRestOnDelivery }
+          : {}),
+        ...(payload.depositLabel !== undefined ? { depositLabel: payload.depositLabel } : {}),
         logoUrl: payload.logoUrl !== undefined ? payload.logoUrl : currentSettings.logoUrl,
         faviconUrl:
           payload.faviconUrl !== undefined ? payload.faviconUrl : currentSettings.faviconUrl,
@@ -144,6 +164,19 @@ export const SettingsController = {
         pixMerchantName:
           payload.pixMerchantName ?? payload.storeName ?? currentSettings.pixMerchantName,
         pixCity: payload.pixCity ?? currentSettings.pixCity,
+        gatewayEnabled: payload.gatewayEnabled ?? currentSettings.gatewayEnabled ?? false,
+        depositEnabled: payload.depositEnabled ?? currentSettings.depositEnabled ?? false,
+        depositPercent: payload.depositPercent ?? currentSettings.depositPercent ?? 50,
+        depositRequiredMethods:
+          payload.depositRequiredMethods ??
+          currentSettings.depositRequiredMethods ??
+          'PIX_ONLINE,CARD_ONLINE,MERCADOPAGO',
+        allowPayRestOnDelivery:
+          payload.allowPayRestOnDelivery ?? currentSettings.allowPayRestOnDelivery ?? true,
+        depositLabel:
+          payload.depositLabel ??
+          currentSettings.depositLabel ??
+          'Pague 50% agora e o restante na entrega.',
         logoUrl: payload.logoUrl !== undefined ? payload.logoUrl : currentSettings.logoUrl,
         faviconUrl:
           payload.faviconUrl !== undefined ? payload.faviconUrl : currentSettings.faviconUrl,

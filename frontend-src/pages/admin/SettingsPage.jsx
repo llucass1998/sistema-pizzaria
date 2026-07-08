@@ -63,6 +63,12 @@ function mapSettingsToForm(data = {}) {
     pixKey: data.pixKey ?? '',
     pixMerchantName: data.pixMerchantName ?? '',
     pixCity: data.pixCity ?? '',
+    gatewayEnabled: data.gatewayEnabled ?? false,
+    depositEnabled: data.depositEnabled ?? false,
+    depositPercent: data.depositPercent ?? 50,
+    depositRequiredMethods: data.depositRequiredMethods ?? 'PIX_ONLINE,CARD_ONLINE,MERCADOPAGO',
+    allowPayRestOnDelivery: data.allowPayRestOnDelivery ?? true,
+    depositLabel: data.depositLabel ?? 'Pague 50% agora e o restante na entrega.',
     deliveryFeeMode: data.deliveryFeeMode ?? 'FIXED',
     deliveryFee: data.deliveryFee ?? 0,
     serviceFee: data.serviceFee ?? 0,
@@ -238,6 +244,7 @@ export function SettingsPage() {
         ...form,
         deliveryFee: Number(form.deliveryFee ?? 0),
         serviceFee: Number(form.serviceFee ?? 0),
+        depositPercent: Number(form.depositPercent ?? 50),
         featuredProductId: form.featuredProductId || null,
         navbarColor: normalizeHexColor(form.navbarColor, DEFAULT_NAVBAR_COLOR),
         brandColor: normalizeHexColor(form.brandColor, DEFAULT_BRAND_COLOR),
@@ -296,6 +303,7 @@ export function SettingsPage() {
         <button type="button" onClick={() => setActiveTab('LOJA')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'LOJA' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Loja</button>
         <button type="button" onClick={() => setActiveTab('VISUAL')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'VISUAL' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Visual</button>
         <button type="button" onClick={() => setActiveTab('ENTREGA')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'ENTREGA' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Entrega e Taxas</button>
+        <button type="button" onClick={() => setActiveTab('PAGAMENTOS')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'PAGAMENTOS' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Pagamentos</button>
         <button type="button" onClick={() => setActiveTab('FIDELIDADE')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'FIDELIDADE' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Fidelidade</button>
         <button type="button" onClick={() => setActiveTab('NOTIFICACOES')} className={`px-4 py-2 font-bold rounded-lg whitespace-nowrap ${activeTab === 'NOTIFICACOES' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Notificações (WhatsApp)</button>
       </div>
@@ -586,6 +594,90 @@ export function SettingsPage() {
             onChange={(value) => updateField('serviceFee', value)}
             type="number"
             />
+          </div>
+
+          <div className={activeTab === 'PAGAMENTOS' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50 md:col-span-2">
+              <h3 className="mb-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                Pagamento com Entrada
+              </h3>
+              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                Quando ativado, o cliente podera pagar apenas a entrada online. O saldo restante fica pendente para pagamento na entrega, retirada ou no caixa.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                  <span>
+                    <span className="block text-sm font-black text-slate-900 dark:text-slate-100">
+                      Gateway online ativo
+                    </span>
+                    <span className="mt-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Libera cartao online e fluxos com confirmacao automatica.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.gatewayEnabled}
+                    onChange={(event) => updateField('gatewayEnabled', event.target.checked)}
+                    className="h-5 w-5 accent-slate-950 dark:accent-white"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                  <span>
+                    <span className="block text-sm font-black text-slate-900 dark:text-slate-100">
+                      Ativar pagamento com entrada
+                    </span>
+                    <span className="mt-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Exibe a opcao no checkout quando houver pagamento online valido.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.depositEnabled}
+                    onChange={(event) => updateField('depositEnabled', event.target.checked)}
+                    className="h-5 w-5 accent-slate-950 dark:accent-white"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                  <span>
+                    <span className="block text-sm font-black text-slate-900 dark:text-slate-100">
+                      Permitir restante na entrega/retirada
+                    </span>
+                    <span className="mt-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      O saldo pode ser recebido pelo entregador ou no balcao.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.allowPayRestOnDelivery}
+                    onChange={(event) => updateField('allowPayRestOnDelivery', event.target.checked)}
+                    className="h-5 w-5 accent-slate-950 dark:accent-white"
+                  />
+                </label>
+                <Field
+                  label="Percentual da entrada"
+                  value={form.depositPercent}
+                  onChange={(value) => updateField('depositPercent', value)}
+                  type="number"
+                />
+                <Field
+                  label="Metodos que permitem entrada"
+                  value={form.depositRequiredMethods}
+                  onChange={(value) => updateField('depositRequiredMethods', value)}
+                  placeholder="PIX_ONLINE,CARD_ONLINE,MERCADOPAGO"
+                />
+                <Field
+                  label="Texto exibido no checkout"
+                  value={form.depositLabel}
+                  onChange={(value) => updateField('depositLabel', value)}
+                  className="md:col-span-2"
+                />
+              </div>
+              {form.depositEnabled && (
+                <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                  Para entrada de 50%, recomendamos PIX online ou cartao online com confirmacao automatica via Mercado Pago.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className={activeTab === 'LOJA' ? 'grid gap-4 md:grid-cols-2' : 'hidden'}>

@@ -1,86 +1,70 @@
-# 📊 Relatório Técnico de Validação e Padronização Fullstack (Site + Admin + ERP)
+# Relatório de Teste Fullstack - E2E
 
-**Data do Teste:** 05/07/2026  
-**Ambiente:** Windows Docker Desktop (`pizzaria_sgbi` Network) / WSL2  
-**Status Final:** ✅ APROVADO — Sistema 100% Funcional e Padronizado visualmente
+**Data do teste:** 06/07/2026
+**Módulos testados:** Frontend Público, Backend Público, Checkout, Admin Frontend, Admin Backend, Configurações, PDV.
 
----
+## 1. Teste da Loja Pública Frontend e Backend
+- [x] Home carrega perfeitamente.
+- [x] API `/api/public/resolve-store` resolve o tenant corretamente (status 200).
+- [x] API `/api/configuracoes` e `/api/pizzas` retornam dados sem erros (status 200).
 
-## 1. Resumo Executivo da Padronização Visual (ERP & Admin)
+## 2. Teste de Admin Frontend e Backend
+O painel administrativo foi testado rota a rota usando um sub-agente navegador:
+- [x] Login de administrador bem sucedido.
+- [x] **Dashboard:** Carrega perfeitamente (dados zerados devido ao reset de ambiente de teste, sem erros no console).
+- [x] **PDV / Caixa:** Carrega perfeitamente.
+- [x] **KDS (Cozinha):** Carrega perfeitamente.
+- [x] **Pedidos:** Lista carregada sem tela branca.
+- [x] **Categorias / Produtos:** Carrega perfeitamente.
+- [x] **Financeiro (Contas a Pagar/Receber, Fluxo de Caixa, DRE):** Telas carregam perfeitamente sem NaN ou undefined.
+- [x] **Configurações da Loja:** Carrega perfeitamente.
+- [x] As requisições à API (`/api/admin/...`) estão retornando `200 OK` dentro da aplicação.
 
-Foi realizada uma padronização visual completa no painel administrativo e nas telas de ERP/Financeiro, atendendo aos rigorosos requisitos de contraste, legibilidade e design system do projeto:
+## 3. Validação de Infraestrutura (Docker / Nginx)
+- [x] Erro 502 Bad Gateway foi mitigado permanentemente (porta 3000 liberada de processos conflitantes).
+- [x] Erro 403 Forbidden corrigido (limpeza de token residual no `localStorage` após reset).
+- [x] Nenhuma loja em modo de manutenção indevidamente.
 
-1. **Sidebar (`AdminLayout.jsx`):**
-   - Refatoração para alto contraste com fundo azul escuro (`bg-[#123B63]`).
-   - Textos importantes na sidebar agora são 100% brancos ou quase brancos (`text-white`, `text-blue-50`), eliminando os textos cinza apagados.
-   - Ícones com `text-blue-100` e destaques em `text-emerald-400` / `text-rose-400`.
-   - **Evolução Arquitetural Responsiva:** Unificação do layout de desktop e mobile. Substituída a estrutura duplicada de `<main>` e `<Outlet />` por um container flex único compartilhado. Isso elimina montagens duplas de páginas, requisições duplicadas à API e duplicidade no DOM no modo mobile/desktop.
+## 4. Conclusão e Observações
+O sistema encontra-se 100% operacional.
+**Observação sobre páginas em branco:** Detectamos que a aba do navegador do usuário estava aberta em `http://localhost:5173/api/admin/dashboard/summary`. Esta rota é um **endpoint de API (JSON)** e não uma página da web (UI). Se aberta diretamente no navegador, ela pode falhar (retornar JSON de erro 401/403) devido à falta de headers específicos (`x-tenant-id`) que são enviados automaticamente pela interface do sistema.
 
-2. **Telas do ERP (Conciliação, Compras, Notas Fiscais e Fornecedores):**
-   - **Conciliação Geral & Auditoria (`ReconciliationPage.jsx`):** Padronizada no tema claro, containers `bg-white`, bordas `border-slate-200`, títulos `text-slate-950` e descrições `text-slate-600`.
-   - **Compras & Pedidos (`PurchasesPage.jsx`):** Conversão completa para tema claro e alto contraste, sem blocos escuros e letras cinza apagadas.
-   - **Notas Fiscais (`InvoicesPage.jsx`):** Padronização do Header, resumos financeiros, tabela de notas e modais de importação/edicao para o tema claro com botões primários `bg-indigo-600`.
-   - **Fornecedores (`SuppliersPage.jsx`):** Remoção completa de classes de dark mode, adotando `bg-white`, `border-slate-200`, cartões de estatísticas com alto contraste e botões de ação bem definidos.
+## 5. Rodada 07/07/2026 - Pagamento com Entrada
 
----
+- [x] Implementado modelo de pagamento `FULL`/`DEPOSIT`.
+- [x] Admin recebeu configuração de gateway/entrada.
+- [x] Checkout recebeu intenção "Pagar entrada agora".
+- [x] Backend calcula entrada/saldo no servidor.
+- [x] Webhook marca entrada aprovada como `PARTIALLY_PAID`.
+- [x] Admin Pedidos Live mostra badge e registra saldo restante.
+- [x] Relatórios mostram entradas, restantes e saldo a receber.
+- [x] `npm run typecheck:strict` passou.
+- [x] `npm run test` passou: 25 arquivos, 133 testes.
+- [x] `npm run test:api` passou: 25 arquivos, 133 testes.
+- [x] `npm run build` passou.
+- [x] `npm run test:smoke` passou.
+- [x] Docker build/up executado; `pizzaria_api` healthy, `pizzaria_web` porta 80, banco healthy.
+- [x] Curls com `curl.exe` retornaram 200 para `/`, `/api/status`, resolve-store, configuracoes, products e categorias.
 
-## 2. Validação Anti-Cache e Deploy (`anti-cache-fantasma-pizzaria`)
+Observação: `npm run test:e2e` não encontrou arquivos em `tests/e2e/**/*.spec.ts`, portanto não houve suíte E2E Vitest para executar nessa configuração.
+## 6. Rodada 07/07/2026 - Correcao Admin RBAC
 
-Atendendo às instruções do guia de deploy seguro (`anti-cache-fantasma-pizzaria/SKILL.md`):
-- O build de produção foi realizado diretamente no daemon do **Windows Docker Desktop**, na mesma rede (`pizzaria_sgbi`) onde residem `pizzaria_api`, `pizzaria_db` e `pizzaria_waha`.
-- O container do frontend (`pizzaria_web`) foi recriado a partir do zero sem cache antigo ou containers fantasmas.
-- Os cabeçalhos de resposta HTTP do proxy Nginx foram validados com sucesso (`Cache-Control: no-store, no-cache, must-revalidate` para `index.html`).
+- [x] Conta `admin@riopizzas.com` validada como `OWNER` no tenant do dominio `pizzarialucas.istigestao.com.br`.
+- [x] Login admin retorna role real `OWNER`.
+- [x] Corrigido login hibrido para nao forcar role `ADMIN`.
+- [x] `requireRole` passa a priorizar role carregada do banco por `requireAdmin`.
+- [x] Integracoes/iFood e Fiscal/NFC-e passam por `requireAdmin`.
+- [x] Aliases `/api/admin/*` adicionados para dashboard, pedidos, clientes, CRM, permissoes, integracoes, iFood, fiscal/NFC-e e configuracoes.
+- [x] Sidebar: grupos usam `button type="button"` e `preventDefault/stopPropagation`.
+- [x] Playwright confirmou que clicar em `Cadastros & Gestao` nao altera URL e nao muda scroll.
+- [x] Playwright abriu as telas principais do Admin sem acesso negado, tela branca ou erro de console.
+- [x] Bateria de endpoints admin com token real retornou 0 falhas.
+- [x] Sem token retorna 401 e token cliente/forjado retorna 403 em `/api/admin`.
+- [x] `npm run typecheck:strict` passou.
+- [x] `npm run test:api` passou: 25 arquivos, 133 testes.
+- [x] `npm run test` passou: 25 arquivos, 133 testes.
+- [x] `npm run build` passou.
+- [x] Docker build/up executado; `pizzaria_api` healthy, `pizzaria_web` porta 80, banco healthy.
+- [x] Curls publicos retornaram 200 para `/`, `/api/status`, resolve-store, configuracoes, products e categorias.
 
----
-
-## 3. Resultados dos Testes de Sanidade (Smoke Tests e Curls)
-
-O script automatizado `scripts/smoke-test-fullstack-site-admin.sh` foi executado e validou os principais endpoints do sistema sem nenhum erro 500, 502 ou falha de roteamento:
-
-```txt
-=== Iniciando Smoke Test Fullstack (Site + Admin + API) ===
-1. Validando Frontend Loja Pública (/) ... -> HTTP Status: 200
-2. Validando API Status (/api/status) ... -> API Status: OK ({"ok":true,"service":"pizzaria-api"})
-3. Validando Resolve Store (/api/public/resolve-store) ... -> Resolve Store: OK
-4. Validando Configurações (/api/configuracoes) ... -> Configurações: OK
-5. Validando Produtos (/api/products) ... -> Produtos: OK
-6. Validando Categorias (/api/categorias) ... -> Categorias: OK
-=== Smoke test fullstack concluído com sucesso! ===
-```
-
----
-
-## 4. Validação E2E Automatizada via Playwright (`fullstack-e2e-test`)
-
-Foi executada a bateria completa de testes de ponta a ponta (E2E) através do comando `npx playwright test`, com **100% de taxa de sucesso**:
-
-```txt
-Running 9 tests using 6 workers
-
-[1/9] [chromium] › tests\playwright\admin-fullstack.spec.ts:14:3 › Admin Fullstack E2E › Sidebar CSS Grid auto-adaptável no hover e PDV único -> PASSED
-[2/9] [chromium] › tests\playwright\checkout.spec.ts:34:3 › Checkout Completo E2E › Entrega + Cartão de Crédito -> PASSED
-[3/9] [chromium] › tests\playwright\admin-phase3.spec.ts:4:3 › Admin phase 3 smoke › loads dashboard, settings and live orders after admin login -> PASSED
-[4/9] [chromium] › tests\playwright\admin-ifood-integrations.spec.ts:12:3 › Admin iFood Integrations (E2E) › Deve acessar a tela de integracoes e navegar nas abas -> PASSED
-[5/9] [chromium] › tests\playwright\checkout.spec.ts:57:3 › Checkout Completo E2E › Retirada + Dinheiro sem troco -> PASSED
-[6/9] [chromium] › tests\playwright\store.spec.ts:5:3 › Frente de Loja E2E › Fluxo completo: Home -> Carrinho -> Checkout PIX -> PASSED
-[7/9] [chromium] › tests\playwright\admin-fullstack.spec.ts:42:3 › Admin Fullstack E2E › Criação de Categoria Segura (E2E_ADMIN_TEST) -> PASSED
-[8/9] [chromium] › tests\playwright\admin-fullstack.spec.ts:55:3 › Admin Fullstack E2E › Criação de Produto Seguro (E2E_ADMIN_TEST) -> PASSED
-[9/9] [chromium] › tests\playwright\admin-fullstack.spec.ts:73:3 › Admin Fullstack E2E › Acesso a todas as rotas de ERP sem ErrorBoundary -> PASSED
-
-9 passed (8.6s)
-```
-
----
-
-## 5. Validações de Build e Tipagem
-
-- `npm run typecheck:strict`: **0 erros** de tipagem TypeScript no projeto.
-- `npm run build`: Build do Vite concluído com sucesso em 2.50s sem advertências críticas ou quebra de bundles.
-
----
-
-## 6. Confirmações Críticas de Conformidade
-
-- **O site não caiu:** A infraestrutura de Docker e Nginx permaneceu intacta e sem interrupções.
-- **Sem manutenção indevida:** A loja pública segue operando em modo aberto normalmente para os clientes.
-- **Legibilidade 100%:** Todas as telas solicitadas estão com alto contraste de leitura, cores consistentes e padrão visual premium consolidado.
+Pendencia: `npx eslint .` ainda falha por artefatos historicos fora do fonte (`.chrome-test`, `generated`, `out.js`, `temp.js`) e por `backend-src/check.js`; os arquivos tocados nesta correcao nao apresentaram erro de lint relevante.
