@@ -46,7 +46,11 @@ export class ShiftAuditService {
   /**
    * Calcula o resumo completo de um turno específico.
    */
-  static async getShiftSummary(tenantId: string, shiftId: string, db: Db | any = basePrisma): Promise<ShiftSummary> {
+  static async getShiftSummary(
+    tenantId: string,
+    shiftId: string,
+    db: Db | any = basePrisma,
+  ): Promise<ShiftSummary> {
     const shift = await db.shift.findFirst({
       where: { id: shiftId, tenantId },
       include: {
@@ -138,7 +142,12 @@ export class ShiftAuditService {
    * Valida se uma sangria pode ser realizada (anti-fraude / anti-duplicidade).
    * Impede sangria se o valor for maior que o dinheiro disponível na gaveta.
    */
-  static async validateSangria(tenantId: string, shiftId: string, amount: number, db: Db | any = basePrisma): Promise<void> {
+  static async validateSangria(
+    tenantId: string,
+    shiftId: string,
+    amount: number,
+    db: Db | any = basePrisma,
+  ): Promise<void> {
     if (amount <= 0) {
       throw businessError('O valor da sangria deve ser maior que zero.', 422);
     }
@@ -152,7 +161,7 @@ export class ShiftAuditService {
     if (amount > summary.expectedClosingCash) {
       throw businessError(
         `Saldo em caixa insuficiente para esta sangria. Saldo em dinheiro disponível: R$ ${summary.expectedClosingCash.toFixed(2)}`,
-        422
+        422,
       );
     }
   }
@@ -163,7 +172,7 @@ export class ShiftAuditService {
   static async getAuditReport(
     tenantId: string,
     filters: { startDate?: string; endDate?: string; cashRegisterId?: string } = {},
-    db: Db | any = basePrisma
+    db: Db | any = basePrisma,
   ) {
     const where: any = { tenantId };
 
@@ -187,7 +196,7 @@ export class ShiftAuditService {
     });
 
     const summaries = await Promise.all(
-      shifts.map((s: any) => this.getShiftSummary(tenantId, s.id, db))
+      shifts.map((s: any) => this.getShiftSummary(tenantId, s.id, db)),
     );
 
     const totalShifts = summaries.length;

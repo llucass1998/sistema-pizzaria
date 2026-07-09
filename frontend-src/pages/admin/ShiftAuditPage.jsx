@@ -18,7 +18,9 @@ import {
   User,
   Calendar,
 } from 'lucide-react';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 import { PageContainer } from '../../components/ui/PageContainer.jsx';
 import {
   OpenShiftModal,
@@ -61,7 +63,11 @@ export default function ShiftAuditPage() {
   async function loadData() {
     try {
       setLoading(true);
-      const token = adminData?.token || (window.localStorage.getItem('pizzaria-admin') ? JSON.parse(window.localStorage.getItem('pizzaria-admin')).token : '');
+      const token =
+        adminData?.token ||
+        (window.localStorage.getItem('pizzaria-admin')
+          ? JSON.parse(window.localStorage.getItem('pizzaria-admin')).token
+          : '');
       const headers = { Authorization: `Bearer ${token}` };
 
       const [curRes, repRes] = await Promise.all([
@@ -248,7 +254,11 @@ export default function ShiftAuditPage() {
                   {/* Relógio / Timer */}
                   <div className="flex items-center gap-6 rounded-2xl bg-white/80 p-4 shadow-sm backdrop-blur-md dark:bg-slate-950/80 border border-slate-200/60 dark:border-slate-800">
                     <div className="flex items-center gap-3">
-                      <Clock className="text-amber-500 animate-spin" size={28} style={{ animationDuration: '10s' }} />
+                      <Clock
+                        className="text-amber-500 animate-spin"
+                        size={28}
+                        style={{ animationDuration: '10s' }}
+                      />
                       <div>
                         <span className="block text-[11px] font-black uppercase tracking-wider text-slate-400">
                           Duração do Turno
@@ -261,7 +271,10 @@ export default function ShiftAuditPage() {
 
                     <div className="flex flex-wrap items-center gap-2">
                       <button
-                        onClick={() => { setTxModalType('SUPRIMENTO'); setIsTxModalOpen(true); }}
+                        onClick={() => {
+                          setTxModalType('SUPRIMENTO');
+                          setIsTxModalOpen(true);
+                        }}
                         className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95"
                         title="Aporte de Dinheiro no Caixa"
                       >
@@ -270,7 +283,10 @@ export default function ShiftAuditPage() {
                       </button>
 
                       <button
-                        onClick={() => { setTxModalType('SANGRIA'); setIsTxModalOpen(true); }}
+                        onClick={() => {
+                          setTxModalType('SANGRIA');
+                          setIsTxModalOpen(true);
+                        }}
                         className="flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/20 transition hover:bg-amber-700 active:scale-95"
                         title="Retirada / Sangria de Dinheiro"
                       >
@@ -305,7 +321,10 @@ export default function ShiftAuditPage() {
               </button>
 
               <button
-                onClick={() => { setTxModalType('SUPRIMENTO'); setIsTxModalOpen(true); }}
+                onClick={() => {
+                  setTxModalType('SUPRIMENTO');
+                  setIsTxModalOpen(true);
+                }}
                 disabled={!isShiftOpen || loading}
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-5 font-bold text-slate-700 shadow-sm transition hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 active:scale-95"
               >
@@ -316,7 +335,10 @@ export default function ShiftAuditPage() {
               </button>
 
               <button
-                onClick={() => { setTxModalType('SANGRIA'); setIsTxModalOpen(true); }}
+                onClick={() => {
+                  setTxModalType('SANGRIA');
+                  setIsTxModalOpen(true);
+                }}
                 disabled={!isShiftOpen || loading}
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-5 font-bold text-slate-700 shadow-sm transition hover:bg-amber-50 hover:text-amber-700 disabled:opacity-40 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 active:scale-95"
               >
@@ -406,7 +428,9 @@ export default function ShiftAuditPage() {
                       Vendas por Forma de Pagamento
                     </h3>
                   </div>
-                  <span className="text-xs font-bold text-slate-400">Total: R$ {totalSales.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-slate-400">
+                    Total: R$ {totalSales.toFixed(2)}
+                  </span>
                 </div>
 
                 {Object.keys(salesByMethod).length === 0 ? (
@@ -468,14 +492,15 @@ export default function ShiftAuditPage() {
                                 tx.type === 'SANGRIA'
                                   ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400'
                                   : tx.type === 'SUPRIMENTO'
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
-                                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400'
+                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
                               }`}
                             >
                               {tx.type}
                             </span>
                             <span className="text-slate-800 dark:text-slate-200">
-                              {tx.description || (tx.type === 'SALE' ? 'Venda PDV' : 'Movimentação')}
+                              {tx.description ||
+                                (tx.type === 'SALE' ? 'Venda PDV' : 'Movimentação')}
                             </span>
                           </div>
                           <span className="text-xs text-slate-400">
@@ -485,7 +510,9 @@ export default function ShiftAuditPage() {
 
                         <span
                           className={`font-black ${
-                            tx.type === 'SANGRIA' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                            tx.type === 'SANGRIA'
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : 'text-emerald-600 dark:text-emerald-400'
                           }`}
                         >
                           {tx.type === 'SANGRIA' ? '-' : '+'} R$ {Number(tx.amount).toFixed(2)}
@@ -535,12 +562,16 @@ export default function ShiftAuditPage() {
                   </span>
                   <p
                     className={`mt-2 text-3xl font-black ${
-                      Number(auditReport.kpis.netDifference) < 0 ? 'text-rose-600' : 'text-emerald-600'
+                      Number(auditReport.kpis.netDifference) < 0
+                        ? 'text-rose-600'
+                        : 'text-emerald-600'
                     }`}
                   >
                     R$ {Number(auditReport.kpis.netDifference || 0).toFixed(2)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">Diferença acumulada entre esperado vs real</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Diferença acumulada entre esperado vs real
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -611,7 +642,8 @@ export default function ShiftAuditPage() {
                           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                             Operador: {s.operatorName} | Início:{' '}
                             {new Date(s.startTime).toLocaleString('pt-BR')}
-                            {s.endTime && ` | Fim: ${new Date(s.endTime).toLocaleTimeString('pt-BR')}`}
+                            {s.endTime &&
+                              ` | Fim: ${new Date(s.endTime).toLocaleTimeString('pt-BR')}`}
                           </p>
                         </div>
 
@@ -641,7 +673,11 @@ export default function ShiftAuditPage() {
                               </span>
                               <span
                                 className={`text-base font-black ${
-                                  diff < 0 ? 'text-rose-600 dark:text-rose-400' : diff > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'
+                                  diff < 0
+                                    ? 'text-rose-600 dark:text-rose-400'
+                                    : diff > 0
+                                      ? 'text-blue-600 dark:text-blue-400'
+                                      : 'text-emerald-600 dark:text-emerald-400'
                                 }`}
                               >
                                 {diff < 0 ? '' : diff > 0 ? '+' : ''} R$ {diff.toFixed(2)}

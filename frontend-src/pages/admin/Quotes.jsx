@@ -17,56 +17,66 @@ import { PageContainer } from '../../components/ui/PageContainer.jsx';
 import { NewQuoteModal } from './NewQuoteModal.jsx';
 import { BaseModal } from '../../components/ui/BaseModal.jsx';
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 const quoteStatusOptions = [
   {
     value: 'PENDING',
     label: 'PENDENTE',
     Icon: Clock,
-    className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300',
+    className:
+      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300',
   },
   {
     value: 'DRAFT',
     label: 'RASCUNHO',
     Icon: FileClock,
-    className: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+    className:
+      'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
   },
   {
     value: 'SENT',
     label: 'ENVIADO',
     Icon: Send,
-    className: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-300',
+    className:
+      'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-300',
   },
   {
     value: 'APPROVED',
     label: 'APROVADO',
     Icon: CheckCircle2,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300',
+    className:
+      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300',
   },
   {
     value: 'REJECTED',
     label: 'REJEITADO',
     Icon: XCircle,
-    className: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300',
+    className:
+      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300',
   },
   {
     value: 'CANCELED',
     label: 'CANCELADO',
     Icon: XCircle,
-    className: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300',
+    className:
+      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300',
   },
   {
     value: 'EXPIRED',
     label: 'EXPIRADO',
     Icon: AlertTriangle,
-    className: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-300',
+    className:
+      'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-300',
   },
   {
     value: 'CONVERTED',
     label: 'CONVERTIDO',
     Icon: CheckCircle2,
-    className: 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/70 dark:bg-indigo-950/40 dark:text-indigo-300',
+    className:
+      'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/70 dark:bg-indigo-950/40 dark:text-indigo-300',
   },
 ];
 
@@ -76,12 +86,15 @@ function canonicalQuoteStatus(status) {
 
 function getQuoteStatusConfig(status) {
   const normalizedStatus = canonicalQuoteStatus(status);
-  return quoteStatusOptions.find((item) => item.value === normalizedStatus) ?? {
-    value: normalizedStatus,
-    label: normalizedStatus || 'SEM STATUS',
-    Icon: AlertTriangle,
-    className: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
-  };
+  return (
+    quoteStatusOptions.find((item) => item.value === normalizedStatus) ?? {
+      value: normalizedStatus,
+      label: normalizedStatus || 'SEM STATUS',
+      Icon: AlertTriangle,
+      className:
+        'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300',
+    }
+  );
 }
 
 function formatQuoteDate(value) {
@@ -235,9 +248,7 @@ function QuoteDetailsModal({
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-            <p className="text-xs font-black uppercase text-slate-400 dark:text-slate-500">
-              Email
-            </p>
+            <p className="text-xs font-black uppercase text-slate-400 dark:text-slate-500">Email</p>
             <p className="break-words font-bold text-slate-800 dark:text-slate-200">
               {safeText(quote.customerEmail)}
             </p>
@@ -313,9 +324,7 @@ function QuoteDetailsModal({
             <Trash2 size={16} />
             Excluir
           </ActionButton>
-          <ActionButton onClick={onClose}>
-            Fechar
-          </ActionButton>
+          <ActionButton onClick={onClose}>Fechar</ActionButton>
         </footer>
       </div>
     </BaseModal>

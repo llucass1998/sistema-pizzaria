@@ -50,7 +50,9 @@ export const CRMService = {
       });
     }
 
-    logger.info(`[CRM] Segmentação recalculada para ${customers.length} clientes no tenant ${tenantId}.`);
+    logger.info(
+      `[CRM] Segmentação recalculada para ${customers.length} clientes no tenant ${tenantId}.`,
+    );
   },
 
   /**

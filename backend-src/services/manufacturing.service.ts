@@ -80,9 +80,7 @@ export class ManufacturingService {
         notes: input.notes ?? null,
         outputIngredientId: input.outputIngredientId ?? null,
         outputQuantityPerUnit:
-          input.outputQuantityPerUnit != null
-            ? input.outputQuantityPerUnit.toFixed(4)
-            : null,
+          input.outputQuantityPerUnit != null ? input.outputQuantityPerUnit.toFixed(4) : null,
       },
     });
 
@@ -158,10 +156,9 @@ export class ManufacturingService {
       });
 
       // Recipe é excluído do tenant-injection (sem tenantId) — query direta por productId
-      const recipes: Array<{ ingredientId: string; quantity: unknown }> =
-        await tx.recipe.findMany({
-          where: { productId: order.productId },
-        });
+      const recipes: Array<{ ingredientId: string; quantity: unknown }> = await tx.recipe.findMany({
+        where: { productId: order.productId },
+      });
 
       if (recipes.length > 0) {
         // ── 3. Calcular quantidades e verificar estoque ────────────────────────
@@ -218,8 +215,7 @@ export class ManufacturingService {
 
       // ── 5. Entrada do produto acabado (opcional) ─────────────────────────────
       if (order.outputIngredientId) {
-        const outputQty =
-          Number(order.outputQuantityPerUnit ?? 1) * Number(order.quantity);
+        const outputQty = Number(order.outputQuantityPerUnit ?? 1) * Number(order.quantity);
 
         await InventoryService.moveStock(
           {
@@ -258,10 +254,7 @@ export class ManufacturingService {
           where: { id: orderId, tenantId },
         });
         if (!order) throw businessError('Ordem de producao nao encontrada.', 404);
-        throw businessError(
-          `Ordem em status "${order.status}" nao pode ser cancelada.`,
-          422,
-        );
+        throw businessError(`Ordem em status "${order.status}" nao pode ser cancelada.`, 422);
       }
 
       const order = await tx.manufacturingOrder.findFirst({

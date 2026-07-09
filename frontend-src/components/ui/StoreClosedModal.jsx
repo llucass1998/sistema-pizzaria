@@ -9,7 +9,9 @@ export function StoreClosedModal({ isOpen, onClose, storeHours }) {
         <div className="mb-4 rounded-full bg-slate-100 p-4 text-slate-400">
           <Store size={48} />
         </div>
-        <h3 className="mb-2 text-xl font-bold text-slate-800 dark:text-slate-200">Ops, estamos fechados agora!</h3>
+        <h3 className="mb-2 text-xl font-bold text-slate-800 dark:text-slate-200">
+          Ops, estamos fechados agora!
+        </h3>
         <p className="mb-6 text-slate-600 dark:text-slate-400">
           Não é possível adicionar itens ao carrinho no momento.
         </p>

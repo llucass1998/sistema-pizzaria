@@ -85,13 +85,13 @@ recipeRouter.post(
     }
 
     const ingredientIds = items.map((i: any) => i.ingredientId);
-    
+
     // Validar se ingredientes existem no tenant
     const validIngredients = await prisma.ingredient.findMany({
       where: {
         tenantId,
-        id: { in: ingredientIds }
-      }
+        id: { in: ingredientIds },
+      },
     });
 
     if (validIngredients.length !== ingredientIds.length) {
@@ -111,7 +111,7 @@ recipeRouter.post(
             productId,
             ingredientId: item.ingredientId,
             quantity: Number(item.quantity).toFixed(4),
-          }))
+          })),
         });
       }
     });

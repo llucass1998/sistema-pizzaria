@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, AlertCircle, CheckCircle2 } from 'lucide-react';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 const PAYMENT_METHODS = [
   { id: 'PIX', label: 'PIX Instantâneo' },
@@ -57,7 +59,7 @@ export function PayablePaymentModal({ isOpen, onClose, onSuccess, payable }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: val,
@@ -102,7 +104,9 @@ export function PayablePaymentModal({ isOpen, onClose, onSuccess, payable }) {
           <p className="font-bold text-slate-800 dark:text-slate-200">{payable.description}</p>
           <div className="mt-2 flex items-center justify-between text-sm">
             <span className="text-slate-500 dark:text-slate-400">Saldo Devedor:</span>
-            <span className="font-black text-amber-600 dark:text-amber-400">R$ {remaining.toFixed(2)}</span>
+            <span className="font-black text-amber-600 dark:text-amber-400">
+              R$ {remaining.toFixed(2)}
+            </span>
           </div>
         </div>
 

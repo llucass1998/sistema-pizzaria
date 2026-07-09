@@ -6,7 +6,7 @@ import path from 'path';
 import { globalErrorHandler } from './middlewares/errorHandler.js';
 import { adminRoutes } from './routes/admin.routes.js';
 import { customerRoutes } from './routes/customer.routes.js';
-import { healthRoutes } from './routes/health.routes.js';
+import { detailedHealthRoutes, publicHealthRoutes } from './routes/health.routes.js';
 import { orderRoutes } from './routes/order.routes.js';
 import { productRoutes } from './routes/product.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
@@ -32,7 +32,8 @@ import { tenantRoutes } from './routes/tenant.routes.js';
 import { uploadRoutes } from './routes/upload.routes.js';
 import { fiscalRoutes } from './routes/fiscal.routes.js';
 import dispatchRoutes from './routes/dispatch.routes.js';
-import saasRoutes from './routes/saas.routes.js';
+import driverRoutes from './routes/driver.routes.js';
+import saasRoutes, { saasAdminRoutes } from './routes/saas.routes.js';
 import { kdsRouter } from './routes/kds.routes.js';
 import { manufacturingRouter } from './routes/manufacturing.routes.js';
 import { wasteRouter } from './routes/waste.routes.js';
@@ -58,11 +59,16 @@ app.use(cookieParser());
 // Serve arquivos de uploads (imagens de produtos, etc.)
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
+// Rotas publicas de liveness/readiness antes do tenantGuard.
+app.use('/api', statusRoutes);
+app.use('/api', publicHealthRoutes);
+
 // Rota publica para resolver tenant (antes do guard)
 app.use('/api', tenantRoutes);
 
-// SaaS Pública
+// SaaS Pública e admin global
 app.use('/api/public/saas', saasRoutes);
+app.use('/api/saas/admin', saasAdminRoutes);
 
 // Webhooks de pagamento sao chamados por terceiros e validam assinatura no controller.
 app.use(['/api/webhooks', '/api/public/webhooks'], webhookRoutes);
@@ -89,11 +95,12 @@ app.get(
   },
 );
 
+app.use('/api', deliveryRoutes);
+
 // Todas essas rotas comecam com /api.
 app.use(
   '/api',
-  statusRoutes,
-  healthRoutes,
+  detailedHealthRoutes,
   productRoutes,
   customerRoutes,
   adminRoutes,
@@ -105,24 +112,23 @@ app.use(
 );
 app.use('/api/admin', integrationRoutes);
 app.use('/api/inventory', inventoryRouter);
-app.use('/api', deliveryRoutes);
 app.use('/api/pos', posRouter);
 app.use('/api/billing', billingRoutes);
-app.use('/api/purchases', purchasesRouter);
+app.use('/api/purchases', requireAuth, purchasesRouter);
 app.use('/api/admin/purchases', requireAuth, purchasesRouter);
-app.use('/api/invoices', invoicesRouter);
+app.use('/api/invoices', requireAuth, invoicesRouter);
 app.use('/api/admin/invoices', requireAuth, invoicesRouter);
-app.use('/api/suppliers', suppliersRouter);
+app.use('/api/suppliers', requireAuth, suppliersRouter);
 app.use('/api/admin/suppliers', requireAuth, suppliersRouter);
-app.use('/api/reconciliation', reconciliationRouter);
+app.use('/api/reconciliation', requireAuth, reconciliationRouter);
 app.use('/api/admin/reconciliation', requireAuth, reconciliationRouter);
-app.use('/api/quotes', quotesRouter);
+app.use('/api/quotes', requireAuth, quotesRouter);
 app.use('/api/admin/quotes', requireAuth, quotesRouter);
-app.use('/api/receivables', receivablesRouter);
+app.use('/api/receivables', requireAuth, receivablesRouter);
 app.use('/api/admin/receivables', requireAuth, receivablesRouter);
-app.use('/api/payables', payablesRouter);
+app.use('/api/payables', requireAuth, payablesRouter);
 app.use('/api/admin/payables', requireAuth, payablesRouter);
-app.use('/api/financial', financialRouter);
+app.use('/api/financial', requireAuth, financialRouter);
 app.use('/api/admin/financial', requireAuth, financialRouter);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/recipes', recipeRouter);
@@ -134,10 +140,16 @@ app.use('/api/fiscal', fiscalRoutes);
 app.use('/api/admin/fiscal', requireAuth, fiscalRoutes);
 app.use('/api/admin/nfce', requireAuth, fiscalRoutes);
 app.use('/api/admin/dispatch', requireAuth, dispatchRoutes);
+app.use('/api/driver', requireAuth, driverRoutes);
 app.use('/api/admin/kds', kdsRouter);
 app.use('/api/admin/manufacturing', requireAuth, manufacturingRouter);
 app.use('/api/manufacturing', manufacturingRouter);
-app.use('/api/admin/reports', requireAuth, requireRole(['OWNER', 'ADMIN', 'MANAGER']), reportsRoutes);
+app.use(
+  '/api/admin/reports',
+  requireAuth,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER']),
+  reportsRoutes,
+);
 
 // Handler global de erros — deve ser o ULTIMO middleware registrado.
 // Captura qualquer erro nao tratado pelas rotas e retorna resposta JSON limpa.

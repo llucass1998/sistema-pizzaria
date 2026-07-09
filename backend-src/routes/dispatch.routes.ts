@@ -140,7 +140,9 @@ router.get('/ready-orders', async (req: Request, res: Response) => {
       where: {
         tenantId,
         fulfillmentType: 'DELIVERY',
-        status: { in: isDriverRole(req) ? ['OUT_FOR_DELIVERY'] : ['READY', 'PREPARING', 'OUT_FOR_DELIVERY'] },
+        status: {
+          in: isDriverRole(req) ? ['OUT_FOR_DELIVERY'] : ['READY', 'PREPARING', 'OUT_FOR_DELIVERY'],
+        },
         ...(driverId ? { driverId } : {}),
       },
       include: {
@@ -225,6 +227,11 @@ router.patch('/orders/:orderId/status', async (req: Request, res: Response) => {
     }
 
     const driverId = await getLinkedDriverId(req, tenantId);
+    if (isDriverRole(req) && !driverId) {
+      res.status(403).json({ message: 'Entregador ativo nao encontrado para este usuario.' });
+      return;
+    }
+
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,

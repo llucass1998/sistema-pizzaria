@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { resolveKdsStation, resolvePrepTimeMinutes, getFallbackStationByName } from './kdsHelpers.js';
+import {
+  resolveKdsStation,
+  resolvePrepTimeMinutes,
+  getFallbackStationByName,
+} from './kdsHelpers.js';
 
 describe('kdsHelpers', () => {
   it('should resolve fallback station by name correctly', () => {

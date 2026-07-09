@@ -80,7 +80,7 @@ wasteRouter.get(
   '/report',
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
-    
+
     // Suporte para filtros de data simples (opcional)
     const { start, end } = req.query as Record<string, string | undefined>;
     const startDate = start ? new Date(start) : undefined;

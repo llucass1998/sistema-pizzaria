@@ -1,14 +1,39 @@
 import { useEffect, useState, useMemo } from 'react';
 import { formatCurrencySafe } from '../../data/menuData.js';
-import { DollarSign, ShoppingBag, Clock, TrendingUp, RefreshCw, AlertCircle, ShieldAlert, CheckCircle2, ArrowRight, BarChart3, Scale, Layers, Zap } from 'lucide-react';
+import {
+  DollarSign,
+  ShoppingBag,
+  Clock,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+  ShieldAlert,
+  CheckCircle2,
+  ArrowRight,
+  BarChart3,
+  Scale,
+  Layers,
+  Zap,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, Line
+  ComposedChart,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Line,
 } from 'recharts';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ff7c43', '#f95d6a'];
@@ -27,23 +52,23 @@ export function DashboardPage() {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       if (!adminDataStr) throw new Error('Não autenticado');
       const adminData = JSON.parse(adminDataStr);
-      
+
       const [resLegacy, resFin] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/dashboard/summary`, {
-          headers: { 'Authorization': `Bearer ${adminData.token}` }
+          headers: { Authorization: `Bearer ${adminData.token}` },
         }),
         fetch(`${API_BASE_URL}/admin/financial/summary?period=${period}`, {
-          headers: { 'Authorization': `Bearer ${adminData.token}` }
-        })
+          headers: { Authorization: `Bearer ${adminData.token}` },
+        }),
       ]);
-      
+
       if (!resLegacy.ok && !resFin.ok) throw new Error('Falha ao carregar dados');
-      
+
       if (resLegacy.ok) {
         const dataLegacy = await resLegacy.json();
         setSummary(dataLegacy);
       }
-      
+
       if (resFin.ok) {
         const dataFin = await resFin.json();
         setFinancialSummary(dataFin);
@@ -73,7 +98,10 @@ export function DashboardPage() {
       <div className="p-6 md:p-8 flex flex-col items-center justify-center h-full min-h-[400px] text-slate-500">
         <AlertCircle size={48} className="text-red-500 mb-4" />
         <p className="mb-4">{error}</p>
-        <button onClick={loadSummary} className="px-4 py-2 bg-slate-900 text-white rounded-lg flex items-center gap-2">
+        <button
+          onClick={loadSummary}
+          className="px-4 py-2 bg-slate-900 text-white rounded-lg flex items-center gap-2"
+        >
           <RefreshCw size={16} /> Tentar Novamente
         </button>
       </div>
@@ -110,7 +138,10 @@ export function DashboardPage() {
     },
     {
       title: 'Lucro Operacional Estimado',
-      value: formatCurrencySafe(kpisFin.operatingProfit ?? ((kpisFin.realizedRevenue ?? 0) - (kpisFin.operatingExpenses ?? 0))),
+      value: formatCurrencySafe(
+        kpisFin.operatingProfit ??
+          (kpisFin.realizedRevenue ?? 0) - (kpisFin.operatingExpenses ?? 0),
+      ),
       icon: TrendingUp,
       color: 'text-purple-600 dark:text-purple-400',
       bg: 'bg-purple-50 dark:bg-purple-950/30',
@@ -134,8 +165,12 @@ export function DashboardPage() {
             </span>
             <span className="text-xs text-slate-400">America/Sao_Paulo</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1">Dashboard Gerencial</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">Acompanhamento de performance operacional, CMV e resultado financeiro em tempo real.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1">
+            Dashboard Gerencial
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">
+            Acompanhamento de performance operacional, CMV e resultado financeiro em tempo real.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -155,12 +190,15 @@ export function DashboardPage() {
             Atualizado: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '--:--'}
           </span>
 
-          <button 
-            onClick={loadSummary} 
+          <button
+            onClick={loadSummary}
             disabled={isLoading}
             className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
-            <RefreshCw size={18} className={`text-slate-600 dark:text-slate-300 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              size={18}
+              className={`text-slate-600 dark:text-slate-300 ${isLoading ? 'animate-spin' : ''}`}
+            />
           </button>
         </div>
       </div>
@@ -170,8 +208,12 @@ export function DashboardPage() {
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 flex items-start gap-3">
           <ShieldAlert size={20} className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
           <div className="text-xs md:text-sm text-amber-900 dark:text-amber-200">
-            <span className="font-bold">Atenção ao CMV Estimado (Parcial):</span> Foram encontrados {financialSummary.cmv.unreliableProducts?.length || 0} itens vendidos sem ficha técnica cadastrada. O cálculo de CMV não inventou custos para evitar distorção financeira.
-            <Link to="/admin/recipes" className="font-bold underline ml-1 hover:text-amber-700">Cadastrar Fichas &rarr;</Link>
+            <span className="font-bold">Atenção ao CMV Estimado (Parcial):</span> Foram encontrados{' '}
+            {financialSummary.cmv.unreliableProducts?.length || 0} itens vendidos sem ficha técnica
+            cadastrada. O cálculo de CMV não inventou custos para evitar distorção financeira.
+            <Link to="/admin/recipes" className="font-bold underline ml-1 hover:text-amber-700">
+              Cadastrar Fichas &rarr;
+            </Link>
           </div>
         </div>
       )}
@@ -180,14 +222,20 @@ export function DashboardPage() {
         <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-3 px-4 flex items-center gap-3">
           <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
           <div className="text-xs md:text-sm text-emerald-900 dark:text-emerald-200 font-medium">
-            <span className="font-bold">CMV 100% Preciso ({financialSummary.cmv.cmvPercentage?.toFixed(1)}%):</span> Todos os produtos vendidos possuem ficha técnica e custo apurado.
+            <span className="font-bold">
+              CMV 100% Preciso ({financialSummary.cmv.cmvPercentage?.toFixed(1)}%):
+            </span>{' '}
+            Todos os produtos vendidos possuem ficha técnica e custo apurado.
           </div>
         </div>
       )}
 
       {/* Acesso rápido aos módulos financeiros executivos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/admin/fluxo-caixa" className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform">
+        <Link
+          to="/admin/fluxo-caixa"
+          className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg">
               <TrendingUp size={20} className="text-emerald-400" />
@@ -200,7 +248,10 @@ export function DashboardPage() {
           <ArrowRight size={18} className="text-slate-400" />
         </Link>
 
-        <Link to="/admin/dre" className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform">
+        <Link
+          to="/admin/dre"
+          className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg">
               <BarChart3 size={20} className="text-purple-400" />
@@ -213,7 +264,10 @@ export function DashboardPage() {
           <ArrowRight size={18} className="text-slate-400" />
         </Link>
 
-        <Link to="/admin/conciliacao" className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform">
+        <Link
+          to="/admin/conciliacao"
+          className="bg-gradient-to-r from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950 p-4 rounded-xl border border-slate-700/50 shadow-sm flex items-center justify-between hover:scale-[1.01] transition-transform"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg">
               <Scale size={20} className="text-blue-400" />
@@ -229,32 +283,46 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-start justify-between transition-all hover:shadow-md">
+          <div
+            key={idx}
+            className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-start justify-between transition-all hover:shadow-md"
+          >
             <div className="min-w-0 flex-1 mr-3">
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider truncate">{card.title}</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 truncate">{card.value}</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">{card.subtitle}</p>
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider truncate">
+                {card.title}
+              </p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 truncate">
+                {card.value}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+                {card.subtitle}
+              </p>
             </div>
-            <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center ${card.bg} ${card.color}`}>
+            <div
+              className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center ${card.bg} ${card.color}`}
+            >
               <card.icon size={24} />
             </div>
           </div>
         ))}
       </div>
-      
+
       {/* ── Gráfico hora-a-hora + Pico de Vendas ── */}
       {(() => {
         // Preencher todas as 24h, mesmo zeradas
         const ALL_HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
         const rawByHour = charts?.revenueByHour ?? [];
-        const hourMap = new Map(rawByHour.map(d => [d.hour, d]));
-        const fullHourData = ALL_HOURS.map(h => ({
+        const hourMap = new Map(rawByHour.map((d) => [d.hour, d]));
+        const fullHourData = ALL_HOURS.map((h) => ({
           hour: h,
           revenue: hourMap.get(h)?.revenue ?? 0,
           orders: hourMap.get(h)?.orders ?? 0,
         }));
-        const peakHour = fullHourData.reduce((best, cur) => cur.orders > (best?.orders ?? 0) ? cur : best, null);
-        const hasData = fullHourData.some(d => d.orders > 0);
+        const peakHour = fullHourData.reduce(
+          (best, cur) => (cur.orders > (best?.orders ?? 0) ? cur : best),
+          null,
+        );
+        const hasData = fullHourData.some((d) => d.orders > 0);
         return (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             {/* Card Pico de Vendas */}
@@ -263,13 +331,21 @@ export function DashboardPage() {
                 <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                   <Zap size={20} className="text-amber-600 dark:text-amber-400" />
                 </div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-white">Pico de Vendas</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                  Pico de Vendas
+                </h3>
               </div>
               {hasData && peakHour ? (
                 <>
-                  <p className="text-4xl font-black text-amber-600 dark:text-amber-400">{peakHour.hour}</p>
-                  <p className="text-sm text-slate-500 mt-1">{peakHour.orders} pedido{peakHour.orders !== 1 ? 's' : ''} nesta hora</p>
-                  <p className="text-sm font-semibold text-emerald-600 mt-0.5">{formatCurrencySafe(peakHour.revenue)}</p>
+                  <p className="text-4xl font-black text-amber-600 dark:text-amber-400">
+                    {peakHour.hour}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {peakHour.orders} pedido{peakHour.orders !== 1 ? 's' : ''} nesta hora
+                  </p>
+                  <p className="text-sm font-semibold text-emerald-600 mt-0.5">
+                    {formatCurrencySafe(peakHour.revenue)}
+                  </p>
                 </>
               ) : (
                 <p className="text-sm text-slate-400 italic">Sem pedidos no período</p>
@@ -278,40 +354,76 @@ export function DashboardPage() {
 
             {/* Gráfico hora-a-hora — faturamento + quantidade */}
             <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Pedidos &amp; Faturamento por Hora</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                Pedidos &amp; Faturamento por Hora
+              </h3>
               {hasData ? (
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={fullHourData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <ComposedChart
+                      data={fullHourData}
+                      margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                       <XAxis dataKey="hour" stroke="#94a3b8" fontSize={10} interval={2} />
                       <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#94a3b8"
+                        fontSize={10}
+                        tickFormatter={(v) => `R$${v}`}
+                      />
                       <RechartsTooltip
                         formatter={(value, name) => [
-                          name === 'revenue' ? formatCurrencySafe(value) : `${value} pedido${value !== 1 ? 's' : ''}`,
+                          name === 'revenue'
+                            ? formatCurrencySafe(value)
+                            : `${value} pedido${value !== 1 ? 's' : ''}`,
                           name === 'revenue' ? 'Faturamento' : 'Pedidos',
                         ]}
                         labelStyle={{ color: '#0f172a', fontWeight: 'bold' }}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        contentStyle={{
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        }}
                       />
-                      <Legend formatter={(v) => v === 'orders' ? 'Pedidos' : 'Faturamento'} />
-                      <Bar yAxisId="left" dataKey="orders" fill="#f97316" opacity={0.8} radius={[3, 3, 0, 0]} barSize={8} name="orders" />
-                      <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2} dot={false} name="revenue" />
+                      <Legend formatter={(v) => (v === 'orders' ? 'Pedidos' : 'Faturamento')} />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="orders"
+                        fill="#f97316"
+                        opacity={0.8}
+                        radius={[3, 3, 0, 0]}
+                        barSize={8}
+                        name="orders"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#0ea5e9"
+                        strokeWidth={2}
+                        dot={false}
+                        name="revenue"
+                      />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-              ) : <EmptyState />}
+              ) : (
+                <EmptyState />
+              )}
             </div>
           </div>
         );
       })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-
         {/* Gráfico de Pedidos por Status */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Pedidos por Status</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
+            Pedidos por Status
+          </h3>
           {charts?.ordersByStatus?.length > 0 ? (
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -324,21 +436,27 @@ export function DashboardPage() {
                     outerRadius={100}
                     paddingAngle={5}
                     dataKey="value"
-                    label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
                     {charts.ordersByStatus.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                   />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyState />}
+          ) : (
+            <EmptyState />
+          )}
         </div>
 
         {/* Gráfico de Produtos Mais Vendidos */}
@@ -347,24 +465,53 @@ export function DashboardPage() {
           {charts?.topProducts?.length > 0 ? (
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={charts.topProducts} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                  <XAxis type="number" stroke="#64748b" fontSize={12} />
-                  <YAxis type="category" dataKey="name" stroke="#64748b" fontSize={12} width={100} />
-                  <RechartsTooltip 
-                    cursor={{fill: 'transparent'}}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                <BarChart
+                  data={charts.topProducts}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={true}
+                    vertical={false}
+                    stroke="#e2e8f0"
                   />
-                  <Bar dataKey="quantity" fill="#10b981" radius={[0, 4, 4, 0]} barSize={24} name="Qtd Vendida" />
+                  <XAxis type="number" stroke="#64748b" fontSize={12} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="#64748b"
+                    fontSize={12}
+                    width={100}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                  />
+                  <Bar
+                    dataKey="quantity"
+                    fill="#10b981"
+                    radius={[0, 4, 4, 0]}
+                    barSize={24}
+                    name="Qtd Vendida"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyState />}
+          ) : (
+            <EmptyState />
+          )}
         </div>
 
         {/* Gráfico de Formas de Pagamento */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Formas de Pagamento (Faturamento)</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">
+            Formas de Pagamento (Faturamento)
+          </h3>
           {charts?.paymentsByMethod?.length > 0 ? (
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -375,22 +522,28 @@ export function DashboardPage() {
                     cy="50%"
                     outerRadius={100}
                     dataKey="value"
-                    label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
                     {charts.paymentsByMethod.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip 
-                    formatter={(value) => [formatCurrencySafe(value), "Faturamento"]}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  <RechartsTooltip
+                    formatter={(value) => [formatCurrencySafe(value), 'Faturamento']}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                   />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyState />}
+          ) : (
+            <EmptyState />
+          )}
         </div>
       </div>
     </div>

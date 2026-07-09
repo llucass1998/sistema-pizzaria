@@ -9,7 +9,7 @@ export async function getStoreSettings() {
   const tenantId = getTenantId();
 
   let existing = await prisma.storeSetting.findUnique({ where: { tenantId } });
-  
+
   if (!existing) {
     existing = await prisma.storeSetting.create({
       data: {

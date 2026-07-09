@@ -56,7 +56,9 @@ class MockFiscalProvider implements FiscalProvider {
 }
 
 function getFiscalProvider(): FiscalProvider {
-  const provider = String(process.env.FISCAL_PROVIDER ?? 'MOCK').trim().toUpperCase();
+  const provider = String(process.env.FISCAL_PROVIDER ?? 'MOCK')
+    .trim()
+    .toUpperCase();
   if (provider !== 'MOCK') {
     throw new Error('Provider fiscal real ainda nao configurado neste ambiente.');
   }

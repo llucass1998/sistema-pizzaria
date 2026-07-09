@@ -9,7 +9,10 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 import { couponRoutes } from './coupon.routes.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireRole } from '../middlewares/requireRole.js';
-import { getOrderPaymentStatus, getPrimaryPaymentMethod } from '../services/orderFinancial.service.js';
+import {
+  getOrderPaymentStatus,
+  getPrimaryPaymentMethod,
+} from '../services/orderFinancial.service.js';
 import { normalizeAdminRole } from '../utils/adminRoles.js';
 
 export const adminRoutes = Router();
@@ -196,7 +199,7 @@ adminRoutes.get(
 
     // Initialize hours (e.g., from 16 to 23 based on store hours, but let's initialize dynamically based on data, or prefill typical hours)
     // For a cleaner chart, let's just group by hour dynamically based on today's orders
-    
+
     for (const order of orders) {
       // 1. Status count
       const statusKey = order.status;
@@ -217,7 +220,8 @@ adminRoutes.get(
           (sum, payment) => sum + Number(payment.amount?.toString() || 0),
           0,
         ) ?? 0;
-      const paidAmount = paymentStatus === 'PAID' && paidFromInvoice === 0 ? orderTotal : paidFromInvoice;
+      const paidAmount =
+        paymentStatus === 'PAID' && paidFromInvoice === 0 ? orderTotal : paidFromInvoice;
 
       if (paymentStatus === 'CANCELED') {
         cancelledRevenue += orderTotal;
@@ -239,7 +243,11 @@ adminRoutes.get(
         for (const item of order.items) {
           if (!item.product) continue;
           const prodKey = item.productId;
-          const prodData = topProductsMap.get(prodKey) || { name: item.product.name, quantity: 0, revenue: 0 };
+          const prodData = topProductsMap.get(prodKey) || {
+            name: item.product.name,
+            quantity: 0,
+            revenue: 0,
+          };
           prodData.quantity += item.quantity;
           prodData.revenue += Number(item.total?.toString() || 0);
           topProductsMap.set(prodKey, prodData);
@@ -249,11 +257,17 @@ adminRoutes.get(
         if (order.invoice?.payments?.length) {
           for (const payment of order.invoice.payments) {
             const methodKey = payment.method;
-            paymentsByMethodMap.set(methodKey, (paymentsByMethodMap.get(methodKey) || 0) + Number(payment.amount?.toString() || 0));
+            paymentsByMethodMap.set(
+              methodKey,
+              (paymentsByMethodMap.get(methodKey) || 0) + Number(payment.amount?.toString() || 0),
+            );
           }
         } else {
           const methodKey = getPrimaryPaymentMethod(order);
-          paymentsByMethodMap.set(methodKey, (paymentsByMethodMap.get(methodKey) || 0) + paidAmount);
+          paymentsByMethodMap.set(
+            methodKey,
+            (paymentsByMethodMap.get(methodKey) || 0) + paidAmount,
+          );
         }
       }
 
@@ -282,7 +296,7 @@ adminRoutes.get(
       DELIVERED: 'Finalizado',
       CANCELED: 'Cancelado',
     };
-    
+
     const ordersByStatus = Array.from(ordersByStatusMap.entries()).map(([status, count]) => ({
       name: statusTranslation[status] || status,
       value: count,
@@ -407,7 +421,7 @@ adminRoutes.get(
     const admins = await prisma.admin.findMany({
       where: { tenantId },
       select: adminSelect,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
     res.json(admins);
   }),
@@ -430,7 +444,7 @@ adminRoutes.post(
     }
 
     const existing = await prisma.admin.findFirst({
-      where: { tenantId, email }
+      where: { tenantId, email },
     });
 
     if (existing) {
@@ -445,9 +459,9 @@ adminRoutes.post(
           name,
           email,
           passwordHash: await hashPassword(password),
-          role
+          role,
         },
-        select: adminSelect
+        select: adminSelect,
       });
 
       if (role === 'DRIVER') {
@@ -467,7 +481,7 @@ adminRoutes.post(
     });
 
     res.status(201).json(admin);
-  })
+  }),
 );
 
 adminRoutes.patch(
@@ -495,7 +509,7 @@ adminRoutes.patch(
       const updatedAdmin = await tx.admin.update({
         where: { id, tenantId },
         data: { role },
-        select: adminSelect
+        select: adminSelect,
       });
 
       if (role === 'DRIVER') {
@@ -526,7 +540,7 @@ adminRoutes.patch(
     });
 
     res.json(admin);
-  })
+  }),
 );
 
 adminRoutes.patch(
@@ -563,16 +577,16 @@ adminRoutes.patch(
 
     const admin = await prisma.admin.update({
       where: { id, tenantId },
-      data: { 
-        ...(name && { name }), 
+      data: {
+        ...(name && { name }),
         ...(email && { email }),
-        ...(passwordHash && { passwordHash })
+        ...(passwordHash && { passwordHash }),
       },
-      select: adminSelect
+      select: adminSelect,
     });
 
     res.json(admin);
-  })
+  }),
 );
 
 adminRoutes.post(
@@ -591,7 +605,9 @@ adminRoutes.post(
     }
 
     if (targetAdmin.role === 'OWNER' && targetAdmin.id !== (req as any).adminId) {
-      res.status(403).json({ message: 'Não é permitido redefinir a senha do OWNER por outro administrador.' });
+      res
+        .status(403)
+        .json({ message: 'Não é permitido redefinir a senha do OWNER por outro administrador.' });
       return;
     }
 
@@ -607,7 +623,7 @@ adminRoutes.post(
       message: 'Senha redefinida com sucesso.',
       temporaryPassword: tempPassword,
     });
-  })
+  }),
 );
 
 adminRoutes.delete(
@@ -617,7 +633,7 @@ adminRoutes.delete(
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
     const id = req.params.id as string;
-    
+
     // Nao permitir excluir a si mesmo nesta rota (previne bloquear o acesso acidentalmente)
     if (id === (req as any).adminId) {
       res.status(403).json({ message: 'Você não pode excluir a sua própria conta logada.' });
@@ -631,14 +647,16 @@ adminRoutes.delete(
     }
 
     if (targetAdmin.role === 'OWNER') {
-      res.status(403).json({ message: 'O nível de acesso (OWNER) não pode ser excluído diretamente.' });
+      res
+        .status(403)
+        .json({ message: 'O nível de acesso (OWNER) não pode ser excluído diretamente.' });
       return;
     }
 
     await prisma.admin.delete({
-      where: { id, tenantId }
+      where: { id, tenantId },
     });
 
     res.status(204).send();
-  })
+  }),
 );

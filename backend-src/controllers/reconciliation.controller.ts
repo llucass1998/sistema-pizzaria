@@ -32,7 +32,9 @@ export const ReconciliationController = {
           supplier: { select: { id: true, name: true, cnpj: true } },
           purchaseReceipts: {
             include: {
-              purchaseOrder: { select: { id: true, totalAmount: true, status: true, expectedDate: true } },
+              purchaseOrder: {
+                select: { id: true, totalAmount: true, status: true, expectedDate: true },
+              },
             },
           },
         },
@@ -44,7 +46,9 @@ export const ReconciliationController = {
           supplier: { select: { id: true, name: true } },
           receipts: {
             include: {
-              inboundInvoice: { select: { id: true, number: true, totalAmount: true, status: true } },
+              inboundInvoice: {
+                select: { id: true, number: true, totalAmount: true, status: true },
+              },
             },
           },
         },
@@ -126,7 +130,10 @@ export const ReconciliationController = {
       }
     }
 
-    const pendingPayablesTotal = payables.reduce((sum, p) => sum + Number(p.remainingAmount || p.amount || 0), 0);
+    const pendingPayablesTotal = payables.reduce(
+      (sum, p) => sum + Number(p.remainingAmount || p.amount || 0),
+      0,
+    );
     pendingAmount += pendingPayablesTotal;
 
     res.json({

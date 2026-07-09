@@ -4,8 +4,8 @@ import { Panel } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { formatCurrency } from '../../data/menuData.js';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function RecipesPage() {
@@ -13,7 +13,7 @@ export function RecipesPage() {
   const [ingredients, setIngredients] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [recipeItems, setRecipeItems] = useState([]);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const { showSuccess, showError } = useToast();
 
@@ -21,12 +21,12 @@ export function RecipesPage() {
     try {
       setIsLoading(true);
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
-      
+
       const [prodRes, ingRes] = await Promise.all([
         fetch(`${API_BASE_URL}/produtos`), // Produto é público
-        fetch(`${API_BASE_URL}/inventory/ingredients`, {
-          headers: { 'Authorization': `Bearer ${adminData.token}` }
-        })
+        fetch(`${API_BASE_URL}/admin/inventory/ingredients`, {
+          headers: { Authorization: `Bearer ${adminData.token}` },
+        }),
       ]);
 
       const prodData = await prodRes.json();
@@ -53,16 +53,18 @@ export function RecipesPage() {
 
     try {
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
-      const response = await fetch(`${API_BASE_URL}/recipes/product/${productId}`, {
-        headers: { 'Authorization': `Bearer ${adminData.token}` }
+      const response = await fetch(`${API_BASE_URL}/admin/recipes/product/${productId}`, {
+        headers: { Authorization: `Bearer ${adminData.token}` },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        setRecipeItems(data.map(item => ({
-          ingredientId: item.ingredientId,
-          quantity: item.quantity
-        })));
+        setRecipeItems(
+          data.map((item) => ({
+            ingredientId: item.ingredientId,
+            quantity: item.quantity,
+          })),
+        );
       } else {
         setRecipeItems([]);
       }
@@ -96,19 +98,21 @@ export function RecipesPage() {
 
   async function handleSaveRecipe() {
     if (!selectedProductId) return;
-    
+
     try {
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
-      
-      const response = await fetch(`${API_BASE_URL}/recipes/product/${selectedProductId}`, {
+
+      const response = await fetch(`${API_BASE_URL}/admin/recipes/product/${selectedProductId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminData.token}`
+          Authorization: `Bearer ${adminData.token}`,
         },
-        body: JSON.stringify({ items: recipeItems.map(i => ({...i, quantity: Number(i.quantity)})) })
+        body: JSON.stringify({
+          items: recipeItems.map((i) => ({ ...i, quantity: Number(i.quantity) })),
+        }),
       });
-      
+
       const result = await response.json();
       if (response.ok) {
         showSuccess('Ficha técnica salva com sucesso!');
@@ -120,12 +124,12 @@ export function RecipesPage() {
     }
   }
 
-  const selectedProduct = products.find(p => p.id === selectedProductId);
-  
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
+
   const estimatedCost = recipeItems.reduce((sum, item) => {
-    const ing = ingredients.find(i => i.id === item.ingredientId);
+    const ing = ingredients.find((i) => i.id === item.ingredientId);
     if (!ing) return sum;
-    return sum + (Number(item.quantity) * Number(ing.cost));
+    return sum + Number(item.quantity) * Number(ing.cost);
   }, 0);
 
   if (isLoading) {
@@ -151,19 +155,30 @@ export function RecipesPage() {
           <Panel className="p-4">
             <h2 className="font-bold text-slate-900 dark:text-white mb-4">Selecione o Produto</h2>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <select 
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <select
                 size={10}
                 className="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white"
                 value={selectedProductId}
                 onChange={handleProductSelect}
               >
-                <option value="" disabled>-- Escolha um produto --</option>
-                {products.filter(p => p.isAvailable !== false).map(p => (
-                  <option key={p.id} value={p.id} className="py-2 px-2 border-b border-slate-100 dark:border-slate-800">
-                    {p.name}
-                  </option>
-                ))}
+                <option value="" disabled>
+                  -- Escolha um produto --
+                </option>
+                {products
+                  .filter((p) => p.isAvailable !== false)
+                  .map((p) => (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      className="py-2 px-2 border-b border-slate-100 dark:border-slate-800"
+                    >
+                      {p.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </Panel>
@@ -175,17 +190,22 @@ export function RecipesPage() {
             <Panel className="flex flex-col h-full min-h-[500px]">
               <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 rounded-t-xl">
                 <div>
-                  <h2 className="font-black text-lg text-slate-900 dark:text-white">{selectedProduct.name}</h2>
-                  <p className="text-sm text-slate-500 font-bold">Custo Estimado: <span className="text-red-600">{formatCurrency(estimatedCost)}</span></p>
+                  <h2 className="font-black text-lg text-slate-900 dark:text-white">
+                    {selectedProduct.name}
+                  </h2>
+                  <p className="text-sm text-slate-500 font-bold">
+                    Custo Estimado:{' '}
+                    <span className="text-red-600">{formatCurrency(estimatedCost)}</span>
+                  </p>
                 </div>
-                <button 
+                <button
                   onClick={addRecipeItem}
                   className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-lg transition text-sm"
                 >
                   <Plus size={16} /> Adicionar Insumo
                 </button>
               </div>
-              
+
               <div className="flex-1 p-4 space-y-3 overflow-y-auto">
                 {recipeItems.length === 0 ? (
                   <div className="text-center py-10 text-slate-400">
@@ -194,27 +214,38 @@ export function RecipesPage() {
                   </div>
                 ) : (
                   recipeItems.map((item, index) => {
-                    const ing = ingredients.find(i => i.id === item.ingredientId);
-                    const itemCost = ing ? (Number(ing.cost) * Number(item.quantity)) : 0;
-                    
+                    const ing = ingredients.find((i) => i.id === item.ingredientId);
+                    const itemCost = ing ? Number(ing.cost) * Number(item.quantity) : 0;
+
                     return (
-                      <div key={index} className="flex gap-3 items-center bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div
+                        key={index}
+                        className="flex gap-3 items-center bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700"
+                      >
                         <div className="flex-1">
-                          <label className="block text-xs font-bold text-slate-500 mb-1">Ingrediente</label>
-                          <select 
+                          <label className="block text-xs font-bold text-slate-500 mb-1">
+                            Ingrediente
+                          </label>
+                          <select
                             className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded p-1.5 text-sm font-bold text-slate-800 dark:text-white"
                             value={item.ingredientId}
-                            onChange={(e) => updateRecipeItem(index, 'ingredientId', e.target.value)}
+                            onChange={(e) =>
+                              updateRecipeItem(index, 'ingredientId', e.target.value)
+                            }
                           >
-                            {ingredients.map(i => (
-                              <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>
+                            {ingredients.map((i) => (
+                              <option key={i.id} value={i.id}>
+                                {i.name} ({i.unit})
+                              </option>
                             ))}
                           </select>
                         </div>
                         <div className="w-24">
                           <label className="block text-xs font-bold text-slate-500 mb-1">Qtd</label>
-                          <input 
-                            type="number" step="0.001" min="0.001"
+                          <input
+                            type="number"
+                            step="0.001"
+                            min="0.001"
                             className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded p-1.5 text-sm font-bold text-center text-slate-800 dark:text-white"
                             value={item.quantity}
                             onChange={(e) => updateRecipeItem(index, 'quantity', e.target.value)}
@@ -226,7 +257,7 @@ export function RecipesPage() {
                           </span>
                         </div>
                         <div className="pt-4">
-                          <button 
+                          <button
                             onClick={() => removeRecipeItem(index)}
                             className="text-red-400 hover:text-red-600 p-1 bg-red-50 dark:bg-red-900/20 rounded"
                           >
@@ -234,13 +265,13 @@ export function RecipesPage() {
                           </button>
                         </div>
                       </div>
-                    )
+                    );
                   })
                 )}
               </div>
-              
+
               <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                <button 
+                <button
                   onClick={handleSaveRecipe}
                   className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white hover:bg-red-700 font-bold rounded-lg transition shadow-md shadow-red-500/20"
                 >

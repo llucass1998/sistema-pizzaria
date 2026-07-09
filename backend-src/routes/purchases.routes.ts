@@ -23,10 +23,7 @@ purchasesRouter.post('/inbound-invoices', asyncHandler(PurchasesController.creat
 purchasesRouter.get('/rfqs', asyncHandler(PurchasesController.getRFQs));
 purchasesRouter.post('/rfqs', asyncHandler(PurchasesController.createRFQ));
 purchasesRouter.patch('/rfqs/:id/status', asyncHandler(PurchasesController.updateRFQStatus));
-purchasesRouter.post(
-  '/rfqs/:id/convert-to-po',
-  asyncHandler(PurchasesController.convertRFQtoPO),
-);
+purchasesRouter.post('/rfqs/:id/convert-to-po', asyncHandler(PurchasesController.convertRFQtoPO));
 
 // ── Pedidos de Compra (PO) ────────────────────────────────────────────────────
 //   GET    /api/purchases/orders            — lista com filtros
@@ -38,10 +35,7 @@ purchasesRouter.post('/orders', asyncHandler(PurchasesController.createPurchaseO
 purchasesRouter.get('/orders/:id', asyncHandler(PurchasesController.getPurchaseOrderById));
 purchasesRouter.put('/orders/:id', asyncHandler(PurchasesController.updatePurchaseOrder));
 purchasesRouter.patch('/orders/:id/cancel', asyncHandler(PurchasesController.cancelPurchaseOrder));
-purchasesRouter.post(
-  '/orders/:id/receive',
-  asyncHandler(PurchasesController.receivePurchaseOrder),
-);
+purchasesRouter.post('/orders/:id/receive', asyncHandler(PurchasesController.receivePurchaseOrder));
 
 // Apelidos na raiz para compatibilidade com a REST API padrão (GET /api/admin/purchases)
 purchasesRouter.get('/', asyncHandler(PurchasesController.getPurchaseOrders));
@@ -49,4 +43,3 @@ purchasesRouter.post('/', asyncHandler(PurchasesController.createPurchaseOrder))
 purchasesRouter.get('/:id', asyncHandler(PurchasesController.getPurchaseOrderById));
 purchasesRouter.put('/:id', asyncHandler(PurchasesController.updatePurchaseOrder));
 purchasesRouter.patch('/:id/cancel', asyncHandler(PurchasesController.cancelPurchaseOrder));
-

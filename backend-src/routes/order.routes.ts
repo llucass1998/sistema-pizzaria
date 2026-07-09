@@ -47,11 +47,9 @@ import {
   normalizePaymentMethod,
   normalizePaymentMode,
 } from '../services/orderFinancial.service.js';
-import { addOrderEventClient, emitOrderEvent } from '../services/orderEvents.service.js';
+import { emitOrderEvent } from '../services/orderEvents.service.js';
 
 export const orderRoutes = Router();
-
-const ORDER_LIVE_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'];
 
 function getItemOptionIds(item: OrderItemInput) {
   const ids = new Set<string>();
@@ -161,7 +159,10 @@ function canUseDepositForPayment(settings: any, paymentMethod: string, cardPayme
     return process.env.ENABLE_ONLINE_PIX === 'true' && methods.includes('PIX_ONLINE');
   }
   if (['CREDIT_CARD', 'DEBIT_CARD', 'ONLINE_CARD'].includes(paymentMethod)) {
-    return cardPaymentMode === 'ONLINE' && (methods.includes('CARD_ONLINE') || methods.includes('MERCADOPAGO'));
+    return (
+      cardPaymentMode === 'ONLINE' &&
+      (methods.includes('CARD_ONLINE') || methods.includes('MERCADOPAGO'))
+    );
   }
   return false;
 }
@@ -170,16 +171,58 @@ function buildPaymentIdempotencyKey(orderId: string, type: string) {
   return `${orderId}:${type}`;
 }
 
-orderRoutes.get(
-  '/admin/orders/events',
-  requireAdmin,
-  requireRole(ORDER_LIVE_ROLES),
-  asyncHandler(async (req, res) => {
-    const tenantId = getTenantId();
-    const removeClient = addOrderEventClient(tenantId, res);
-    req.on('close', removeClient);
-  }),
-);
+async function calculateDeliveryFeeForOrder({
+  tenantId,
+  settings,
+  fulfillmentType,
+  address,
+  subtotal,
+}: {
+  tenantId: string;
+  settings: any;
+  fulfillmentType: FulfillmentType;
+  address: Record<string, unknown>;
+  subtotal: number;
+}) {
+  if (fulfillmentType !== FulfillmentType.DELIVERY) {
+    return { deliveryFee: 0 };
+  }
+
+  const mode = normalizeText(settings.deliveryFeeMode || 'FIXED').toUpperCase();
+
+  if (mode === 'NEIGHBORHOOD') {
+    const neighborhood = normalizeText(address.neighborhood);
+    if (!neighborhood) {
+      return { deliveryFee: 0, message: 'Bairro é obrigatório para cálculo da taxa.' };
+    }
+
+    const zone = await prisma.deliveryZone.findFirst({
+      where: { tenantId, name: { equals: neighborhood, mode: 'insensitive' }, isActive: true },
+    });
+
+    if (!zone) {
+      return { deliveryFee: 0, message: 'Ainda não entregamos neste bairro.' };
+    }
+
+    if (zone.minOrderValue && subtotal < Number(zone.minOrderValue)) {
+      return {
+        deliveryFee: Number(zone.fee),
+        message: `O pedido mínimo para este bairro é R$ ${Number(zone.minOrderValue).toFixed(2)}`,
+      };
+    }
+
+    return { deliveryFee: Number(zone.fee) };
+  }
+
+  if (mode === 'DISTANCE') {
+    return {
+      deliveryFee: 0,
+      message: 'Entrega por distância exige geolocalização ativa antes de finalizar o pedido.',
+    };
+  }
+
+  return { deliveryFee: Number(settings.deliveryFee) };
+}
 
 // ─── POST /pedidos ─────────────────────────────────────────────────────────────
 // Cria um pedido para retirada em loja ou entrega.
@@ -485,7 +528,11 @@ orderRoutes.post(
         .filter(Boolean)
         .join(', ');
 
-      const station = resolveKdsStation(product as any, (product as any).menuCategory, itemDisplayName);
+      const station = resolveKdsStation(
+        product as any,
+        (product as any).menuCategory,
+        itemDisplayName,
+      );
       const prepTime = resolvePrepTimeMinutes(
         station,
         (product as any).prepTimeMinutes,
@@ -533,10 +580,24 @@ orderRoutes.post(
       return;
     }
 
-    const deliveryFeeBase =
-      fulfillmentType === FulfillmentType.DELIVERY ? Number(settings.deliveryFee) : 0;
+    const address = (req.body.address ?? {}) as Record<string, unknown>;
+    const deliveryFeeResult = await calculateDeliveryFeeForOrder({
+      tenantId,
+      settings,
+      fulfillmentType,
+      address,
+      subtotal,
+    });
+
+    if (deliveryFeeResult.message) {
+      res.status(400).json({ message: deliveryFeeResult.message });
+      return;
+    }
+
+    const deliveryFeeBase = deliveryFeeResult.deliveryFee;
+    let chargedDeliveryFee = deliveryFeeBase;
     const serviceFeeValue = Number(settings.serviceFee);
-    let totalFees = deliveryFeeBase + serviceFeeValue;
+    let totalFees = chargedDeliveryFee + serviceFeeValue;
 
     // 6.1 Processar Cupons (CRM)
     let discount = 0;
@@ -557,7 +618,8 @@ orderRoutes.post(
               } else if (coupon.type === 'FIXED') {
                 discount = Number(coupon.value);
               } else if (coupon.type === 'FREE_DELIVERY') {
-                totalFees -= deliveryFeeBase; // Isenta taxa de entrega
+                chargedDeliveryFee = 0;
+                totalFees = serviceFeeValue;
               }
             } else {
               res.status(400).json({
@@ -606,7 +668,8 @@ orderRoutes.post(
     }
     const requestedPaymentMode = normalizePaymentMode(req.body.paymentMode, 'FULL');
     const paymentMode =
-      requestedPaymentMode === 'DEPOSIT' && canUseDepositForPayment(settings, paymentMethod, cardPaymentMode)
+      requestedPaymentMode === 'DEPOSIT' &&
+      canUseDepositForPayment(settings, paymentMethod, cardPaymentMode)
         ? 'DEPOSIT'
         : 'FULL';
     if (requestedPaymentMode === 'DEPOSIT' && paymentMode !== 'DEPOSIT') {
@@ -622,8 +685,6 @@ orderRoutes.post(
         : { depositPercent: null, depositAmount: 0, remainingAmount: 0 };
     const initialAmountDue = paymentMode === 'DEPOSIT' ? total : total;
     const initialRemainingStatus = paymentMode === 'DEPOSIT' ? 'PENDING' : 'NOT_APPLICABLE';
-
-    const address = (req.body.address ?? {}) as Record<string, unknown>;
 
     try {
       const order = await prisma.$transaction(async (tx) => {
@@ -644,7 +705,7 @@ orderRoutes.post(
               fulfillmentType === FulfillmentType.DELIVERY
                 ? normalizeText(address.complement) || null
                 : null,
-            deliveryFee: totalFees.toFixed(2),
+            deliveryFee: chargedDeliveryFee.toFixed(2),
             subtotal: subtotal.toFixed(2),
             total: total.toFixed(2),
             paymentMethod,
@@ -691,7 +752,6 @@ orderRoutes.post(
 
         return createdOrder;
       });
-
 
       // Se for pagamento online (ex: PIX ou Cartão ONLINE), geramos o link de pagamento
       if (
@@ -895,140 +955,144 @@ orderRoutes.post(
       return;
     }
 
-    const updatedOrder = await basePrisma.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({
-        where: { id: orderId, tenantId },
-        include: { invoice: { include: { payments: true } } },
-      });
-
-      if (!order) {
-        throw Object.assign(new Error('Pedido nao encontrado.'), { statusCode: 404 });
-      }
-
-      const amountDueCents = moneyToCents((order as any).amountDue ?? order.total);
-      if (amountDueCents <= 0 || order.paymentStatus === FINANCIAL_STATUS.PAID) {
-        throw Object.assign(new Error('Este pedido nao possui saldo pendente.'), { statusCode: 409 });
-      }
-
-      const paymentAmountCents = requestedAmountCents ?? amountDueCents;
-      if (paymentAmountCents <= 0) {
-        throw Object.assign(new Error('Valor do pagamento deve ser maior que zero.'), {
-          statusCode: 400,
+    const updatedOrder = await basePrisma
+      .$transaction(async (tx) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, tenantId },
+          include: { invoice: { include: { payments: true } } },
         });
-      }
-      if (paymentAmountCents > amountDueCents) {
-        throw Object.assign(new Error('Valor informado nao pode ultrapassar o saldo pendente.'), {
-          statusCode: 400,
-        });
-      }
 
-      const idempotencyKey = buildPaymentIdempotencyKey(order.id, 'REMAINING_PAYMENT');
-      const existingRemaining = await tx.paymentTransaction.findFirst({
-        where: {
-          tenantId,
-          orderId: order.id,
-          type: 'REMAINING_PAYMENT',
-          status: FINANCIAL_STATUS.PAID,
-        },
-      });
-      if (existingRemaining) {
-        throw Object.assign(new Error('Pagamento do restante ja foi registrado.'), {
-          statusCode: 409,
-        });
-      }
+        if (!order) {
+          throw Object.assign(new Error('Pedido nao encontrado.'), { statusCode: 404 });
+        }
 
-      const paidAt = new Date();
-      const amountPaidCents = moneyToCents((order as any).amountPaid ?? 0) + paymentAmountCents;
-      const nextDueCents = Math.max(0, amountDueCents - paymentAmountCents);
-      const nextPaymentStatus =
-        nextDueCents === 0 ? FINANCIAL_STATUS.PAID : FINANCIAL_STATUS.PARTIALLY_PAID;
+        const amountDueCents = moneyToCents((order as any).amountDue ?? order.total);
+        if (amountDueCents <= 0 || order.paymentStatus === FINANCIAL_STATUS.PAID) {
+          throw Object.assign(new Error('Este pedido nao possui saldo pendente.'), {
+            statusCode: 409,
+          });
+        }
 
-      await tx.paymentTransaction.create({
-        data: {
-          tenantId,
-          orderId: order.id,
-          provider: 'MANUAL',
-          externalId: `${idempotencyKey}:${Date.now()}`,
-          type: 'REMAINING_PAYMENT',
-          amount: centsToMoney(paymentAmountCents).toFixed(2),
-          status: FINANCIAL_STATUS.PAID,
-          rawStatus: 'MANUAL_CONFIRMED',
-          idempotencyKey,
-          paidAt,
-          metadata: {
-            method,
-            note,
-            adminId: (req as any).adminId ?? null,
+        const paymentAmountCents = requestedAmountCents ?? amountDueCents;
+        if (paymentAmountCents <= 0) {
+          throw Object.assign(new Error('Valor do pagamento deve ser maior que zero.'), {
+            statusCode: 400,
+          });
+        }
+        if (paymentAmountCents > amountDueCents) {
+          throw Object.assign(new Error('Valor informado nao pode ultrapassar o saldo pendente.'), {
+            statusCode: 400,
+          });
+        }
+
+        const idempotencyKey = buildPaymentIdempotencyKey(order.id, 'REMAINING_PAYMENT');
+        const existingRemaining = await tx.paymentTransaction.findFirst({
+          where: {
+            tenantId,
+            orderId: order.id,
+            type: 'REMAINING_PAYMENT',
+            status: FINANCIAL_STATUS.PAID,
           },
-        },
-      });
+        });
+        if (existingRemaining) {
+          throw Object.assign(new Error('Pagamento do restante ja foi registrado.'), {
+            statusCode: 409,
+          });
+        }
 
-      const invoice =
-        order.invoice ??
-        (await tx.invoice.create({
+        const paidAt = new Date();
+        const amountPaidCents = moneyToCents((order as any).amountPaid ?? 0) + paymentAmountCents;
+        const nextDueCents = Math.max(0, amountDueCents - paymentAmountCents);
+        const nextPaymentStatus =
+          nextDueCents === 0 ? FINANCIAL_STATUS.PAID : FINANCIAL_STATUS.PARTIALLY_PAID;
+
+        await tx.paymentTransaction.create({
           data: {
             tenantId,
             orderId: order.id,
-            totalAmount: order.total,
-            status: nextPaymentStatus,
-          },
-        }));
-
-      await tx.payment.create({
-        data: {
-          invoiceId: invoice.id,
-          amount: centsToMoney(paymentAmountCents).toFixed(2),
-          method,
-          status: 'COMPLETED',
-          paymentDate: paidAt,
-        },
-      });
-
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: { status: nextPaymentStatus },
-      });
-
-      const activeShift = await tx.shift.findFirst({
-        where: { tenantId, status: 'OPEN' },
-      });
-      if (activeShift) {
-        await tx.cashTransaction.create({
-          data: {
-            tenantId,
-            shiftId: activeShift.id,
-            type: 'SALE',
+            provider: 'MANUAL',
+            externalId: `${idempotencyKey}:${Date.now()}`,
+            type: 'REMAINING_PAYMENT',
             amount: centsToMoney(paymentAmountCents).toFixed(2),
-            description: `Pagamento restante Pedido #${order.id.slice(0, 8)}`,
-            paymentMethodId: method,
+            status: FINANCIAL_STATUS.PAID,
+            rawStatus: 'MANUAL_CONFIRMED',
+            idempotencyKey,
+            paidAt,
+            metadata: {
+              method,
+              note,
+              adminId: (req as any).adminId ?? null,
+            },
           },
         });
-      }
 
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          paymentStatus: nextPaymentStatus,
-          amountPaid: centsToMoney(amountPaidCents).toFixed(2),
-          amountDue: centsToMoney(nextDueCents).toFixed(2),
-          remainingPaymentStatus: nextDueCents === 0 ? FINANCIAL_STATUS.PAID : 'PARTIAL',
-          remainingPaidAt: nextDueCents === 0 ? paidAt : null,
-          paidAt: nextPaymentStatus === FINANCIAL_STATUS.PAID ? paidAt : order.paidAt,
-        },
-      });
+        const invoice =
+          order.invoice ??
+          (await tx.invoice.create({
+            data: {
+              tenantId,
+              orderId: order.id,
+              totalAmount: order.total,
+              status: nextPaymentStatus,
+            },
+          }));
 
-      return tx.order.findFirst({
-        where: { id: order.id, tenantId },
-        include: {
-          customer: true,
-          items: { include: { product: true } },
-          paymentTransactions: true,
-          invoice: { include: { payments: true } },
-        },
+        await tx.payment.create({
+          data: {
+            invoiceId: invoice.id,
+            amount: centsToMoney(paymentAmountCents).toFixed(2),
+            method,
+            status: 'COMPLETED',
+            paymentDate: paidAt,
+          },
+        });
+
+        await tx.invoice.update({
+          where: { id: invoice.id },
+          data: { status: nextPaymentStatus },
+        });
+
+        const activeShift = await tx.shift.findFirst({
+          where: { tenantId, status: 'OPEN' },
+        });
+        if (activeShift) {
+          await tx.cashTransaction.create({
+            data: {
+              tenantId,
+              shiftId: activeShift.id,
+              type: 'SALE',
+              amount: centsToMoney(paymentAmountCents).toFixed(2),
+              description: `Pagamento restante Pedido #${order.id.slice(0, 8)}`,
+              paymentMethodId: method,
+            },
+          });
+        }
+
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            paymentStatus: nextPaymentStatus,
+            amountPaid: centsToMoney(amountPaidCents).toFixed(2),
+            amountDue: centsToMoney(nextDueCents).toFixed(2),
+            remainingPaymentStatus: nextDueCents === 0 ? FINANCIAL_STATUS.PAID : 'PARTIAL',
+            remainingPaidAt: nextDueCents === 0 ? paidAt : null,
+            paidAt: nextPaymentStatus === FINANCIAL_STATUS.PAID ? paidAt : order.paidAt,
+          },
+        });
+
+        return tx.order.findFirst({
+          where: { id: order.id, tenantId },
+          include: {
+            customer: true,
+            items: { include: { product: true } },
+            paymentTransactions: true,
+            invoice: { include: { payments: true } },
+          },
+        });
+      })
+      .catch((error: any) => {
+        throw Object.assign(error, { statusCode: error.statusCode ?? 500 });
       });
-    }).catch((error: any) => {
-      throw Object.assign(error, { statusCode: error.statusCode ?? 500 });
-    });
 
     emitOrderEvent(tenantId, 'order-updated', updatedOrder as any);
     res.json(updatedOrder);
@@ -1394,7 +1458,9 @@ orderRoutes.post(
 
       if (halfAndHalfInput) {
         if (!halfAndHalfInput.secondProductId) {
-          res.status(400).json({ message: `Selecione o segundo sabor da meia-meia de "${product.name}".` });
+          res
+            .status(400)
+            .json({ message: `Selecione o segundo sabor da meia-meia de "${product.name}".` });
           return;
         }
         secondProduct = productsById.get(halfAndHalfInput.secondProductId);
@@ -1406,7 +1472,9 @@ orderRoutes.post(
           ? variantsById.get(halfAndHalfInput.secondVariantId)
           : undefined;
         if (halfAndHalfInput.secondVariantId && (!secondVariant || !secondVariant.isAvailable)) {
-          res.status(400).json({ message: `O tamanho selecionado para a metade não está disponível.` });
+          res
+            .status(400)
+            .json({ message: `O tamanho selecionado para a metade não está disponível.` });
           return;
         }
         halfAndHalfData = {
@@ -1424,7 +1492,10 @@ orderRoutes.post(
 
       const quantity = Number(item.quantity) || 1;
       const baseUnitPrice = halfAndHalfData
-        ? Math.max(Number(variant?.price ?? product.price), Number(secondVariant?.price ?? secondProduct?.price ?? 0))
+        ? Math.max(
+            Number(variant?.price ?? product.price),
+            Number(secondVariant?.price ?? secondProduct?.price ?? 0),
+          )
         : Number(variant?.price ?? product.price);
       const optionsTotal = selectedOptions.reduce((sum, opt) => sum + Number(opt.price), 0);
       const unitPrice = baseUnitPrice + optionsTotal;
@@ -1442,7 +1513,11 @@ orderRoutes.post(
         .filter(Boolean)
         .join(', ');
 
-      const station = resolveKdsStation(product as any, (product as any).menuCategory, product.name);
+      const station = resolveKdsStation(
+        product as any,
+        (product as any).menuCategory,
+        product.name,
+      );
       const prepTime = resolvePrepTimeMinutes(
         station,
         (product as any).prepTimeMinutes,

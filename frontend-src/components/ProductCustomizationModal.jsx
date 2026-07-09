@@ -1,5 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Check, ChevronRight, ChevronLeft, ShoppingCart, AlertCircle, Pizza, Layers, Plus, Info } from 'lucide-react';
+import {
+  X,
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  ShoppingCart,
+  AlertCircle,
+  Pizza,
+  Layers,
+  Plus,
+  Info,
+} from 'lucide-react';
 
 export function ProductCustomizationModal({
   isOpen,
@@ -73,7 +84,10 @@ export function ProductCustomizationModal({
     if (product.allowHalfAndHalf && variants.length > 0) {
       steps.push({ id: 3, label: 'Metade', icon: Pizza });
     }
-    if ((product.optionGroups && product.optionGroups.length > 0) || (isPizza && dbAddons.length > 0)) {
+    if (
+      (product.optionGroups && product.optionGroups.length > 0) ||
+      (isPizza && dbAddons.length > 0)
+    ) {
       steps.push({ id: 4, label: 'Adicionais', icon: Plus });
     }
     steps.push({ id: 5, label: 'Revisão', icon: Check });
@@ -99,7 +113,7 @@ export function ProductCustomizationModal({
       targetProd.variants.find(
         (v) =>
           (v.code && variant.code && v.code === variant.code) ||
-          v.name.trim().toLowerCase() === variant.name.trim().toLowerCase()
+          v.name.trim().toLowerCase() === variant.name.trim().toLowerCase(),
       ) || null
     );
   };
@@ -205,7 +219,9 @@ export function ProductCustomizationModal({
         const groupOptionIds = (group.options || []).map((o) => o.id);
         const currentInGroup = prev.filter((id) => groupOptionIds.includes(id));
         if (currentInGroup.length >= group.maxChoices) {
-          setValidationError(`Máximo de ${group.maxChoices} seleções permitidas para "${group.name}".`);
+          setValidationError(
+            `Máximo de ${group.maxChoices} seleções permitidas para "${group.name}".`,
+          );
           return prev;
         }
       }
@@ -252,7 +268,9 @@ export function ProductCustomizationModal({
           const groupOptionIds = (group.options || []).map((o) => o.id);
           const count = selectedAddonIds.filter((id) => groupOptionIds.includes(id)).length;
           if (count < group.minChoices) {
-            setValidationError(`O grupo "${group.name}" exige pelo menos ${group.minChoices} opção selecionada.`);
+            setValidationError(
+              `O grupo "${group.name}" exige pelo menos ${group.minChoices} opção selecionada.`,
+            );
             return;
           }
         }
@@ -291,7 +309,9 @@ export function ProductCustomizationModal({
           const groupOptionIds = (group.options || []).map((o) => o.id);
           const count = selectedAddonIds.filter((id) => groupOptionIds.includes(id)).length;
           if (count < group.minChoices) {
-            setValidationError(`O grupo "${group.name}" exige pelo menos ${group.minChoices} escolha.`);
+            setValidationError(
+              `O grupo "${group.name}" exige pelo menos ${group.minChoices} escolha.`,
+            );
             setCurrentStep(4);
             return;
           }
@@ -299,17 +319,17 @@ export function ProductCustomizationModal({
       }
     }
 
-    const optionIds = [
-      ...selectedAddonIds,
-      selectedCrustId || null,
-    ].filter(Boolean);
+    const optionIds = [...selectedAddonIds, selectedCrustId || null].filter(Boolean);
 
     const customizationsArr = [];
     if (selectedVariant) customizationsArr.push(`Tamanho: ${selectedVariant.name}`);
-    if (selectedCrust) customizationsArr.push(`Borda: ${selectedCrust.name} (+${formatCurrency(selectedCrust.price)})`);
+    if (selectedCrust)
+      customizationsArr.push(
+        `Borda: ${selectedCrust.name} (+${formatCurrency(selectedCrust.price)})`,
+      );
     if (selectedAddonsList.length > 0) {
       customizationsArr.push(
-        ...selectedAddonsList.map((a) => `${a.name} (+${formatCurrency(a.price)})`)
+        ...selectedAddonsList.map((a) => `${a.name} (+${formatCurrency(a.price)})`),
       );
     }
     const customizationsText = customizationsArr.join(' | ');
@@ -356,7 +376,11 @@ export function ProductCustomizationModal({
         <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900/80 dark:to-slate-900">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 text-3xl shadow-sm border border-slate-200 dark:border-slate-700">
             {product.imageUrl ? (
-              <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span>{product.image || '🍕'}</span>
             )}
@@ -366,7 +390,8 @@ export function ProductCustomizationModal({
               {product.name}
             </h2>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 line-clamp-1">
-              {product.description || 'Personalize os detalhes do item antes de adicionar ao carrinho.'}
+              {product.description ||
+                'Personalize os detalhes do item antes de adicionar ao carrinho.'}
             </p>
           </div>
           <button
@@ -397,8 +422,8 @@ export function ProductCustomizationModal({
                   isActive
                     ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
                     : isDone
-                    ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'
+                      ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'
                 }`}
               >
                 <StepIcon size={14} className={isActive ? 'animate-pulse' : ''} />
@@ -426,7 +451,9 @@ export function ProductCustomizationModal({
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wide">
                   1. Escolha o Tamanho
                 </h3>
-                <span className="text-xs font-bold text-red-600 dark:text-red-400">* Obrigatório</span>
+                <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                  * Obrigatório
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {variants.map((variant) => {
@@ -449,7 +476,9 @@ export function ProductCustomizationModal({
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                            isSelected ? 'border-red-600 bg-red-600' : 'border-slate-300 dark:border-slate-600'
+                            isSelected
+                              ? 'border-red-600 bg-red-600'
+                              : 'border-slate-300 dark:border-slate-600'
                           }`}
                         >
                           {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
@@ -570,13 +599,16 @@ export function ProductCustomizationModal({
               {isHalfAndHalf && (
                 <div className="space-y-3 pt-2">
                   <h4 className="text-xs font-black text-slate-500 uppercase">
-                    Selecione o segundo sabor ({selectedVariant ? selectedVariant.name : 'Tamanho selecionado'})
+                    Selecione o segundo sabor (
+                    {selectedVariant ? selectedVariant.name : 'Tamanho selecionado'})
                   </h4>
 
                   {halfAndHalfCandidates.length === 0 ? (
                     <div className="rounded-xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 flex items-center gap-2.5">
                       <Info size={18} className="shrink-0 text-amber-600" />
-                      <span>Não há outro sabor compatível cadastrado neste mesmo tamanho ou categoria.</span>
+                      <span>
+                        Não há outro sabor compatível cadastrado neste mesmo tamanho ou categoria.
+                      </span>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
@@ -585,7 +617,8 @@ export function ProductCustomizationModal({
                         const candVariant = findMatchingVariant(cand, selectedVariant);
                         const candPrice = Number(candVariant?.price ?? cand.price ?? 0);
                         const isSelected = selectedHalfProductId === candId;
-                        const isHigher = candPrice > Number(selectedVariant?.price ?? product.price ?? 0);
+                        const isHigher =
+                          candPrice > Number(selectedVariant?.price ?? product.price ?? 0);
 
                         return (
                           <button
@@ -604,10 +637,14 @@ export function ProductCustomizationModal({
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div
                                 className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                  isSelected ? 'border-red-600 bg-red-600' : 'border-slate-300 dark:border-slate-600'
+                                  isSelected
+                                    ? 'border-red-600 bg-red-600'
+                                    : 'border-slate-300 dark:border-slate-600'
                                 }`}
                               >
-                                {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                {isSelected && (
+                                  <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                )}
                               </div>
                               <span className="font-bold text-sm truncate">{cand.name}</span>
                             </div>
@@ -763,7 +800,9 @@ export function ProductCustomizationModal({
                     </div>
                     <div className="flex justify-between font-medium">
                       <span>• Metade 2: {halfAndHalfData.secondProductName}</span>
-                      <span>{formatCurrency(selectedHalfVariant?.price ?? selectedHalfProduct?.price)}</span>
+                      <span>
+                        {formatCurrency(selectedHalfVariant?.price ?? selectedHalfProduct?.price)}
+                      </span>
                     </div>
                     <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 pt-1">
                       ⚠️ Cobrado o valor da metade de maior preço
@@ -775,18 +814,27 @@ export function ProductCustomizationModal({
                 {selectedCrust && (
                   <div className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300">
                     <span className="font-bold">• Borda: {selectedCrust.name}</span>
-                    <span className="font-black text-red-600 dark:text-red-400">+ {formatCurrency(selectedCrust.price)}</span>
+                    <span className="font-black text-red-600 dark:text-red-400">
+                      + {formatCurrency(selectedCrust.price)}
+                    </span>
                   </div>
                 )}
 
                 {/* Adicionais */}
                 {selectedAddonsList.length > 0 && (
                   <div className="space-y-1 pt-1">
-                    <span className="block text-xs font-black text-slate-500 uppercase">Adicionais selecionados:</span>
+                    <span className="block text-xs font-black text-slate-500 uppercase">
+                      Adicionais selecionados:
+                    </span>
                     {selectedAddonsList.map((a) => (
-                      <div key={a.id} className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300 pl-2">
+                      <div
+                        key={a.id}
+                        className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300 pl-2"
+                      >
                         <span>• {a.name}</span>
-                        <span className="font-black text-red-600 dark:text-red-400">+ {formatCurrency(a.price)}</span>
+                        <span className="font-black text-red-600 dark:text-red-400">
+                          + {formatCurrency(a.price)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -795,7 +843,9 @@ export function ProductCustomizationModal({
                 {/* Total Final */}
                 <div className="flex items-center justify-between border-t-2 border-dashed border-slate-300 dark:border-slate-700 pt-3 text-lg font-black text-slate-900 dark:text-white">
                   <span>Total Calculado</span>
-                  <span className="text-red-600 dark:text-red-400 text-xl">{formatCurrency(totalPrice)}</span>
+                  <span className="text-red-600 dark:text-red-400 text-xl">
+                    {formatCurrency(totalPrice)}
+                  </span>
                 </div>
               </div>
             </div>

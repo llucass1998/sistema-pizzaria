@@ -30,7 +30,9 @@ vi.mock('../services/shiftAudit.service.js', () => ({
     getShiftSummary: vi.fn(async () => mocks.summaryMock),
     validateSangria: vi.fn(async (_t: string, _s: string, amount: number) => {
       if (amount > 500) {
-        throw Object.assign(new Error('Saldo em caixa insuficiente para esta sangria.'), { statusCode: 422 });
+        throw Object.assign(new Error('Saldo em caixa insuficiente para esta sangria.'), {
+          statusCode: 422,
+        });
       }
     }),
     getAuditReport: vi.fn(async () => mocks.reportMock),

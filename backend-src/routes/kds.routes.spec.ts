@@ -251,7 +251,10 @@ describe('kdsRouter', () => {
           displayName: 'Pizza Calabresa',
           quantity: 1,
           kdsStatus: 'PREPARING',
-          product: { name: 'Pizza Calabresa', menuCategory: { kdsStation: 'OVEN', prepTimeMinutes: 15 } },
+          product: {
+            name: 'Pizza Calabresa',
+            menuCategory: { kdsStation: 'OVEN', prepTimeMinutes: 15 },
+          },
         },
         {
           id: 'item-coca',
@@ -260,7 +263,10 @@ describe('kdsRouter', () => {
           displayName: 'Coca Cola',
           quantity: 1,
           kdsStatus: 'PREPARING',
-          product: { name: 'Coca Cola', menuCategory: { kdsStation: 'BEVERAGE', prepTimeMinutes: 2 } },
+          product: {
+            name: 'Coca Cola',
+            menuCategory: { kdsStation: 'BEVERAGE', prepTimeMinutes: 2 },
+          },
         },
       ],
     });

@@ -111,7 +111,7 @@ docker-compose.yml # Orquestração dos serviços
 
 ---
 
-## 📦 Como rodar localmente
+## 📦 Como rodar localmente com Docker/WSL
 
 Clone o repositório:
 
@@ -120,66 +120,64 @@ git clone https://github.com/llucass1998/sistema-pizzaria.git
 cd sistema-pizzaria
 ```
 
-Instale as dependências:
+Este projeto deve rodar Node, npm, Prisma, testes e scripts dentro de containers. Evite executar `npm`, `node`, `npx`, `prisma`, `vite` ou `vitest` diretamente no Windows/PowerShell.
+
+Suba o ambiente de desenvolvimento isolado (`db-dev`, `waha-dev`, `api-dev`, `web-dev`, volumes `pizzaria_dev_*`):
 
 ```bash
-npm install
+bash scripts/dev.sh up
 ```
 
-Crie o arquivo `.env` a partir do exemplo:
+Execute comandos npm dentro do container `tools`:
 
 ```bash
-cp .env.example .env
+bash scripts/dev.sh npm run typecheck:strict
+bash scripts/dev.sh npm run test:api
+bash scripts/dev.sh npm run build
+bash scripts/dev.sh npm run build:api
 ```
 
-Configure a URL do banco:
-
-```env
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/pizzaria?schema=public"
-```
-
-Gere o Prisma Client:
+Execute Prisma dentro do container:
 
 ```bash
-npm run prisma:generate
+bash scripts/dev.sh prisma generate
+bash scripts/dev.sh prisma migrate deploy
 ```
 
-Rode as migrations:
+Abra um shell Linux isolado do projeto:
 
 ```bash
-npm run prisma:migrate
+bash scripts/dev.sh shell
 ```
 
-Suba a API:
+Para rebuild/redeploy local sem remover banco ou volumes:
 
 ```bash
-npm run api
+bash scripts/compose-redeploy.sh
 ```
 
-Suba o frontend em outro terminal:
-
-```bash
-npm run dev
-```
+Nunca use `docker compose down -v` neste projeto sem backup e aprovação explícita.
 
 ---
 
 ## 🧪 Scripts disponíveis
 
+Rode os scripts sempre via container:
+
 ```bash
-npm run dev                # Inicia o frontend com Vite
-npm run api                # Inicia a API Node.js/Express
-npm run build              # Gera build do frontend
-npm run build:api          # Compila a API TypeScript
-npm run typecheck:strict   # Validação TypeScript rigorosa
-npm run test               # Executa testes com Vitest
-npm run test:api           # Executa testes da API
-npm run test:e2e           # Executa testes e2e
-npm run test:smoke         # Executa smoke tests
-npm run test:all           # Typecheck + testes + build
-npm run prisma:generate    # Gera Prisma Client
-npm run prisma:migrate     # Executa migrations em desenvolvimento
-npm run prisma:deploy      # Aplica migrations em produção
+bash scripts/dev.sh npm run dev                # Inicia o frontend com Vite dentro do container
+bash scripts/dev.sh npm run api                # Inicia a API Node.js/Express dentro do container
+bash scripts/dev.sh npm run build              # Gera build do frontend
+bash scripts/dev.sh npm run build:api          # Compila a API TypeScript
+bash scripts/dev.sh npm run typecheck:strict   # Validação TypeScript rigorosa
+bash scripts/dev.sh npm run test               # Executa testes com Vitest
+bash scripts/dev.sh npm run test:api           # Executa testes da API
+bash scripts/dev.sh npm run test:e2e           # Executa testes e2e
+bash scripts/dev.sh npm run test:smoke         # Executa smoke tests
+bash scripts/dev.sh npm run test:all           # Typecheck + testes + build
+bash scripts/dev.sh npm run prisma:generate    # Gera Prisma Client
+bash scripts/dev.sh npm run prisma:migrate     # Executa migrations em desenvolvimento
+bash scripts/dev.sh npm run prisma:deploy      # Aplica migrations em produção
 ```
 
 ---

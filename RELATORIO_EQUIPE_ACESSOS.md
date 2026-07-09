@@ -3,10 +3,12 @@
 ## 1. Problemas Encontrados e Corrigidos
 
 **A) Alerta Verde Vazio**
+
 - **Causa:** O componente `<Alert>` na tela de `AdminsPage.jsx` estava renderizando silenciosamente caixas verdes/vermelhas mesmo quando a string de `success`/`error` era vazia (`''`). Isso ocorria porque a validação booleana `success && <Alert>` considerava o bloco válido e o componente não aceitava props vazias sem mostrar seus estilos.
 - **Solução:** Adicionamos um operador ternário rigoroso no JSX: `{success ? <Alert type="success">{success}</Alert> : null}` e garantimos que as mensagens fossem limpas apropriadamente nas chamadas da API.
 
 **B) Ações Incompletas (Falta de Editar e Excluir Usuários)**
+
 - **Causa:** O componente anterior listava usuários e permitia alterar as funções (roles), mas não permitia corrigir nomes, e-mails ou excluir um administrador que saiu da empresa.
 - **Solução:**
   1. Implementamos `handleEditSubmit` no Frontend, abrindo um formulário no lugar do card de administrador quando "Editar" é clicado.
@@ -16,6 +18,7 @@
 
 **Proteger o Administrador Principal:**
 Para não correr risco do lojista se bloquear do próprio sistema:
+
 - Foi criada a trava no back-end (`DELETE /admin/users/:id`): se a `role` do alvo for `OWNER`, a API rejeita a exclusão.
 - Também a API rejeita quando um usuário tenta excluir o próprio ID `req.admin.id === id`, evitando acidentes de logout eterno.
 - O front-end espelha essas regras e desabilita (visual cinza `disabled`) os botões de editar e excluir caso seja o usuário atual ou caso seja `OWNER` (exceto se você também for o `OWNER`).
@@ -39,4 +42,5 @@ Por exemplo: `CASHIER` enxerga `Frente de Caixa (PDV)` e `Pedidos Live`, mas nã
 - Teste Manual na UI: Componente exibe Loading/Empty states adequadamente, as caixas de alerta estão ocultas, card de edição converte suavemente sem perder o layout (`grid`).
 
 ## 5. Pendências
+
 - Sem pendências! O painel de equipe/acessos atingiu os critérios de aceite estipulados e o sistema SaaS já está operacional.

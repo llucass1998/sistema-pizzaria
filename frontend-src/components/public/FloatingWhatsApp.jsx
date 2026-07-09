@@ -4,9 +4,9 @@ import { getWhatsappLink } from '../../data/menuData.js';
 
 export function FloatingWhatsApp({ store }) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   if (!store?.whatsappNumber) return null;
-  
+
   const whatsappLink = getWhatsappLink(store);
 
   return (
@@ -23,7 +23,7 @@ export function FloatingWhatsApp({ store }) {
                 <p className="text-xs text-white/80">{store.name || 'Loja'}</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="text-white/80 hover:text-white transition"
               aria-label="Fechar"

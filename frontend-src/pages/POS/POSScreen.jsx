@@ -36,7 +36,6 @@ function getSavedAdminSession() {
   try {
     return JSON.parse(window.localStorage.getItem(savedAdminKey) ?? 'null');
   } catch (error) {
-    
     return null;
   }
 }
@@ -125,7 +124,6 @@ export default function POSScreen({ apiBaseUrl, products = [], categories = fall
         setCatalog(data.filter((product) => product.isAvailable).map(normalizeProduct));
       }
     } catch (error) {
-      
       // Mantem produtos locais para o PDV continuar usavel em demo.
     }
   }, [apiBaseUrl]);
@@ -143,7 +141,6 @@ export default function POSScreen({ apiBaseUrl, products = [], categories = fall
         setShift(data);
       }
     } catch (error) {
-      
       // Caixa fechado ou API indisponivel nao impede montagem da tela.
     }
   }, [apiBaseUrl, authHeaders, session?.token]);
@@ -495,7 +492,9 @@ function CartPanel({
           {cart.length === 0 ? (
             <div className="flex h-full min-h-56 flex-col items-center justify-center rounded-lg border border-dashed border-white/10 bg-black/10 text-center">
               <ShoppingCart size={42} className="mb-3 text-slate-700 dark:text-slate-300" />
-              <p className="text-sm font-black uppercase text-slate-600 dark:text-slate-400">Comanda vazia</p>
+              <p className="text-sm font-black uppercase text-slate-600 dark:text-slate-400">
+                Comanda vazia
+              </p>
             </div>
           ) : (
             cart.map((item) => (

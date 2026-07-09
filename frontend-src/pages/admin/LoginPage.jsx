@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { ShieldCheck, RefreshCw, ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
-  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
 
 export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
   const [email, setEmail] = useState('admin@riopizzas.com');
@@ -30,13 +28,16 @@ export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
         throw new Error(data.message ?? 'Email ou senha invalidos.');
       }
 
-      window.localStorage.setItem('pizzaria-admin', JSON.stringify({
-        admin: data.admin,
-        token: data.token,
-        role: data.role,
-      }));
-      
-      navigate(data.role === 'DRIVER' ? '/admin/dispatch' : '/admin/dashboard', { replace: true });
+      window.localStorage.setItem(
+        'pizzaria-admin',
+        JSON.stringify({
+          admin: data.admin,
+          token: data.token,
+          role: data.role,
+        }),
+      );
+
+      navigate(data.role === 'DRIVER' ? '/motoboy' : '/admin/dashboard', { replace: true });
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Erro ao entrar.');
     } finally {
@@ -62,8 +63,12 @@ export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
             <ShieldCheck size={24} />
           </div>
           <div>
-            <p className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">Painel administrativo</p>
-            <h1 className="text-2xl font-black text-slate-950 dark:text-slate-50">Entrar no SaaS</h1>
+            <p className="text-xs font-black uppercase text-slate-500 dark:text-slate-400">
+              Painel administrativo
+            </p>
+            <h1 className="text-2xl font-black text-slate-950 dark:text-slate-50">
+              Entrar no SaaS
+            </h1>
           </div>
         </div>
 
@@ -86,13 +91,13 @@ export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
               className="h-11 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 text-sm font-bold text-slate-900 dark:text-slate-100 outline-none transition focus:border-slate-950 dark:focus:border-slate-700"
             />
           </div>
-          
+
           {error && (
             <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600 dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-200">
               {error}
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={isLoading}

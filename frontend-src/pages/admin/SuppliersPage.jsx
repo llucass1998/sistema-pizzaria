@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Search, Filter, Edit2, CheckCircle2, XCircle, AlertCircle, RefreshCw, Phone, Mail, DollarSign, ShoppingBag } from 'lucide-react';
+import {
+  Building2,
+  Plus,
+  Search,
+  Filter,
+  Edit2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  Phone,
+  Mail,
+  DollarSign,
+  ShoppingBag,
+} from 'lucide-react';
 import { formatCurrencySafe, formatPhoneBR } from '../../data/menuData.js';
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
@@ -21,7 +37,7 @@ export default function SuppliersPage() {
     cnpj: '',
     email: '',
     phone: '',
-    isActive: true
+    isActive: true,
   });
 
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
@@ -37,7 +53,8 @@ export default function SuppliersPage() {
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4 animate-pulse" />
           <h2 className="text-2xl font-black text-slate-950 mb-2">Acesso Restrito</h2>
           <p className="text-slate-600 font-bold max-w-md mx-auto">
-            O seu perfil (<span className="text-red-600 font-black">{userRole}</span>) não possui permissões para acessar o cadastro de Fornecedores.
+            O seu perfil (<span className="text-red-600 font-black">{userRole}</span>) não possui
+            permissões para acessar o cadastro de Fornecedores.
           </p>
         </div>
       </div>
@@ -45,8 +62,8 @@ export default function SuppliersPage() {
   }
 
   const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   };
 
   async function loadData() {
@@ -74,12 +91,14 @@ export default function SuppliersPage() {
 
   // Filtros
   const filteredSuppliers = suppliers.filter((sup) => {
-    const matchesSearch = search.trim() === '' || 
+    const matchesSearch =
+      search.trim() === '' ||
       sup.name?.toLowerCase().includes(search.toLowerCase()) ||
       sup.cnpj?.includes(search.trim()) ||
       sup.email?.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'ALL' || 
+
+    const matchesStatus =
+      statusFilter === 'ALL' ||
       (statusFilter === 'ACTIVE' && sup.isActive) ||
       (statusFilter === 'INACTIVE' && !sup.isActive);
 
@@ -87,10 +106,12 @@ export default function SuppliersPage() {
   });
 
   // Métricas
-  const activeCount = suppliers.filter(s => s.isActive).length;
-  const inactiveCount = suppliers.filter(s => !s.isActive).length;
+  const activeCount = suppliers.filter((s) => s.isActive).length;
+  const inactiveCount = suppliers.filter((s) => !s.isActive).length;
   const totalVolume = suppliers.reduce((sum, s) => sum + Number(s.metrics?.totalPurchased || 0), 0);
-  const withOrdersCount = suppliers.filter(s => (s.metrics?.ordersCount || 0) > 0 || (s.metrics?.invoicesCount || 0) > 0).length;
+  const withOrdersCount = suppliers.filter(
+    (s) => (s.metrics?.ordersCount || 0) > 0 || (s.metrics?.invoicesCount || 0) > 0,
+  ).length;
 
   const handleOpenNew = () => {
     setEditingSupplier(null);
@@ -105,7 +126,7 @@ export default function SuppliersPage() {
       cnpj: supplier.cnpj || '',
       email: supplier.email || '',
       phone: supplier.phone || '',
-      isActive: supplier.isActive ?? true
+      isActive: supplier.isActive ?? true,
     });
     setIsModalOpen(true);
   };
@@ -116,16 +137,16 @@ export default function SuppliersPage() {
 
     try {
       setSubmitting(true);
-      const url = editingSupplier 
-        ? `${API_BASE_URL}/admin/suppliers/${editingSupplier.id}` 
+      const url = editingSupplier
+        ? `${API_BASE_URL}/admin/suppliers/${editingSupplier.id}`
         : `${API_BASE_URL}/admin/suppliers`;
-      
+
       const method = editingSupplier ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (!res.ok) {
@@ -147,7 +168,7 @@ export default function SuppliersPage() {
       const res = await fetch(`${API_BASE_URL}/admin/suppliers/${supplier.id}/status`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ isActive: !supplier.isActive })
+        body: JSON.stringify({ isActive: !supplier.isActive }),
       });
 
       if (res.ok) {
@@ -197,7 +218,9 @@ export default function SuppliersPage() {
         <div className="bg-white border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-emerald-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Fornecedores Ativos</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Fornecedores Ativos
+              </p>
               <h3 className="text-3xl font-black text-emerald-700 mt-1">{activeCount}</h3>
             </div>
             <div className="p-3 bg-emerald-100 rounded-xl text-emerald-700 border border-emerald-200 group-hover:scale-110 transition-transform">
@@ -209,8 +232,12 @@ export default function SuppliersPage() {
         <div className="bg-white border border-slate-200 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-indigo-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Volume Contratado</p>
-              <h3 className="text-2xl font-black text-slate-950 mt-1">{formatCurrencySafe(totalVolume)}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Volume Contratado
+              </p>
+              <h3 className="text-2xl font-black text-slate-950 mt-1">
+                {formatCurrencySafe(totalVolume)}
+              </h3>
             </div>
             <div className="p-3 bg-indigo-50 rounded-xl text-indigo-700 border border-indigo-200 group-hover:scale-110 transition-transform">
               <DollarSign className="w-6 h-6" />
@@ -221,7 +248,9 @@ export default function SuppliersPage() {
         <div className="bg-white border border-blue-200 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-blue-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Com Compras Ativas</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Com Compras Ativas
+              </p>
               <h3 className="text-3xl font-black text-blue-700 mt-1">{withOrdersCount}</h3>
             </div>
             <div className="p-3 bg-blue-100 rounded-xl text-blue-700 border border-blue-200 group-hover:scale-110 transition-transform">
@@ -233,7 +262,9 @@ export default function SuppliersPage() {
         <div className="bg-white border border-red-200 bg-gradient-to-br from-red-500/10 to-red-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-red-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Inativos / Suspensos</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Inativos / Suspensos
+              </p>
               <h3 className="text-3xl font-black text-red-700 mt-1">{inactiveCount}</h3>
             </div>
             <div className="p-3 bg-red-100 rounded-xl text-red-700 border border-red-200 group-hover:scale-110 transition-transform">
@@ -280,7 +311,12 @@ export default function SuppliersPage() {
           <div className="p-8 text-center text-red-700 bg-red-50 m-4 rounded-xl border border-red-200 flex flex-col items-center gap-2 font-bold">
             <AlertCircle className="w-8 h-8 text-red-600" />
             <span>{error}</span>
-            <button onClick={loadData} className="mt-2 text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200">Tentar Novamente</button>
+            <button
+              onClick={loadData}
+              className="mt-2 text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200"
+            >
+              Tentar Novamente
+            </button>
           </div>
         ) : filteredSuppliers.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center justify-center">
@@ -289,7 +325,8 @@ export default function SuppliersPage() {
             </div>
             <h3 className="text-lg font-bold text-slate-950 mb-1">Nenhum fornecedor encontrado</h3>
             <p className="text-slate-600 font-semibold text-sm max-w-md mb-6">
-              Não encontramos fornecedores correspondentes à sua busca ou ainda não foram cadastrados parceiros.
+              Não encontramos fornecedores correspondentes à sua busca ou ainda não foram
+              cadastrados parceiros.
             </p>
             <button
               onClick={handleOpenNew}
@@ -319,9 +356,13 @@ export default function SuppliersPage() {
                     <td className="p-4">
                       <div className="font-bold text-slate-950 text-base">{sup.name}</div>
                       {sup.cnpj ? (
-                        <div className="text-xs font-semibold text-slate-600 font-mono mt-0.5">{sup.cnpj}</div>
+                        <div className="text-xs font-semibold text-slate-600 font-mono mt-0.5">
+                          {sup.cnpj}
+                        </div>
                       ) : (
-                        <div className="text-xs text-slate-500 font-semibold italic">Sem CNPJ informado</div>
+                        <div className="text-xs text-slate-500 font-semibold italic">
+                          Sem CNPJ informado
+                        </div>
                       )}
                     </td>
                     <td className="p-4 space-y-1">
@@ -338,7 +379,9 @@ export default function SuppliersPage() {
                         </div>
                       )}
                       {!sup.phone && !sup.email && (
-                        <span className="text-xs text-slate-500 font-semibold italic">Sem contato</span>
+                        <span className="text-xs text-slate-500 font-semibold italic">
+                          Sem contato
+                        </span>
                       )}
                     </td>
                     <td className="p-4 text-center font-mono">
@@ -353,8 +396,8 @@ export default function SuppliersPage() {
                       {formatCurrencySafe(sup.metrics?.totalPurchased)}
                     </td>
                     <td className="p-4 text-center text-xs font-semibold text-slate-600">
-                      {sup.metrics?.lastPurchaseDate 
-                        ? new Date(sup.metrics.lastPurchaseDate).toLocaleDateString('pt-BR') 
+                      {sup.metrics?.lastPurchaseDate
+                        ? new Date(sup.metrics.lastPurchaseDate).toLocaleDateString('pt-BR')
                         : 'Nunca'}
                     </td>
                     <td className="p-4 text-center">
@@ -381,12 +424,16 @@ export default function SuppliersPage() {
                           onClick={() => handleToggleStatus(sup)}
                           title={sup.isActive ? 'Desativar Fornecedor' : 'Reativar Fornecedor'}
                           className={`p-2 rounded-lg transition-all border ${
-                            sup.isActive 
-                              ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200' 
+                            sup.isActive
+                              ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
                               : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
                           }`}
                         >
-                          {sup.isActive ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                          {sup.isActive ? (
+                            <XCircle className="w-4 h-4" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -407,12 +454,19 @@ export default function SuppliersPage() {
                 <Building2 className="w-6 h-6 text-indigo-600" />
                 {editingSupplier ? 'Editar Fornecedor' : 'Cadastrar Novo Fornecedor'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">✕</button>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nome / Razão Social *</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Nome / Razão Social *
+                </label>
                 <input
                   type="text"
                   placeholder="Ex: Laticínios São Paulo Ltda"
@@ -424,7 +478,9 @@ export default function SuppliersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">CNPJ ou CPF</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  CNPJ ou CPF
+                </label>
                 <input
                   type="text"
                   placeholder="Ex: 12.345.678/0001-90"
@@ -436,7 +492,9 @@ export default function SuppliersPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Telefone / WhatsApp</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Telefone / WhatsApp
+                  </label>
                   <input
                     type="text"
                     placeholder="Ex: (11) 98765-4321"
@@ -447,7 +505,9 @@ export default function SuppliersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">E-mail</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    E-mail
+                  </label>
                   <input
                     type="email"
                     placeholder="contato@fornecedor.com"
@@ -466,14 +526,27 @@ export default function SuppliersPage() {
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-600"
                 />
-                <label htmlFor="isActive" className="text-sm font-semibold text-slate-800 select-none cursor-pointer">
+                <label
+                  htmlFor="isActive"
+                  className="text-sm font-semibold text-slate-800 select-none cursor-pointer"
+                >
                   Fornecedor ativo para compras e cotações
                 </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">Cancelar</button>
-                <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm disabled:opacity-50"
+                >
                   {submitting ? 'Salvando...' : 'Salvar Fornecedor'}
                 </button>
               </div>

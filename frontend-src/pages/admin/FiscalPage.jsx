@@ -18,7 +18,7 @@ import {
   Key,
   Globe,
   Lock,
-  FileCode
+  FileCode,
 } from 'lucide-react';
 import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
@@ -40,6 +40,8 @@ export function FiscalPage() {
     certificateUrl: '',
     certificatePassword: '',
     tokenSefaz: '',
+    hasCertificatePassword: false,
+    hasTokenSefaz: false,
   });
   const [recentOrders, setRecentOrders] = useState([]);
 
@@ -94,7 +96,9 @@ export function FiscalPage() {
       const ordersRes = await fetch(`${API_BASE_URL}/admin/orders?limit=30`, { headers });
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
-        setRecentOrders(Array.isArray(ordersData.orders || ordersData) ? (ordersData.orders || ordersData) : []);
+        setRecentOrders(
+          Array.isArray(ordersData.orders || ordersData) ? ordersData.orders || ordersData : [],
+        );
       }
     } catch (err) {
       console.error('Erro ao carregar dados fiscais:', err);
@@ -235,7 +239,8 @@ export function FiscalPage() {
           <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-red-500" />
           <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Acesso Restrito</h3>
           <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para gerenciar a emissão fiscal e NFC-e.
+            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para gerenciar a emissão
+            fiscal e NFC-e.
           </p>
         </div>
       </div>
@@ -260,7 +265,8 @@ export function FiscalPage() {
             Emissão Fiscal & NFC-e (`/fiscal`)
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
-            Consulta de documentos emitidos ao consumidor, emissão avulsa e configurações de integração SEFAZ.
+            Consulta de documentos emitidos ao consumidor, emissão avulsa e configurações de
+            integração SEFAZ.
           </p>
         </div>
 
@@ -279,28 +285,39 @@ export function FiscalPage() {
       {settings.environment === 'HOMOLOGACAO' && (
         <div className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600 p-4 flex flex-col gap-3">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" size={22} />
+            <AlertTriangle
+              className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5"
+              size={22}
+            />
             <div className="flex-1">
               <p className="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">
                 ⚠️ Modo Homologação / Simulação — Documentos sem validade fiscal real
               </p>
               <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                Os documentos emitidos aqui são <strong>demonstrativos</strong> e <strong>não têm validade jurídica ou fiscal</strong>.
-                Nenhum dado é enviado à SEFAZ. Para emissão real de NFC-e, configure o ambiente de produção abaixo.
+                Os documentos emitidos aqui são <strong>demonstrativos</strong> e{' '}
+                <strong>não têm validade jurídica ou fiscal</strong>. Nenhum dado é enviado à SEFAZ.
+                Para emissão real de NFC-e, configure o ambiente de produção abaixo.
               </p>
             </div>
           </div>
           <div className="ml-8 bg-white dark:bg-slate-900 rounded-lg border border-amber-200 dark:border-amber-800 p-3">
-            <p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2 uppercase">O que falta para produção:</p>
+            <p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2 uppercase">
+              O que falta para produção:
+            </p>
             <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
               {[
                 { ok: !!settings.certificateUrl, label: 'Certificado A1 (.pfx) configurado' },
                 { ok: !!settings.certificatePassword, label: 'Senha do certificado definida' },
                 { ok: !!settings.tokenSefaz, label: 'Token / CSC da SEFAZ informado' },
-                { ok: settings.environment === 'PRODUCAO', label: 'Ambiente configurado como PRODUÇÃO' },
+                {
+                  ok: settings.environment === 'PRODUCAO',
+                  label: 'Ambiente configurado como PRODUÇÃO',
+                },
               ].map(({ ok, label }) => (
                 <li key={label} className="flex items-center gap-2">
-                  <span className={`inline-block w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black ${ok ? 'bg-green-500 text-white' : 'bg-red-400 text-white'}`}>
+                  <span
+                    className={`inline-block w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black ${ok ? 'bg-green-500 text-white' : 'bg-red-400 text-white'}`}
+                  >
                     {ok ? '✓' : '✗'}
                   </span>
                   <span className={ok ? 'line-through opacity-60' : ''}>{label}</span>
@@ -308,7 +325,8 @@ export function FiscalPage() {
               ))}
             </ul>
             <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500 italic">
-              Configure na aba &quot;Configurações&quot; abaixo. Nunca commite certificado ou credenciais no código-fonte.
+              Configure na aba &quot;Configurações&quot; abaixo. Nunca commite certificado ou
+              credenciais no código-fonte.
             </p>
           </div>
         </div>
@@ -317,7 +335,9 @@ export function FiscalPage() {
       {/* Linha de KPIs Executivos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-blue-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total NFC-e Emitidas</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Total NFC-e Emitidas
+          </span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-black text-slate-900 dark:text-white">
               {totalIssuedCount}
@@ -327,14 +347,18 @@ export function FiscalPage() {
         </Panel>
 
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-emerald-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Volume Fiscal Total</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Volume Fiscal Total
+          </span>
           <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
             {formatCurrencySafe(totalIssuedValue)}
           </span>
         </Panel>
 
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-amber-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ambiente SEFAZ</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Ambiente SEFAZ
+          </span>
           <div className="mt-1">
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase ${
@@ -350,7 +374,9 @@ export function FiscalPage() {
         </Panel>
 
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-purple-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status do Provedor</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Status do Provedor
+          </span>
           <span className="text-sm font-black text-purple-600 dark:text-purple-400 mt-1 flex items-center gap-1">
             <ShieldCheck size={16} /> Operante (Modo Demonstração)
           </span>
@@ -379,7 +405,10 @@ export function FiscalPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          <PlusCircle size={16} className={activeTab === 'EMIT_MANUAL' ? 'text-white' : 'text-red-500'} />
+          <PlusCircle
+            size={16}
+            className={activeTab === 'EMIT_MANUAL' ? 'text-white' : 'text-red-500'}
+          />
           Emissão Avulsa / Demonstrativa
         </button>
 
@@ -391,7 +420,10 @@ export function FiscalPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          <Settings size={16} className={activeTab === 'SETTINGS' ? 'text-white' : 'text-blue-500'} />
+          <Settings
+            size={16}
+            className={activeTab === 'SETTINGS' ? 'text-white' : 'text-blue-500'}
+          />
           Configurações SEFAZ / Certificado
         </button>
       </div>
@@ -412,7 +444,11 @@ export function FiscalPage() {
               />
             </div>
             <div className="text-xs text-slate-500 self-center">
-              Exibindo <span className="font-bold text-slate-900 dark:text-white">{filteredDocuments.length}</span> de {documents.length} documentos emitidos.
+              Exibindo{' '}
+              <span className="font-bold text-slate-900 dark:text-white">
+                {filteredDocuments.length}
+              </span>{' '}
+              de {documents.length} documentos emitidos.
             </div>
           </div>
 
@@ -432,7 +468,10 @@ export function FiscalPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredDocuments.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                    >
                       <td className="px-6 py-3.5">
                         <p className="font-bold text-slate-900 dark:text-white">
                           Pedido #{doc.orderId?.slice(0, 8).toUpperCase()}
@@ -518,7 +557,8 @@ export function FiscalPage() {
                   Emissão Avulsa de NFC-e Demonstrativa
                 </h3>
                 <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
-                  Selecione um pedido recente ou informe seu ID para gerar ou reemitir o cupom fiscal (NFC-e).
+                  Selecione um pedido recente ou informe seu ID para gerar ou reemitir o cupom
+                  fiscal (NFC-e).
                 </p>
               </div>
             </div>
@@ -539,7 +579,9 @@ export function FiscalPage() {
                     <option value="">Selecione um pedido da lista...</option>
                     {recentOrders.map((ord) => (
                       <option key={ord.id} value={ord.id}>
-                        Pedido #{ord.id.slice(0, 8).toUpperCase()} — {ord.customer?.name || 'Balcão'} ({formatCurrencySafe(ord.total)}) — {new Date(ord.createdAt).toLocaleTimeString('pt-BR')}
+                        Pedido #{ord.id.slice(0, 8).toUpperCase()} —{' '}
+                        {ord.customer?.name || 'Balcão'} ({formatCurrencySafe(ord.total)}) —{' '}
+                        {new Date(ord.createdAt).toLocaleTimeString('pt-BR')}
                       </option>
                     ))}
                   </select>
@@ -610,7 +652,9 @@ export function FiscalPage() {
           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 p-4 rounded-2xl flex items-center gap-3 text-amber-800 dark:text-amber-300 text-sm">
             <AlertTriangle size={20} className="text-amber-600 shrink-0" />
             <p>
-              <strong>Modo Seguro Homologação:</strong> No provedor atual do sistema (`MOCK`), as notas são demonstrativas para homologação e auditoria de saldos sem gerar obrigatoriedades tributárias na SEFAZ.
+              <strong>Modo Seguro Homologação:</strong> No provedor atual do sistema (`MOCK`), as
+              notas são demonstrativas para homologação e auditoria de saldos sem gerar
+              obrigatoriedades tributárias na SEFAZ.
             </p>
           </div>
 
@@ -654,7 +698,9 @@ export function FiscalPage() {
                     <ShieldCheck size={18} className="text-emerald-500" />
                     <div>
                       <p className="text-sm">Produção (SEFAZ Real)</p>
-                      <p className="text-[10px] font-normal text-slate-500">Validade jurídica direta</p>
+                      <p className="text-[10px] font-normal text-slate-500">
+                        Validade jurídica direta
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -756,7 +802,9 @@ export function FiscalPage() {
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
-                  <span className="text-xs font-bold uppercase text-slate-400">Pedido Vinculado</span>
+                  <span className="text-xs font-bold uppercase text-slate-400">
+                    Pedido Vinculado
+                  </span>
                   <p className="text-lg font-black text-slate-900 dark:text-white">
                     #{selectedDoc.orderId?.slice(0, 8).toUpperCase()}
                   </p>
@@ -775,7 +823,9 @@ export function FiscalPage() {
               <div className="space-y-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between">
                   <span className="text-xs font-bold text-slate-500">Ambiente:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{selectedDoc.environment}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {selectedDoc.environment}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-500">Status SEFAZ:</span>
@@ -790,7 +840,9 @@ export function FiscalPage() {
               </div>
 
               <div className="space-y-1">
-                <span className="text-xs font-bold uppercase text-slate-400">Retorno do Provedor / SEFAZ</span>
+                <span className="text-xs font-bold uppercase text-slate-400">
+                  Retorno do Provedor / SEFAZ
+                </span>
                 <p className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 font-medium">
                   {selectedDoc.message || 'Operação realizada com sucesso.'}
                 </p>

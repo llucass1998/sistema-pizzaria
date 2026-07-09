@@ -3,18 +3,40 @@ set -e
 
 echo "🍕 Pizzaria ERP - Iniciando Container da API..."
 
-# Aguardar um momento para garantir que o banco esteja pronto (o docker-compose usa healthcheck, mas isso e uma seguranca extra)
-echo "⌛ Executando Prisma DB Push (sincronizando banco de dados)..."
-echo "Aplicando patch seguro de compatibilidade do banco..."
-npx prisma db execute --file prisma/safe-startup.sql
+if [ "${RUN_PRISMA_MIGRATE_DEPLOY:-false}" = "true" ]; then
+  echo "Aplicando migrations Prisma..."
+  npx prisma migrate deploy
+else
+  echo "Pulando migrations Prisma automaticas."
+fi
 
-echo "Sincronizando schema Prisma..."
-npx prisma db push --accept-data-loss
+if [ "${RUN_SAFE_STARTUP_SQL:-false}" = "true" ]; then
+  echo "Aplicando patch seguro de compatibilidade do banco..."
+  npx prisma db execute --file prisma/safe-startup.sql
+else
+  echo "Pulando patch seguro de compatibilidade do banco."
+fi
 
-echo "🌱 Executando Prisma Seed (dados iniciais)..."
-npx tsx backend-src/seed.ts || echo "Aviso: Seed encontrou um erro ou foi ignorado."
-echo "Garantindo admin permanente e limpeza segura de usuarios..."
-node dist/resetAdmin.js || echo "Aviso: Reset seguro de admin encontrou um erro ou foi ignorado."
+if [ "${RUN_DB_PUSH_ON_STARTUP:-false}" = "true" ]; then
+  echo "Executando Prisma DB Push por solicitacao explicita..."
+  npx prisma db push --accept-data-loss
+else
+  echo "Pulando Prisma DB Push no startup."
+fi
+
+if [ "${RUN_SEED_ON_STARTUP:-false}" = "true" ]; then
+  echo "Executando Prisma Seed por solicitacao explicita..."
+  npx tsx backend-src/seed.ts
+else
+  echo "Pulando seed no startup."
+fi
+
+if [ "${RUN_RESET_ADMIN_ON_STARTUP:-false}" = "true" ]; then
+  echo "Executando reset seguro de admin por solicitacao explicita..."
+  node dist/resetAdmin.js
+else
+  echo "Pulando reset seguro de admin no startup."
+fi
 
 echo "🚀 Iniciando Servidor..."
 # Executar o CMD passado para o container

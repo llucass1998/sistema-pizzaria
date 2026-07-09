@@ -1,8 +1,24 @@
 import jwt from 'jsonwebtoken';
 import { Response } from 'express';
 
-const SECRET = process.env.JWT_SECRET || 'pizzaria-senior-secret-key';
+const DEFAULT_DEV_SECRET = 'pizzaria-senior-secret-key';
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+function getJwtSecret() {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  if (process.env.ADMIN_SESSION_SECRET) {
+    return process.env.ADMIN_SESSION_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET ou ADMIN_SESSION_SECRET obrigatorio em producao.');
+  }
+
+  return DEFAULT_DEV_SECRET;
+}
 
 export type JwtPayload = {
   id: string;
@@ -11,12 +27,12 @@ export type JwtPayload = {
 };
 
 export function createToken(payload: JwtPayload): string {
-  return jwt.sign(payload, SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, SECRET) as JwtPayload;
+    return jwt.verify(token, getJwtSecret()) as JwtPayload;
   } catch {
     return null;
   }

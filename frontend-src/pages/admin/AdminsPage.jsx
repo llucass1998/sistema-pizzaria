@@ -3,8 +3,8 @@ import { UserCog, Plus, Save, UserX, UserCheck, KeyRound, Lock } from 'lucide-re
 import { Panel } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 const ROLES = [
@@ -21,7 +21,7 @@ export function AdminsPage() {
   const { showSuccess, showError } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Edit State
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ name: '', email: '', password: '' });
@@ -33,7 +33,7 @@ export function AdminsPage() {
     name: '',
     email: '',
     password: '',
-    role: 'CASHIER'
+    role: 'CASHIER',
   });
 
   const sessionData = JSON.parse(window.localStorage.getItem('pizzaria-admin') || '{}');
@@ -45,7 +45,7 @@ export function AdminsPage() {
     try {
       setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/admin/users`, {
-        headers: { 'Authorization': `Bearer ${sessionToken}` }
+        headers: { Authorization: `Bearer ${sessionToken}` },
       });
       if (!response.ok) throw new Error('Não foi possível carregar a equipe');
       const data = await response.json();
@@ -71,16 +71,16 @@ export function AdminsPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/admin/users`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}` 
+          Authorization: `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify(newAdmin)
+        body: JSON.stringify(newAdmin),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Erro ao criar usuário');
-      
+
       showSuccess('Usuário criado com sucesso!');
       setIsCreating(false);
       setNewAdmin({ name: '', email: '', password: '', role: 'CASHIER' });
@@ -95,20 +95,20 @@ export function AdminsPage() {
       showError('Você não pode alterar sua própria permissão por aqui.');
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/admin/users/${id}/role`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}` 
+          Authorization: `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ role: newRole }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Erro ao alterar permissão');
-      
+
       showSuccess('Permissão atualizada!');
       loadAdmins();
     } catch (err) {
@@ -117,16 +117,19 @@ export function AdminsPage() {
   }
 
   async function handleResetPassword(admin) {
-    if (!window.confirm(`Tem certeza que deseja gerar uma nova senha temporária para ${admin.name}?`)) return;
+    if (
+      !window.confirm(`Tem certeza que deseja gerar uma nova senha temporária para ${admin.name}?`)
+    )
+      return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/admin/users/${admin.id}/reset-password`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}` 
+          Authorization: `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
@@ -149,18 +152,18 @@ export function AdminsPage() {
       return;
     }
     if (!window.confirm('Tem certeza que deseja excluir permanentemente este usuário?')) return;
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${sessionToken}` }
+        headers: { Authorization: `Bearer ${sessionToken}` },
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Erro ao excluir usuário');
       }
-      
+
       showSuccess('Usuário excluído!');
       loadAdmins();
     } catch (err) {
@@ -174,21 +177,21 @@ export function AdminsPage() {
       const payload = {
         name: editData.name,
         email: editData.email,
-        ...(editData.password && { password: editData.password })
+        ...(editData.password && { password: editData.password }),
       };
 
       const response = await fetch(`${API_BASE_URL}/admin/users/${editingId}`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}` 
+          Authorization: `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Erro ao editar usuário');
-      
+
       showSuccess('Usuário atualizado com sucesso!');
       setEditingId(null);
       loadAdmins();
@@ -213,9 +216,9 @@ export function AdminsPage() {
             Gerencie quem tem acesso ao painel, níveis de permissão e redefinição de senhas.
           </p>
         </div>
-        
+
         {!isCreating && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) && (
-          <button 
+          <button
             onClick={() => setIsCreating(true)}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 font-bold rounded-xl transition shadow-md"
           >
@@ -237,7 +240,8 @@ export function AdminsPage() {
                   Senha temporária gerada!
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Transmita esta senha de forma segura ao usuário <strong>{resetModalData.name}</strong>:
+                  Transmita esta senha de forma segura ao usuário{' '}
+                  <strong>{resetModalData.name}</strong>:
                 </p>
               </div>
             </div>
@@ -273,50 +277,68 @@ export function AdminsPage() {
           <h2 className="text-lg font-bold mb-4">Adicionar Novo Usuário</h2>
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nome Completo</label>
-              <input 
-                type="text" required
-                value={newAdmin.name} onChange={e => setNewAdmin({...newAdmin, name: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Email (Login)</label>
-              <input 
-                type="email" required
-                value={newAdmin.email} onChange={e => setNewAdmin({...newAdmin, email: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Senha (Mín. 6 chars)</label>
-              <input 
-                type="password" required minLength="6"
-                value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nível de Permissão (Role)</label>
-              <select 
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Nome Completo
+              </label>
+              <input
+                type="text"
                 required
-                value={newAdmin.role} onChange={e => setNewAdmin({...newAdmin, role: e.target.value})}
+                value={newAdmin.name}
+                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Email (Login)
+              </label>
+              <input
+                type="email"
+                required
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Senha (Mín. 6 chars)
+              </label>
+              <input
+                type="password"
+                required
+                minLength="6"
+                value={newAdmin.password}
+                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Nível de Permissão (Role)
+              </label>
+              <select
+                required
+                value={newAdmin.role}
+                onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-bold"
               >
-                {ROLES.map(r => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="md:col-span-2 flex justify-end gap-3 mt-4">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsCreating(false)}
                 className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold text-sm transition"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 type="submit"
                 className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white font-bold text-sm rounded-lg shadow-md hover:bg-red-700 transition"
               >
@@ -334,40 +356,64 @@ export function AdminsPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {admins.map(admin => (
-          <Panel key={admin.id} className="p-5 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition">
+        {admins.map((admin) => (
+          <Panel
+            key={admin.id}
+            className="p-5 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition"
+          >
             {editingId === admin.id ? (
               <form onSubmit={handleEditSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Nome Completo</label>
-                  <input 
-                    type="text" required
-                    value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})}
+                  <label className="block text-xs font-bold text-slate-400 mb-1">
+                    Nome Completo
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editData.name}
+                    onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm"
                     placeholder="Nome"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Email</label>
-                  <input 
-                    type="email" required
-                    value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})}
+                  <input
+                    type="email"
+                    required
+                    value={editData.email}
+                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm"
                     placeholder="Email"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Nova Senha (deixe em branco para manter)</label>
-                  <input 
-                    type="password" minLength="6"
-                    value={editData.password} onChange={e => setEditData({...editData, password: e.target.value})}
+                  <label className="block text-xs font-bold text-slate-400 mb-1">
+                    Nova Senha (deixe em branco para manter)
+                  </label>
+                  <input
+                    type="password"
+                    minLength="6"
+                    value={editData.password}
+                    onChange={(e) => setEditData({ ...editData, password: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm"
                     placeholder="Sua nova senha"
                   />
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button type="submit" className="flex-1 bg-red-600 text-white rounded-lg py-2 text-xs font-bold hover:bg-red-700 transition">Salvar</button>
-                  <button type="button" onClick={() => setEditingId(null)} className="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg py-2 text-xs font-bold hover:bg-slate-300 transition">Cancelar</button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-red-600 text-white rounded-lg py-2 text-xs font-bold hover:bg-red-700 transition"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg py-2 text-xs font-bold hover:bg-slate-300 transition"
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </form>
             ) : (
@@ -378,33 +424,37 @@ export function AdminsPage() {
                       {admin.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-black text-base leading-tight text-slate-900 dark:text-white truncate">{admin.name}</h3>
-                      <p className="text-xs font-medium text-slate-500 truncate mt-0.5">{admin.email}</p>
+                      <h3 className="font-black text-base leading-tight text-slate-900 dark:text-white truncate">
+                        {admin.name}
+                      </h3>
+                      <p className="text-xs font-medium text-slate-500 truncate mt-0.5">
+                        {admin.email}
+                      </p>
                     </div>
                   </div>
-                  
+
                   {['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) && (
                     <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <button 
+                      <button
                         onClick={() => handleResetPassword(admin)}
-                        disabled={(admin.role === 'OWNER' && sessionRole !== 'OWNER')}
+                        disabled={admin.role === 'OWNER' && sessionRole !== 'OWNER'}
                         className="p-2 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Redefinir Senha Temporária"
                       >
                         <KeyRound size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setEditingId(admin.id);
                           setEditData({ name: admin.name, email: admin.email, password: '' });
                         }}
-                        disabled={(admin.role === 'OWNER' && sessionRole !== 'OWNER')}
+                        disabled={admin.role === 'OWNER' && sessionRole !== 'OWNER'}
                         className="p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800 dark:hover:text-blue-400 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Editar Nome/Email/Senha"
                       >
                         <UserCog size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteUser(admin.id, admin.role)}
                         disabled={admin.id === sessionId || admin.role === 'OWNER'}
                         className="p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
@@ -415,21 +465,25 @@ export function AdminsPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Nível de Acesso</label>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Nível de Acesso
+                  </label>
                   <select
                     value={admin.role || 'ADMIN'}
                     disabled={
-                      !['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) || 
+                      !['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(sessionRole) ||
                       (admin.role === 'OWNER' && sessionRole !== 'OWNER') ||
                       admin.id === sessionId
                     }
                     onChange={(e) => handleRoleChange(admin.id, e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-bold text-slate-800 dark:text-slate-100 disabled:opacity-60 disabled:cursor-not-allowed transition focus:border-red-500 focus:outline-none"
                   >
-                    {ROLES.map(r => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
+                    {ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -110,8 +110,7 @@ export function POSPage() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const isInputFocused =
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) ||
-        e.target?.isContentEditable;
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable;
 
       if (e.key === 'F1') {
         e.preventDefault();
@@ -231,7 +230,7 @@ export function POSPage() {
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.barcode?.toLowerCase() === q ||
-          p.variants?.some((v) => v.name?.toLowerCase().includes(q) || v.code?.toLowerCase() === q)
+          p.variants?.some((v) => v.name?.toLowerCase().includes(q) || v.code?.toLowerCase() === q),
       );
     } else if (activeCategory) {
       list = list.filter((p) => p.categoryId === activeCategory);
@@ -273,14 +272,15 @@ export function POSPage() {
         item.variantId === (payload.variantId || null) &&
         item.crustId === (payload.crustId || null) &&
         JSON.stringify(item.halfAndHalf || null) === JSON.stringify(payload.halfAndHalf || null) &&
-        JSON.stringify((item.addonIds || []).slice().sort()) === JSON.stringify((payload.addonIds || []).slice().sort())
+        JSON.stringify((item.addonIds || []).slice().sort()) ===
+          JSON.stringify((payload.addonIds || []).slice().sort()),
     );
 
     if (existingIndex > -1) {
       setCart((prev) =>
         prev.map((item, idx) =>
-          idx === existingIndex ? { ...item, quantity: item.quantity + 1 } : item
-        )
+          idx === existingIndex ? { ...item, quantity: item.quantity + 1 } : item,
+        ),
       );
     } else {
       const newItem = {
@@ -571,7 +571,9 @@ export function POSPage() {
                       <span className="text-xs text-slate-500">Tamanho: {item.variantName}</span>
                     )}
                     {item.customizationsText && (
-                      <span className="text-xs text-slate-500 line-clamp-2">{item.customizationsText}</span>
+                      <span className="text-xs text-slate-500 line-clamp-2">
+                        {item.customizationsText}
+                      </span>
                     )}
                     <span className="text-red-600 font-black text-sm mt-1">
                       {formatCurrency(item.price)}
@@ -659,7 +661,11 @@ export function POSPage() {
             disabled={cart.length === 0 || isSubmitting || !isShiftOpen}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-black py-4 rounded-xl text-lg transition flex items-center justify-center gap-2 shadow-lg hover:shadow-green-600/20 active:scale-[0.98]"
           >
-            {isSubmitting ? 'Processando...' : paymentMethod === 'CASH' ? 'Troco / Finalizar (F9)' : 'Finalizar Pedido (F9)'}
+            {isSubmitting
+              ? 'Processando...'
+              : paymentMethod === 'CASH'
+                ? 'Troco / Finalizar (F9)'
+                : 'Finalizar Pedido (F9)'}
           </button>
         </div>
       </div>
@@ -712,12 +718,24 @@ export function POSPage() {
       {/* Rodapé de Atalhos (não sai na impressão) */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-[var(--sidebar-width,0px)] transition-all duration-300 bg-slate-900 text-slate-300 text-xs px-4 py-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20 no-print">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="font-bold"><strong className="text-red-500">F1</strong> Buscar</span>
-          <span className="font-bold"><strong className="text-red-500">F2</strong> Nova Venda</span>
-          <span className="font-bold"><strong className="text-red-500">F3</strong> Dinheiro</span>
-          <span className="font-bold"><strong className="text-red-500">F4</strong> PIX</span>
-          <span className="font-bold"><strong className="text-red-500">F6</strong> Cartão</span>
-          <span className="font-bold"><strong className="text-red-500">F9</strong> Finalizar</span>
+          <span className="font-bold">
+            <strong className="text-red-500">F1</strong> Buscar
+          </span>
+          <span className="font-bold">
+            <strong className="text-red-500">F2</strong> Nova Venda
+          </span>
+          <span className="font-bold">
+            <strong className="text-red-500">F3</strong> Dinheiro
+          </span>
+          <span className="font-bold">
+            <strong className="text-red-500">F4</strong> PIX
+          </span>
+          <span className="font-bold">
+            <strong className="text-red-500">F6</strong> Cartão
+          </span>
+          <span className="font-bold">
+            <strong className="text-red-500">F9</strong> Finalizar
+          </span>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-400">
           <span>* Bipagem rápida via leitor USB ativa automaticamente</span>

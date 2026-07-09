@@ -116,6 +116,56 @@ async function main() {
 
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop&q=60'
     },
+    {
+      tenantId,
+      categoryId: catPizzasSalgadas.id,
+      name: 'Pizza Mussarela',
+      description: 'Molho de tomate artesanal, mussarela derretida, azeitonas e orégano.',
+      price: 40.90,
+      category: 'pizzas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catPizzasSalgadas.id,
+      name: 'Pizza Napolitana',
+      description: 'Mussarela, tomate, parmesão ralado, alho frito e orégano.',
+      price: 44.90,
+      category: 'pizzas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catPizzasSalgadas.id,
+      name: 'Pizza Toscana',
+      description: 'Calabresa moída, mussarela, cebola, azeitonas e orégano.',
+      price: 47.90,
+      category: 'pizzas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catPizzasSalgadas.id,
+      name: 'Pizza Bacon',
+      description: 'Mussarela, bacon crocante, tomate em cubos e orégano.',
+      price: 49.90,
+      category: 'pizzas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catPizzasSalgadas.id,
+      name: 'Pizza Milho com Catupiry',
+      description: 'Mussarela, milho verde, catupiry cremoso e orégano.',
+      price: 46.90,
+      category: 'pizzas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=500&auto=format&fit=crop&q=60'
+    },
     // PIZZAS ESPECIAIS
     {
       tenantId,
@@ -161,6 +211,46 @@ async function main() {
     {
       tenantId,
       categoryId: catBebidas.id,
+      name: 'Fanta Laranja 2L',
+      description: 'Refrigerante Fanta Laranja Garrafa 2 Litros.',
+      price: 12.90,
+      category: 'bebidas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1625772299848-391b6a51820e?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catBebidas.id,
+      name: 'Fanta Uva 2L',
+      description: 'Refrigerante Fanta Uva Garrafa 2 Litros.',
+      price: 12.90,
+      category: 'bebidas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1625772299848-391b6a51820e?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catBebidas.id,
+      name: 'Sprite 2L',
+      description: 'Refrigerante Sprite Garrafa 2 Litros.',
+      price: 12.90,
+      category: 'bebidas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1625772299848-391b6a51820e?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catBebidas.id,
+      name: 'Pepsi 2L',
+      description: 'Refrigerante Pepsi Garrafa 2 Litros.',
+      price: 13.90,
+      category: 'bebidas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1625772299848-391b6a51820e?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catBebidas.id,
       name: 'Heineken Long Neck',
       description: 'Cerveja Heineken 330ml bem gelada.',
       price: 12.00,
@@ -168,12 +258,12 @@ async function main() {
 
       imageUrl: 'https://images.unsplash.com/photo-1614316315228-56961cc24a3e?w=500&auto=format&fit=crop&q=60'
     },
-    // SOBREMESAS
+    // PIZZAS DOCES
     {
       tenantId,
       categoryId: catSobremesas.id,
       name: 'Pizza Doce de Chocolate com Morango',
-      description: 'Massa fina, creme de avelã com cacau (Nutella) e morangos frescos fatiados.',
+      description: 'Massa fina, creme de avelã com cacau e morangos frescos fatiados.',
       price: 52.90,
       category: 'sobremesas',
 
@@ -182,12 +272,42 @@ async function main() {
     {
       tenantId,
       categoryId: catSobremesas.id,
-      name: 'Pudim de Leite Condensado',
-      description: 'Fatia generosa de pudim caseiro com calda de caramelo.',
-      price: 15.90,
+      name: 'Pizza Banana com Canela e Leite Condensado',
+      description: 'Banana fatiada, açúcar, canela e leite condensado gratinado.',
+      price: 42.90,
       category: 'sobremesas',
 
-      imageUrl: 'https://images.unsplash.com/photo-1590080875515-8a3a104f0394?w=500&auto=format&fit=crop&q=60'
+      imageUrl: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catSobremesas.id,
+      name: 'Pizza Romeu e Julieta',
+      description: 'Goiabada cremosa com queijo minas derretido.',
+      price: 44.90,
+      category: 'sobremesas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catSobremesas.id,
+      name: 'Pizza Prestígio',
+      description: 'Chocolate cremoso, coco ralado e leite condensado.',
+      price: 46.90,
+      category: 'sobremesas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60'
+    },
+    {
+      tenantId,
+      categoryId: catSobremesas.id,
+      name: 'Pizza Chocolate Branco com Morango',
+      description: 'Chocolate branco cremoso, morangos frescos e raspas de chocolate.',
+      price: 47.90,
+      category: 'sobremesas',
+
+      imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&auto=format&fit=crop&q=60'
     }
   ];
 

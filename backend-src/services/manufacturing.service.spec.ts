@@ -36,7 +36,7 @@ function makeOrder(overrides: Record<string, any> = {}) {
 
 function makeRecipes() {
   return [
-    { ingredientId: ING_FLOUR, quantity: 0.5 },  // 0.5 kg por unidade
+    { ingredientId: ING_FLOUR, quantity: 0.5 }, // 0.5 kg por unidade
     { ingredientId: ING_CHEESE, quantity: 0.2 }, // 0.2 kg por unidade
   ];
 }
@@ -130,12 +130,8 @@ describe('ManufacturingService.completeOrder', () => {
     expect(txnCalls.length).toBeGreaterThanOrEqual(2);
 
     // Verificar quantidades: 2 unidades × 0.5 kg farinha = 1 kg; 2 × 0.2 = 0.4 kg queijo
-    const flourTxn = txnCalls.find((call: any) =>
-      call[0].data.ingredientId === ING_FLOUR,
-    );
-    const cheeseTxn = txnCalls.find((call: any) =>
-      call[0].data.ingredientId === ING_CHEESE,
-    );
+    const flourTxn = txnCalls.find((call: any) => call[0].data.ingredientId === ING_FLOUR);
+    const cheeseTxn = txnCalls.find((call: any) => call[0].data.ingredientId === ING_CHEESE);
     expect(Number(flourTxn?.[0].data.quantity)).toBeCloseTo(1.0, 4);
     expect(Number(cheeseTxn?.[0].data.quantity)).toBeCloseTo(0.4, 4);
   });
@@ -148,11 +144,7 @@ describe('ManufacturingService.completeOrder', () => {
     });
     const outputIngredient = { id: ING_OUTPUT, name: 'Massa Pronta', stock: 0, tenantId: TENANT };
 
-    tx = makeTx(
-      orderWithOutput,
-      makeRecipes(),
-      [...makeIngredients(), outputIngredient],
-    );
+    tx = makeTx(orderWithOutput, makeRecipes(), [...makeIngredients(), outputIngredient]);
 
     await ManufacturingService.completeOrder(ORDER_ID, TENANT, tx);
 
@@ -160,8 +152,8 @@ describe('ManufacturingService.completeOrder', () => {
     // Deve ter 3 transações: farinha (OUT), queijo (OUT), massa-pronta (IN)
     expect(txnCalls.length).toBeGreaterThanOrEqual(3);
 
-    const outputTxn = txnCalls.find((call: any) =>
-      call[0].data.idempotencyKey === `MFG_ORDER:${ORDER_ID}:OUTPUT`,
+    const outputTxn = txnCalls.find(
+      (call: any) => call[0].data.idempotencyKey === `MFG_ORDER:${ORDER_ID}:OUTPUT`,
     );
     expect(outputTxn).toBeDefined();
     // 2 unidades × 0.3 kg = 0.6 kg de massa
@@ -174,9 +166,9 @@ describe('ManufacturingService.completeOrder', () => {
     // Farinha só tem 0.5 kg, mas a ordem precisa de 1 kg (2 unidades × 0.5)
     tx = makeTx(makeOrder(), makeRecipes(), makeIngredients(0.5, 5));
 
-    await expect(
-      ManufacturingService.completeOrder(ORDER_ID, TENANT, tx),
-    ).rejects.toMatchObject({ statusCode: 409 });
+    await expect(ManufacturingService.completeOrder(ORDER_ID, TENANT, tx)).rejects.toMatchObject({
+      statusCode: 409,
+    });
 
     // Nenhuma transação de estoque deve ter sido criada
     expect(tx.inventoryTransaction.create).not.toHaveBeenCalled();
@@ -213,9 +205,9 @@ describe('ManufacturingService.completeOrder', () => {
       claimCount: 0,
     });
 
-    await expect(
-      ManufacturingService.completeOrder(ORDER_ID, TENANT, tx),
-    ).rejects.toMatchObject({ statusCode: 422 });
+    await expect(ManufacturingService.completeOrder(ORDER_ID, TENANT, tx)).rejects.toMatchObject({
+      statusCode: 422,
+    });
   });
 });
 

@@ -4,12 +4,15 @@
 **Módulos testados:** Frontend Público, Backend Público, Checkout, Admin Frontend, Admin Backend, Configurações, PDV.
 
 ## 1. Teste da Loja Pública Frontend e Backend
+
 - [x] Home carrega perfeitamente.
 - [x] API `/api/public/resolve-store` resolve o tenant corretamente (status 200).
 - [x] API `/api/configuracoes` e `/api/pizzas` retornam dados sem erros (status 200).
 
 ## 2. Teste de Admin Frontend e Backend
+
 O painel administrativo foi testado rota a rota usando um sub-agente navegador:
+
 - [x] Login de administrador bem sucedido.
 - [x] **Dashboard:** Carrega perfeitamente (dados zerados devido ao reset de ambiente de teste, sem erros no console).
 - [x] **PDV / Caixa:** Carrega perfeitamente.
@@ -21,11 +24,13 @@ O painel administrativo foi testado rota a rota usando um sub-agente navegador:
 - [x] As requisições à API (`/api/admin/...`) estão retornando `200 OK` dentro da aplicação.
 
 ## 3. Validação de Infraestrutura (Docker / Nginx)
+
 - [x] Erro 502 Bad Gateway foi mitigado permanentemente (porta 3000 liberada de processos conflitantes).
 - [x] Erro 403 Forbidden corrigido (limpeza de token residual no `localStorage` após reset).
 - [x] Nenhuma loja em modo de manutenção indevidamente.
 
 ## 4. Conclusão e Observações
+
 O sistema encontra-se 100% operacional.
 **Observação sobre páginas em branco:** Detectamos que a aba do navegador do usuário estava aberta em `http://localhost:5173/api/admin/dashboard/summary`. Esta rota é um **endpoint de API (JSON)** e não uma página da web (UI). Se aberta diretamente no navegador, ela pode falhar (retornar JSON de erro 401/403) devido à falta de headers específicos (`x-tenant-id`) que são enviados automaticamente pela interface do sistema.
 
@@ -47,6 +52,7 @@ O sistema encontra-se 100% operacional.
 - [x] Curls com `curl.exe` retornaram 200 para `/`, `/api/status`, resolve-store, configuracoes, products e categorias.
 
 Observação: `npm run test:e2e` não encontrou arquivos em `tests/e2e/**/*.spec.ts`, portanto não houve suíte E2E Vitest para executar nessa configuração.
+
 ## 6. Rodada 07/07/2026 - Correcao Admin RBAC
 
 - [x] Conta `admin@riopizzas.com` validada como `OWNER` no tenant do dominio `pizzarialucas.istigestao.com.br`.

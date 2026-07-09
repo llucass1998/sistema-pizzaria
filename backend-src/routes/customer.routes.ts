@@ -189,7 +189,11 @@ customerRoutes.post(
 
       if (admin && (await verifyPassword(password, admin.passwordHash))) {
         const { passwordHash: _hash, ...safeAdmin } = admin;
-        const token = createToken({ id: safeAdmin.id, email: safeAdmin.email, role: safeAdmin.role });
+        const token = createToken({
+          id: safeAdmin.id,
+          email: safeAdmin.email,
+          role: safeAdmin.role,
+        });
         setAuthCookie(res, token);
         res.status(200).json({ admin: safeAdmin, token, role: safeAdmin.role });
         return;

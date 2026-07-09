@@ -28,7 +28,7 @@ describe('Timezone Utility (America/Sao_Paulo)', () => {
     expect(res.period).toBe('TODAY');
     expect(res.label).toBe('Hoje');
     expect(res.timezone).toBe('America/Sao_Paulo');
-    
+
     // Check if difference between end and start is exactly 1 day minus 1 ms
     const diff = res.endUtc.getTime() - res.startUtc.getTime();
     expect(diff).toBe(86400000 - 1);
@@ -38,10 +38,10 @@ describe('Timezone Utility (America/Sao_Paulo)', () => {
     const res = parsePeriodDateRange('YESTERDAY');
     expect(res.period).toBe('YESTERDAY');
     expect(res.label).toBe('Ontem');
-    
+
     const diff = res.endUtc.getTime() - res.startUtc.getTime();
     expect(diff).toBe(86400000 - 1);
-    
+
     const todayRes = parsePeriodDateRange('TODAY');
     expect(todayRes.startUtc.getTime() - res.startUtc.getTime()).toBe(86400000);
   });
@@ -50,7 +50,7 @@ describe('Timezone Utility (America/Sao_Paulo)', () => {
     const res = parsePeriodDateRange('MONTH');
     expect(res.period).toBe('MONTH');
     expect(res.label).toBe('Mês Atual');
-    
+
     const sParts = getBrazilDateParts(res.startUtc);
     expect(sParts.day).toBe(1);
   });

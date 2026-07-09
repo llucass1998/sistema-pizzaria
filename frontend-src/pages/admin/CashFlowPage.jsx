@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
 import { formatCurrencySafe } from '../../data/menuData.js';
-import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, Calendar, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight, Layers, Download, FileText } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+  AlertCircle,
+  Calendar,
+  ShieldCheck,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  Layers,
+  Download,
+  FileText,
+} from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function CashFlowPage() {
@@ -20,15 +33,15 @@ export function CashFlowPage() {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       if (!adminDataStr) throw new Error('Não autenticado');
       const adminData = JSON.parse(adminDataStr);
-      
+
       const response = await fetch(`${API_BASE_URL}/admin/financial/cash-flow?period=${period}`, {
         headers: {
-          'Authorization': `Bearer ${adminData.token}`
-        }
+          Authorization: `Bearer ${adminData.token}`,
+        },
       });
-      
+
       if (!response.ok) throw new Error('Falha ao carregar fluxo de caixa');
-      
+
       const data = await response.json();
       setCashFlowData(data);
     } catch (err) {
@@ -43,7 +56,7 @@ export function CashFlowPage() {
     loadCashFlow();
   }, [period]);
 
-  const filteredEntries = (cashFlowData?.entries || []).filter(e => {
+  const filteredEntries = (cashFlowData?.entries || []).filter((e) => {
     if (filterType === 'ALL') return true;
     if (filterType === 'REALIZED') return e.isRealized && e.type !== 'PHYSICAL_MOVEMENT';
     if (filterType === 'PREDICTED') return !e.isRealized;
@@ -57,29 +70,54 @@ export function CashFlowPage() {
 
   const handleExportCSV = () => {
     if (!cashFlowData?.entries) return;
-    const periodLabel = period === 'MONTH' ? 'Este Mês' : period === 'THIS_WEEK' ? 'Esta Semana' : period === 'LAST_30_DAYS' ? 'Últimos 30 Dias' : 'Turno Atual / Hoje';
+    const periodLabel =
+      period === 'MONTH'
+        ? 'Este Mês'
+        : period === 'THIS_WEEK'
+          ? 'Esta Semana'
+          : period === 'LAST_30_DAYS'
+            ? 'Últimos 30 Dias'
+            : 'Turno Atual / Hoje';
     const rows = [
       ['FLUXO DE CAIXA CONSOLIDADO - RIO PIZZAS'],
       ['Período:', periodLabel],
       ['Data de Emissão:', new Date().toLocaleString('pt-BR')],
       [],
-      ['Data/Hora', 'Tipo Movimentação', 'Descrição / Categoria', 'Valor (R$)', 'Status / Realizado', 'Método / Conta'],
-      ...filteredEntries.map(e => [
+      [
+        'Data/Hora',
+        'Tipo Movimentação',
+        'Descrição / Categoria',
+        'Valor (R$)',
+        'Status / Realizado',
+        'Método / Conta',
+      ],
+      ...filteredEntries.map((e) => [
         new Date(e.date).toLocaleString('pt-BR'),
-        e.type === 'INFLOW' ? 'Entrada (+)' : e.type === 'OUTFLOW' ? 'Saída (-)' : 'Mov. Físico / Sangria/Supr.',
+        e.type === 'INFLOW'
+          ? 'Entrada (+)'
+          : e.type === 'OUTFLOW'
+            ? 'Saída (-)'
+            : 'Mov. Físico / Sangria/Supr.',
         e.description || e.category || 'Sem descrição',
         Number(e.amount || 0).toFixed(2),
         e.isRealized ? 'Realizado' : 'Previsto',
-        e.paymentMethod || 'Caixa Geral'
-      ])
+        e.paymentMethod || 'Caixa Geral',
+      ]),
     ];
-    
-    const csvContent = '\uFEFF' + rows.map(r => r.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(';')).join('\n');
+
+    const csvContent =
+      '\uFEFF' +
+      rows
+        .map((r) => r.map((cell) => `"${String(cell || '').replace(/"/g, '""')}"`).join(';'))
+        .join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `FluxoCaixa_RioPizzas_${period}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute(
+      'download',
+      `FluxoCaixa_RioPizzas_${period}_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -95,8 +133,12 @@ export function CashFlowPage() {
             </span>
             <span className="text-xs text-slate-400">America/Sao_Paulo</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1">Fluxo de Caixa Consolidado</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">Acompanhamento rigoroso de entradas e saídas realizadas vs previstas.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1">
+            Fluxo de Caixa Consolidado
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">
+            Acompanhamento rigoroso de entradas e saídas realizadas vs previstas.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -134,13 +176,16 @@ export function CashFlowPage() {
             Imprimir PDF
           </button>
 
-          <button 
-            onClick={loadCashFlow} 
+          <button
+            onClick={loadCashFlow}
             disabled={isLoading}
             className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             title="Atualizar dados"
           >
-            <RefreshCw size={18} className={`text-slate-600 dark:text-slate-300 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              size={18}
+              className={`text-slate-600 dark:text-slate-300 ${isLoading ? 'animate-spin' : ''}`}
+            />
           </button>
         </div>
       </div>
@@ -155,7 +200,9 @@ export function CashFlowPage() {
       {isLoading && !cashFlowData ? (
         <div className="flex flex-col items-center justify-center h-64 space-y-3">
           <RefreshCw className="w-8 h-8 text-red-600 animate-spin" />
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Apurando fluxo consolidado...</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            Apurando fluxo consolidado...
+          </p>
         </div>
       ) : cashFlowData ? (
         <>
@@ -163,7 +210,8 @@ export function CashFlowPage() {
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-3">
             <ShieldCheck size={20} className="shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div className="text-xs md:text-sm text-blue-900 dark:text-blue-200">
-              <span className="font-bold">Princípio Contábil de Caixa:</span> {cashFlowData.ruleDocumentation}
+              <span className="font-bold">Princípio Contábil de Caixa:</span>{' '}
+              {cashFlowData.ruleDocumentation}
             </div>
           </div>
 
@@ -171,7 +219,9 @@ export function CashFlowPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Entradas Realizadas</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+                  Entradas Realizadas
+                </span>
                 <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <ArrowUpRight size={20} />
                 </div>
@@ -184,7 +234,9 @@ export function CashFlowPage() {
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Saídas Realizadas</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+                  Saídas Realizadas
+                </span>
                 <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center text-red-600 dark:text-red-400">
                   <ArrowDownRight size={20} />
                 </div>
@@ -197,12 +249,16 @@ export function CashFlowPage() {
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-br from-slate-900 to-slate-800 text-white dark:from-slate-900 dark:to-slate-950">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-300">Saldo Realizado em Caixa</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                  Saldo Realizado em Caixa
+                </span>
                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
                   <DollarSign size={20} />
                 </div>
               </div>
-              <div className={`mt-2 text-3xl font-black ${cashFlowData.summary.realizedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div
+                className={`mt-2 text-3xl font-black ${cashFlowData.summary.realizedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+              >
                 {formatCurrencySafe(cashFlowData.summary.realizedBalance)}
               </div>
               <p className="text-xs text-slate-300 mt-1">Disponível apurado no período</p>
@@ -216,7 +272,9 @@ export function CashFlowPage() {
               <div className="text-lg font-black text-slate-700 dark:text-slate-300 mt-1">
                 {formatCurrencySafe(cashFlowData.summary.predictedInflow)}
               </div>
-              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Pedidos pendentes</span>
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                Pedidos pendentes
+              </span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -224,22 +282,34 @@ export function CashFlowPage() {
               <div className="text-lg font-black text-slate-700 dark:text-slate-300 mt-1">
                 {formatCurrencySafe(cashFlowData.summary.predictedOutflow)}
               </div>
-              <span className="text-[11px] text-red-500 font-medium">Contas em aberto no período</span>
+              <span className="text-[11px] text-red-500 font-medium">
+                Contas em aberto no período
+              </span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-bold text-slate-400 uppercase">Saldo Projetado Total</span>
-              <div className={`text-lg font-black mt-1 ${cashFlowData.summary.projectedBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                Saldo Projetado Total
+              </span>
+              <div
+                className={`text-lg font-black mt-1 ${cashFlowData.summary.projectedBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}
+              >
                 {formatCurrencySafe(cashFlowData.summary.projectedBalance)}
               </div>
               <span className="text-[11px] text-slate-400">Realizado + Previsto</span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-xs font-bold text-slate-400 uppercase">Gaveta PDV (Sangria/Sup.)</span>
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                Gaveta PDV (Sangria/Sup.)
+              </span>
               <div className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1 flex justify-between">
-                <span className="text-red-500">Sangria: {formatCurrencySafe(cashFlowData.summary.physicalSangria)}</span>
-                <span className="text-emerald-500">Sup: {formatCurrencySafe(cashFlowData.summary.physicalSuprimento)}</span>
+                <span className="text-red-500">
+                  Sangria: {formatCurrencySafe(cashFlowData.summary.physicalSangria)}
+                </span>
+                <span className="text-emerald-500">
+                  Sup: {formatCurrencySafe(cashFlowData.summary.physicalSuprimento)}
+                </span>
               </div>
               <span className="text-[11px] text-slate-400">Movimentação física de balcão</span>
             </div>
@@ -249,8 +319,12 @@ export function CashFlowPage() {
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-4 md:p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Extrato Analítico do Período</h3>
-                <p className="text-xs text-slate-500">Total de {filteredEntries.length} lançamentos encontrados.</p>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  Extrato Analítico do Período
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Total de {filteredEntries.length} lançamentos encontrados.
+                </p>
               </div>
 
               {/* Filtro por tipo de lançamento */}
@@ -306,9 +380,15 @@ export function CashFlowPage() {
                       const isPhysical = item.type === 'PHYSICAL_MOVEMENT';
 
                       return (
-                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <tr
+                          key={idx}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {new Date(item.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                            {new Date(item.date).toLocaleString('pt-BR', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })}
                           </td>
                           <td className="py-3 px-4">
                             {item.isRealized && !isPhysical && (
@@ -333,8 +413,11 @@ export function CashFlowPage() {
                           <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
                             {item.description}
                           </td>
-                          <td className={`py-3 px-4 text-right font-black ${isPhysical ? 'text-slate-500 dark:text-slate-400' : isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {isPhysical ? '' : isPositive ? '+' : '-'} {formatCurrencySafe(item.amount)}
+                          <td
+                            className={`py-3 px-4 text-right font-black ${isPhysical ? 'text-slate-500 dark:text-slate-400' : isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
+                          >
+                            {isPhysical ? '' : isPositive ? '+' : '-'}{' '}
+                            {formatCurrencySafe(item.amount)}
                           </td>
                         </tr>
                       );

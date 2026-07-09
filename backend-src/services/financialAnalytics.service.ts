@@ -31,7 +31,7 @@ export class FinancialAnalyticsService {
     endDate?: string,
   ) {
     const currentRange = parsePeriodDateRange(period, startDate, endDate);
-    
+
     // Calcular período anterior com mesma duração para variação %
     const durationMs = currentRange.endUtc.getTime() - currentRange.startUtc.getTime();
     const prevEndUtc = new Date(currentRange.startUtc.getTime() - 1);
@@ -98,7 +98,9 @@ export class FinancialAnalyticsService {
 
     // Separação rigorosa de receita realizada vs cancelada vs pendente
     const paidOrders = currentOrders.filter(
-      (o) => o.status !== 'CANCELED' && (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
+      (o) =>
+        o.status !== 'CANCELED' &&
+        (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
     );
     const canceledOrders = currentOrders.filter((o) => o.status === 'CANCELED');
     const pendingOrders = currentOrders.filter(
@@ -106,16 +108,19 @@ export class FinancialAnalyticsService {
     );
 
     const prevPaidOrders = prevOrders.filter(
-      (o) => o.status !== 'CANCELED' && (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
+      (o) =>
+        o.status !== 'CANCELED' &&
+        (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
     );
 
     // Cálculos de Receita
     const grossRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
     const canceledAmount = canceledOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
     const netRevenue = grossRevenue; // Receita líquida operacional (pedidos pagos confirmados)
-    
+
     const prevGrossRevenue = prevPaidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
-    const revenueGrowth = prevGrossRevenue > 0 ? ((grossRevenue - prevGrossRevenue) / prevGrossRevenue) * 100 : 0;
+    const revenueGrowth =
+      prevGrossRevenue > 0 ? ((grossRevenue - prevGrossRevenue) / prevGrossRevenue) * 100 : 0;
 
     // Recebimentos (Entradas Realizadas) vs Previsão a Receber
     const totalReceived = grossRevenue;
@@ -124,7 +129,8 @@ export class FinancialAnalyticsService {
     // Despesas e Saídas Realizadas vs Previstas
     const paidExpenses = currentPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
     const prevPaidExpenses = prevPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-    const expenseGrowth = prevPaidExpenses > 0 ? ((paidExpenses - prevPaidExpenses) / prevPaidExpenses) * 100 : 0;
+    const expenseGrowth =
+      prevPaidExpenses > 0 ? ((paidExpenses - prevPaidExpenses) / prevPaidExpenses) * 100 : 0;
 
     const totalPayablePending = currentPayables
       .filter((p) => p.status === 'PENDING' || p.status === 'OVERDUE')
@@ -142,13 +148,17 @@ export class FinancialAnalyticsService {
     const averageTicket = orderCount > 0 ? grossRevenue / orderCount : 0;
 
     // Saldo de Caixa Físico nos Turnos
-    const cashRegisterBalance = currentShifts.reduce((acc, s) => acc + Number(s.actualClosingCash || s.expectedClosingCash || s.openingCash || 0), 0);
+    const cashRegisterBalance = currentShifts.reduce(
+      (acc, s) => acc + Number(s.actualClosingCash || s.expectedClosingCash || s.openingCash || 0),
+      0,
+    );
 
     // Mix por forma de pagamento
     const paymentMethodBreakdown: Record<string, number> = {};
     for (const order of paidOrders) {
       const method = order.paymentMethod || 'OTHER';
-      paymentMethodBreakdown[method] = (paymentMethodBreakdown[method] || 0) + Number(order.total || 0);
+      paymentMethodBreakdown[method] =
+        (paymentMethodBreakdown[method] || 0) + Number(order.total || 0);
     }
 
     return {
@@ -232,7 +242,12 @@ export class FinancialAnalyticsService {
 
     const entries: Array<{
       date: Date;
-      type: 'INFLOW_REALIZED' | 'INFLOW_PREDICTED' | 'OUTFLOW_REALIZED' | 'OUTFLOW_PREDICTED' | 'PHYSICAL_MOVEMENT';
+      type:
+        | 'INFLOW_REALIZED'
+        | 'INFLOW_PREDICTED'
+        | 'OUTFLOW_REALIZED'
+        | 'OUTFLOW_PREDICTED'
+        | 'PHYSICAL_MOVEMENT';
       category: string;
       description: string;
       amount: number;
@@ -384,7 +399,9 @@ export class FinancialAnalyticsService {
     ]);
 
     const paidOrders = orders.filter(
-      (o) => o.status !== 'CANCELED' && (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
+      (o) =>
+        o.status !== 'CANCELED' &&
+        (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
     );
     const canceledOrders = orders.filter((o) => o.status === 'CANCELED');
 
@@ -464,8 +481,20 @@ export class FinancialAnalyticsService {
       }),
     ]);
 
-    const methods = ['CASH', 'PIX', 'CREDIT_CARD', 'DEBIT_CARD', 'VOUCHER', 'ONLINE', 'RECEIVABLE', 'OTHER'];
-    const breakdown: Record<string, { sold: number; received: number; pending: number; canceled: number; count: number }> = {};
+    const methods = [
+      'CASH',
+      'PIX',
+      'CREDIT_CARD',
+      'DEBIT_CARD',
+      'VOUCHER',
+      'ONLINE',
+      'RECEIVABLE',
+      'OTHER',
+    ];
+    const breakdown: Record<
+      string,
+      { sold: number; received: number; pending: number; canceled: number; count: number }
+    > = {};
 
     for (const m of methods) {
       breakdown[m] = { sold: 0, received: 0, pending: 0, canceled: 0, count: 0 };
@@ -540,7 +569,14 @@ export class FinancialAnalyticsService {
     const twelveHoursAgo = new Date(now.getTime() - 12 * 3600000);
     const fortyFiveMinAgo = new Date(now.getTime() - 45 * 60000);
 
-    const [overduePayables, dueSoonPayables, longOpenShifts, closedShiftsDiff, recentOrders, lowStockIngredients] = await Promise.all([
+    const [
+      overduePayables,
+      dueSoonPayables,
+      longOpenShifts,
+      closedShiftsDiff,
+      recentOrders,
+      lowStockIngredients,
+    ] = await Promise.all([
       basePrisma.accountPayable.findMany({
         where: {
           tenantId,
@@ -672,7 +708,8 @@ export class FinancialAnalyticsService {
         id: 'all-ok',
         type: 'SUCCESS',
         title: 'Operação e Finanças Saudáveis',
-        message: 'Nenhuma conta vencida, diferença de caixa ou estoque crítico detectado no momento.',
+        message:
+          'Nenhuma conta vencida, diferença de caixa ou estoque crítico detectado no momento.',
       });
     }
 
@@ -707,7 +744,10 @@ export class FinancialAnalyticsService {
           },
         });
 
-        const map: Record<string, { name: string; category: string; qty: number; revenue: number }> = {};
+        const map: Record<
+          string,
+          { name: string; category: string; qty: number; revenue: number }
+        > = {};
         for (const o of orders) {
           for (const item of o.items || []) {
             const pid = item.productId;
@@ -801,7 +841,15 @@ export class FinancialAnalyticsService {
         ]);
         return {
           title: `Relatório de Contas a Pagar (${range.label})`,
-          headers: ['ID', 'Categoria', 'Valor Total', 'Valor Pago', 'Saldo devedor', 'Vencimento', 'Status'],
+          headers: [
+            'ID',
+            'Categoria',
+            'Valor Total',
+            'Valor Pago',
+            'Saldo devedor',
+            'Vencimento',
+            'Status',
+          ],
           rows,
         };
       }
@@ -812,7 +860,10 @@ export class FinancialAnalyticsService {
           ['Receita Bruta Realizada', dreData.dre.grossRevenue],
           ['(-) Cancelamentos / Estornos', dreData.dre.canceledAmount],
           ['(=) Receita Líquida', dreData.dre.netRevenue],
-          [`(-) CMV (${dreData.dre.cmvStatus === 'COMPLETED' ? 'Confiável' : 'Estimado/Parcial'})`, dreData.dre.cmv],
+          [
+            `(-) CMV (${dreData.dre.cmvStatus === 'COMPLETED' ? 'Confiável' : 'Estimado/Parcial'})`,
+            dreData.dre.cmv,
+          ],
           ['(=) Lucro Bruto', dreData.dre.grossProfit],
           ['(-) Despesas Operacionais Pagas', dreData.dre.totalExpenses],
           ['(=) Lucro Operacional Estimado', dreData.dre.operatingProfit],

@@ -1,10 +1,38 @@
-import { Router, Request, Response } from 'express';
-import { prisma } from '../lib/prisma.js';
+import { Router, Request, Response, NextFunction } from 'express';
+import { basePrisma } from '../lib/prisma.js';
 import { hashPassword } from '../utils/password.js';
+import { verifyToken } from '../utils/auth.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
-const router = Router();
+const saasPublicRoutes = Router();
+export const saasAdminRoutes = Router();
 
-router.post('/onboarding', async (req: Request, res: Response) => {
+async function requireSaasSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  const token = req.cookies?.token || req.header('authorization')?.replace('Bearer ', '');
+  const payload = verifyToken(token);
+
+  if (!payload || payload.role !== 'SUPER_ADMIN') {
+    res.status(payload ? 403 : 401).json({ message: 'Acesso restrito ao SUPER_ADMIN.' });
+    return;
+  }
+
+  const admin = await basePrisma.admin.findFirst({
+    where: { id: payload.id, email: payload.email, role: 'SUPER_ADMIN' },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (!admin) {
+    res.status(403).json({ message: 'Acesso de SUPER_ADMIN invalido.' });
+    return;
+  }
+
+  (req as any).adminId = admin.id;
+  (req as any).admin = admin;
+  (req as any).adminRole = admin.role;
+  next();
+}
+
+saasPublicRoutes.post('/onboarding', async (req: Request, res: Response) => {
   try {
     const { storeName, slug, ownerName, email, password } = req.body;
 
@@ -13,19 +41,19 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     }
 
     // Verifica se slug ja existe
-    const existingTenant = await prisma.tenant.findUnique({ where: { slug } });
+    const existingTenant = await basePrisma.tenant.findUnique({ where: { slug } });
     if (existingTenant) {
       return res.status(400).json({ error: 'Este endereço de loja (slug) já está em uso.' });
     }
 
     // Verifica se email do dono ja existe (um email por admin de qualquer tenant)
-    const existingAdmin = await prisma.admin.findFirst({ where: { email } });
+    const existingAdmin = await basePrisma.admin.findFirst({ where: { email } });
     if (existingAdmin) {
       return res.status(400).json({ error: 'Este e-mail já está em uso por outro administrador.' });
     }
 
     // 1. Cria Tenant
-    const tenant = await prisma.tenant.create({
+    const tenant = await basePrisma.tenant.create({
       data: {
         slug,
         name: storeName,
@@ -33,7 +61,7 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     });
 
     // 2. Cria Store Settings
-    await prisma.storeSetting.create({
+    await basePrisma.storeSetting.create({
       data: {
         tenantId: tenant.id,
         storeName,
@@ -47,16 +75,23 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     });
 
     // 3. Cria Categorias Padrao
-    await prisma.menuCategory.createMany({
+    await basePrisma.menuCategory.createMany({
       data: [
-        { tenantId: tenant.id, name: 'Pizzas', slug: 'pizzas', sortOrder: 1, allowSizes: true, allowHalfAndHalf: true },
+        {
+          tenantId: tenant.id,
+          name: 'Pizzas',
+          slug: 'pizzas',
+          sortOrder: 1,
+          allowSizes: true,
+          allowHalfAndHalf: true,
+        },
         { tenantId: tenant.id, name: 'Bebidas', slug: 'bebidas', sortOrder: 2 },
-      ]
+      ],
     });
 
     // 4. Cria Conta Admin
     const hashedPassword = await hashPassword(password);
-    await prisma.admin.create({
+    await basePrisma.admin.create({
       data: {
         tenantId: tenant.id,
         name: ownerName || storeName,
@@ -66,13 +101,13 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       },
     });
 
-// Em um SaaS real, aqui também criariamos a Subscription no gateway
+    // Em um SaaS real, aqui também criariamos a Subscription no gateway
     // const subscription = await gateway.createSubscription(...)
 
     return res.status(201).json({
       success: true,
       message: 'Loja criada com sucesso.',
-      tenant: { slug: tenant.slug, name: tenant.name }
+      tenant: { slug: tenant.slug, name: tenant.name },
     });
   } catch (error) {
     console.error('Erro no onboarding:', error);
@@ -84,34 +119,29 @@ router.post('/onboarding', async (req: Request, res: Response) => {
 // ADMIN SAAS (Super Admin)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { requireAdmin } from '../middlewares/requireAdmin.js';
-import { requireRole } from '../middlewares/requireRole.js';
-import { asyncHandler } from '../middlewares/asyncHandler.js';
-
-router.get(
-  '/admin/tenants',
-  requireAdmin,
-  requireRole(['SUPER_ADMIN']),
+saasAdminRoutes.get(
+  '/tenants',
+  requireSaasSuperAdmin,
   asyncHandler(async (_req: Request, res: Response) => {
     // Busca todos os tenants com contagens basicas
-    const tenants = await prisma.tenant.findMany({
+    const tenants = await basePrisma.tenant.findMany({
       include: {
         _count: {
           select: {
             orders: true,
             customers: true,
             products: true,
-          }
+          },
         },
         admins: {
           where: { role: 'OWNER' },
-          select: { email: true, name: true }
-        }
+          select: { email: true, name: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    const mapped = tenants.map(t => ({
+    const mapped = tenants.map((t) => ({
       id: t.id,
       name: t.name,
       slug: t.slug,
@@ -125,13 +155,12 @@ router.get(
     }));
 
     res.json(mapped);
-  })
+  }),
 );
 
-router.patch(
-  '/admin/tenants/:id/status',
-  requireAdmin,
-  requireRole(['SUPER_ADMIN']),
+saasAdminRoutes.patch(
+  '/tenants/:id/status',
+  requireSaasSuperAdmin,
   asyncHandler(async (req: Request, res: Response) => {
     const { isActive } = req.body;
     const id = req.params.id as string;
@@ -141,13 +170,13 @@ router.patch(
       return;
     }
 
-    const tenant = await prisma.tenant.update({
+    const tenant = await basePrisma.tenant.update({
       where: { id },
       data: { isActive },
     });
 
     res.json({ message: 'Status do Tenant atualizado com sucesso.', tenant });
-  })
+  }),
 );
 
-export default router;
+export default saasPublicRoutes;

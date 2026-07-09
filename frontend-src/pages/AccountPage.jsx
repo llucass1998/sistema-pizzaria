@@ -1,5 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, LogOut, User, Edit2, Save, X, Package, ChevronRight, RefreshCw, MapPin, Phone, Mail, CreditCard, AlertCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  LogOut,
+  User,
+  Edit2,
+  Save,
+  X,
+  Package,
+  ChevronRight,
+  RefreshCw,
+  MapPin,
+  Phone,
+  Mail,
+  CreditCard,
+  AlertCircle,
+} from 'lucide-react';
 import { formatCurrency } from '../data/menuData.js';
 import { LoyaltyWidget } from '../components/LoyaltyWidget.jsx';
 
@@ -33,8 +48,11 @@ const FULFILLMENT_LABELS = {
 function formatDate(value) {
   if (!value) return '-';
   return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(value));
 }
 
@@ -57,7 +75,15 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
 
   // Edição de perfil
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', phone: '', cpf: '', street: '', neighborhood: '', city: '', cep: '' });
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    cpf: '',
+    street: '',
+    neighborhood: '',
+    city: '',
+    cep: '',
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -94,26 +120,31 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
     }
   }, [customer?.token, resolvedApiUrl, authHeaders]);
 
-  const fetchOrders = useCallback(async (page = 1, status = '') => {
-    if (!customer?.token) return;
-    setIsLoadingOrders(true);
-    setOrdersError('');
-    try {
-      const qs = new URLSearchParams({ page: String(page), pageSize: '5' });
-      if (status) qs.set('status', status);
-      const res = await fetch(`${resolvedApiUrl}/account/orders?${qs}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error('Não foi possível carregar seus pedidos.');
-      const data = await res.json();
-      setOrders(data.orders ?? []);
-      setOrdersTotalPages(data.totalPages ?? 1);
-      setOrdersTotal(data.total ?? 0);
-      setOrdersPage(page);
-    } catch (err) {
-      setOrdersError(err instanceof Error ? err.message : 'Erro ao carregar pedidos.');
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  }, [customer?.token, resolvedApiUrl, authHeaders]);
+  const fetchOrders = useCallback(
+    async (page = 1, status = '') => {
+      if (!customer?.token) return;
+      setIsLoadingOrders(true);
+      setOrdersError('');
+      try {
+        const qs = new URLSearchParams({ page: String(page), pageSize: '5' });
+        if (status) qs.set('status', status);
+        const res = await fetch(`${resolvedApiUrl}/account/orders?${qs}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) throw new Error('Não foi possível carregar seus pedidos.');
+        const data = await res.json();
+        setOrders(data.orders ?? []);
+        setOrdersTotalPages(data.totalPages ?? 1);
+        setOrdersTotal(data.total ?? 0);
+        setOrdersPage(page);
+      } catch (err) {
+        setOrdersError(err instanceof Error ? err.message : 'Erro ao carregar pedidos.');
+      } finally {
+        setIsLoadingOrders(false);
+      }
+    },
+    [customer?.token, resolvedApiUrl, authHeaders],
+  );
 
   useEffect(() => {
     if (isLoggedIn && customer?.token) {
@@ -170,20 +201,34 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
   if (!isLoggedIn) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-10">
-        <a href="#/" className="back-to-menu-button mb-6 inline-flex max-w-full items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100">
+        <a
+          href="#/"
+          className="back-to-menu-button mb-6 inline-flex max-w-full items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100"
+        >
           <ArrowLeft size={18} /> Voltar ao início
         </a>
         <section className="rounded-xl border-2 border-orange-200 bg-white dark:bg-slate-900 p-5 text-center shadow-sm sm:p-8">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white">
             <User size={36} />
           </div>
-          <h1 className="mb-2 text-3xl font-bold text-slate-900 dark:text-slate-100">Minha Conta</h1>
-          <p className="mb-6 text-slate-600 dark:text-slate-400">Entre para ver seus dados e seus pedidos.</p>
+          <h1 className="mb-2 text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Minha Conta
+          </h1>
+          <p className="mb-6 text-slate-600 dark:text-slate-400">
+            Entre para ver seus dados e seus pedidos.
+          </p>
           <div className="mt-4 flex flex-col justify-center gap-4 sm:flex-row">
-            <button onClick={onLoginClick} className="rounded-xl bg-orange-600 px-6 py-3 font-bold text-white shadow-lg transition hover:bg-orange-700 sm:px-8" type="button">
+            <button
+              onClick={onLoginClick}
+              className="rounded-xl bg-orange-600 px-6 py-3 font-bold text-white shadow-lg transition hover:bg-orange-700 sm:px-8"
+              type="button"
+            >
               Fazer Login
             </button>
-            <a href="#/rastreio" className="flex items-center justify-center rounded-xl border-2 border-orange-600 bg-white dark:bg-slate-900 px-6 py-3 font-bold text-orange-600 transition hover:bg-orange-50 sm:px-8">
+            <a
+              href="#/rastreio"
+              className="flex items-center justify-center rounded-xl border-2 border-orange-600 bg-white dark:bg-slate-900 px-6 py-3 font-bold text-orange-600 transition hover:bg-orange-50 sm:px-8"
+            >
               Rastrear Pedido
             </a>
           </div>
@@ -196,7 +241,10 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <a href="#/" className="back-to-menu-button mb-6 inline-flex max-w-full items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100">
+      <a
+        href="#/"
+        className="back-to-menu-button mb-6 inline-flex max-w-full items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2 font-bold text-orange-700 transition hover:bg-orange-100"
+      >
         <ArrowLeft size={18} /> Voltar ao início
       </a>
 
@@ -210,7 +258,10 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
           <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-700">
             <AlertCircle size={20} />
             <p className="text-sm font-semibold">{profileError}</p>
-            <button onClick={fetchProfile} className="ml-auto flex items-center gap-1 text-xs font-bold hover:underline">
+            <button
+              onClick={fetchProfile}
+              className="ml-auto flex items-center gap-1 text-xs font-bold hover:underline"
+            >
               <RefreshCw size={12} /> Tentar novamente
             </button>
           </div>
@@ -237,7 +288,10 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-orange-600">Dados Pessoais</h2>
           {!isEditing && !isLoadingProfile && (
-            <button onClick={startEditing} className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition">
+            <button
+              onClick={startEditing}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-bold text-orange-600 hover:bg-orange-50 transition"
+            >
               <Edit2 size={14} /> Editar
             </button>
           )}
@@ -247,7 +301,8 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
           <div className="space-y-4">
             {saveError && (
               <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                <AlertCircle size={16} />{saveError}
+                <AlertCircle size={16} />
+                {saveError}
               </div>
             )}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -272,10 +327,18 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
               ))}
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={saveProfile} disabled={isSaving} className="flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2 text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition">
+              <button
+                onClick={saveProfile}
+                disabled={isSaving}
+                className="flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2 text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition"
+              >
                 <Save size={14} /> {isSaving ? 'Salvando...' : 'Salvar'}
               </button>
-              <button onClick={() => setIsEditing(false)} disabled={isSaving} className="flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition">
+              <button
+                onClick={() => setIsEditing(false)}
+                disabled={isSaving}
+                className="flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+              >
                 <X size={14} /> Cancelar
               </button>
             </div>
@@ -306,20 +369,30 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
       {!isEditing && (
         <section className="mb-6 rounded-xl border-2 border-orange-200 bg-white dark:bg-slate-900 p-5 shadow-sm sm:p-6">
           <h2 className="mb-4 text-xl font-bold text-orange-600">Endereço</h2>
-          {(displayProfile?.street || displayProfile?.neighborhood) ? (
+          {displayProfile?.street || displayProfile?.neighborhood ? (
             <div className="flex items-start gap-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
               <MapPin size={18} className="mt-0.5 shrink-0 text-orange-600" />
               <div>
-                {displayProfile?.street && <p className="font-semibold text-slate-900">{displayProfile.street}</p>}
-                {displayProfile?.neighborhood && (
-                  <p className="text-slate-700">{displayProfile.neighborhood}{displayProfile?.city ? `, ${displayProfile.city}` : ''}</p>
+                {displayProfile?.street && (
+                  <p className="font-semibold text-slate-900">{displayProfile.street}</p>
                 )}
-                {displayProfile?.cep && <p className="text-sm text-slate-500">CEP: {displayProfile.cep}</p>}
+                {displayProfile?.neighborhood && (
+                  <p className="text-slate-700">
+                    {displayProfile.neighborhood}
+                    {displayProfile?.city ? `, ${displayProfile.city}` : ''}
+                  </p>
+                )}
+                {displayProfile?.cep && (
+                  <p className="text-sm text-slate-500">CEP: {displayProfile.cep}</p>
+                )}
               </div>
             </div>
           ) : (
             <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
-              Nenhum endereço salvo. <button onClick={startEditing} className="font-bold text-orange-600 hover:underline">Adicionar agora</button>
+              Nenhum endereço salvo.{' '}
+              <button onClick={startEditing} className="font-bold text-orange-600 hover:underline">
+                Adicionar agora
+              </button>
             </p>
           )}
         </section>
@@ -329,7 +402,12 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
       <section className="mb-6 rounded-xl border-2 border-orange-200 bg-white dark:bg-slate-900 p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-bold text-orange-600">
-            Meus Pedidos{ordersTotal > 0 && <span className="ml-2 text-sm font-semibold text-slate-500">({ordersTotal} total)</span>}
+            Meus Pedidos
+            {ordersTotal > 0 && (
+              <span className="ml-2 text-sm font-semibold text-slate-500">
+                ({ordersTotal} total)
+              </span>
+            )}
           </h2>
           <div className="flex flex-wrap gap-2">
             {['', 'PENDING', 'PREPARING', 'DELIVERED', 'CANCELED'].map((s) => (
@@ -338,7 +416,7 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
                 onClick={() => handleStatusFilter(s)}
                 className={`rounded-full px-3 py-1 text-xs font-bold transition ${statusFilter === s ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-orange-100'}`}
               >
-                {s === '' ? 'Todos' : ORDER_STATUS_LABELS[s] ?? s}
+                {s === '' ? 'Todos' : (ORDER_STATUS_LABELS[s] ?? s)}
               </button>
             ))}
           </div>
@@ -352,13 +430,21 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
           <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4 text-red-700">
             <AlertCircle size={18} />
             <p className="text-sm">{ordersError}</p>
-            <button onClick={() => fetchOrders(ordersPage, statusFilter)} className="ml-auto text-xs font-bold hover:underline">Tentar novamente</button>
+            <button
+              onClick={() => fetchOrders(ordersPage, statusFilter)}
+              className="ml-auto text-xs font-bold hover:underline"
+            >
+              Tentar novamente
+            </button>
           </div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
             <Package size={40} className="mb-3 opacity-50" />
             <p className="font-semibold">Você ainda não fez pedidos.</p>
-            <a href="#/" className="mt-3 rounded-lg bg-orange-600 px-5 py-2 text-sm font-bold text-white hover:bg-orange-700 transition">
+            <a
+              href="#/"
+              className="mt-3 rounded-lg bg-orange-600 px-5 py-2 text-sm font-bold text-white hover:bg-orange-700 transition"
+            >
               Ver cardápio
             </a>
           </div>
@@ -366,20 +452,35 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
           <div className="space-y-3">
             {orders.map((order) => {
               const statusLabel = ORDER_STATUS_LABELS[order.status] ?? order.status;
-              const statusColor = ORDER_STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-600';
+              const statusColor =
+                ORDER_STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-600';
               const itemCount = countItems(order.items);
               return (
-                <div key={order.id} className="flex flex-col gap-3 rounded-xl border border-orange-100 bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:flex-row sm:items-center">
+                <div
+                  key={order.id}
+                  className="flex flex-col gap-3 rounded-xl border border-orange-100 bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:flex-row sm:items-center"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-slate-400 font-mono">#{String(order.id).slice(0, 8).toUpperCase()}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusColor}`}>{statusLabel}</span>
-                      <span className="text-xs text-slate-400">{FULFILLMENT_LABELS[order.fulfillmentType] ?? order.fulfillmentType}</span>
+                      <span className="text-xs font-bold text-slate-400 font-mono">
+                        #{String(order.id).slice(0, 8).toUpperCase()}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {FULFILLMENT_LABELS[order.fulfillmentType] ?? order.fulfillmentType}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-500">{formatDate(order.createdAt)} · {itemCount} {itemCount === 1 ? 'item' : 'itens'}</p>
+                    <p className="text-xs text-slate-500">
+                      {formatDate(order.createdAt)} · {itemCount}{' '}
+                      {itemCount === 1 ? 'item' : 'itens'}
+                    </p>
                   </div>
                   <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
-                    <span className="text-base font-black text-orange-600">{formatCurrency(Number(order.total))}</span>
+                    <span className="text-base font-black text-orange-600">
+                      {formatCurrency(Number(order.total))}
+                    </span>
                     <a
                       href={`#/rastreio?id=${order.id}`}
                       className="flex items-center gap-1 text-xs font-bold text-orange-600 hover:underline"
@@ -401,7 +502,9 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
                 >
                   ← Anterior
                 </button>
-                <span className="text-sm text-slate-500">{ordersPage} / {ordersTotalPages}</span>
+                <span className="text-sm text-slate-500">
+                  {ordersPage} / {ordersTotalPages}
+                </span>
                 <button
                   disabled={ordersPage >= ordersTotalPages || isLoadingOrders}
                   onClick={() => fetchOrders(ordersPage + 1, statusFilter)}

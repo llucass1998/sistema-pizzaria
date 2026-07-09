@@ -108,7 +108,9 @@ export const WebhookController = {
         existingTransaction?.type ?? event.transactionType,
         event.paymentMode === 'DEPOSIT' ? 'DEPOSIT_PAYMENT' : 'FULL_PAYMENT',
       );
-      const approvedAmountCents = moneyToCents(event.amount ?? existingTransaction?.amount ?? order.total);
+      const approvedAmountCents = moneyToCents(
+        event.amount ?? existingTransaction?.amount ?? order.total,
+      );
       const isAlreadyPaid = existingTransaction?.status === FINANCIAL_STATUS.PAID;
       const nextPaymentStatus = getPaymentStatusForOrder(event.status);
 
@@ -155,7 +157,8 @@ export const WebhookController = {
         const currentAmountPaidCents = moneyToCents((order as any).amountPaid ?? 0);
         const currentAmountDueCents = moneyToCents((order as any).amountDue ?? order.total);
         const totalCents = moneyToCents(order.total);
-        const deltaPaidCents = event.status === 'APPROVED' && !isAlreadyPaid ? approvedAmountCents : 0;
+        const deltaPaidCents =
+          event.status === 'APPROVED' && !isAlreadyPaid ? approvedAmountCents : 0;
         const amountPaidCents =
           transactionType === 'FULL_PAYMENT' && event.status === 'APPROVED'
             ? totalCents
@@ -210,7 +213,10 @@ export const WebhookController = {
             (sum, payment) => sum + Number(payment.amount),
             0,
           );
-          const remaining = Math.min(centsToMoney(approvedAmountCents), Number(order.total) - totalPaid);
+          const remaining = Math.min(
+            centsToMoney(approvedAmountCents),
+            Number(order.total) - totalPaid,
+          );
           if (remaining > 0.009) {
             await tx.payment.create({
               data: {
@@ -234,14 +240,23 @@ export const WebhookController = {
         });
       });
 
-      const newOrderStatus = event.status === 'APPROVED' && order.status === 'PENDING' ? 'PREPARING' : order.status;
+      const newOrderStatus =
+        event.status === 'APPROVED' && order.status === 'PENDING' ? 'PREPARING' : order.status;
       const emittedPaymentStatus =
         event.status === 'APPROVED' && transactionType === 'DEPOSIT_PAYMENT'
           ? FINANCIAL_STATUS.PARTIALLY_PAID
           : nextPaymentStatus;
-      emitOrderEvent(order.tenantId, 'order-updated', { id: order.id, status: newOrderStatus, paymentStatus: emittedPaymentStatus } as any);
+      emitOrderEvent(order.tenantId, 'order-updated', {
+        id: order.id,
+        status: newOrderStatus,
+        paymentStatus: emittedPaymentStatus,
+      } as any);
       if (newOrderStatus !== order.status) {
-        emitOrderEvent(order.tenantId, 'order-status-changed', { orderId: order.id, status: newOrderStatus, oldStatus: order.status } as any);
+        emitOrderEvent(order.tenantId, 'order-status-changed', {
+          orderId: order.id,
+          status: newOrderStatus,
+          oldStatus: order.status,
+        } as any);
       }
 
       res.status(200).json({ message: 'Webhook processado com sucesso.' });

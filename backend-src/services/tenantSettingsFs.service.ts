@@ -19,7 +19,7 @@ export async function updateTenantFsSettings(tenantId: string, payload: any) {
   } catch (err) {
     // ignore if exists
   }
-  
+
   const filePath = path.join(DATA_DIR, `${tenantId}.json`);
   const current = await getTenantFsSettings(tenantId);
   const updated = { ...current, ...payload };

@@ -220,7 +220,11 @@ input {
 }
 
 html.dark .storefront-shell .nav-actions-menu {
-  background: linear-gradient(90deg, rgb(255 244 190 / 0.94) 0%, rgb(255 226 160 / 0.9) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    rgb(255 244 190 / 0.94) 0%,
+    rgb(255 226 160 / 0.9) 100%
+  ) !important;
   border-color: rgb(255 211 61 / 0.84) !important;
   box-shadow:
     4px 4px 0 rgb(127 29 29 / 0.72),
@@ -346,10 +350,6 @@ html.dark .storefront-shell .back-to-menu-button:hover {
 .legacy-public-shell main:not(.admin-main) .border-orange-300 {
   border-color: var(--rio-ink) !important;
 }
-
-
-
-
 
 .legacy-public-shell main article,
 .legacy-public-shell main section,
@@ -647,7 +647,11 @@ html.dark .legacy-public-shell main a.group:hover {
 
 /* Nav menu in header should remain bright for contrast, or adapt smoothly */
 html.dark .legacy-public-shell .nav-actions-menu {
-  background: linear-gradient(90deg, rgb(255 244 190 / 0.94) 0%, rgb(255 226 160 / 0.9) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    rgb(255 244 190 / 0.94) 0%,
+    rgb(255 226 160 / 0.9) 100%
+  ) !important;
   border-color: rgb(255 211 61 / 0.84) !important;
   box-shadow:
     4px 4px 0 rgb(127 29 29 / 0.72),

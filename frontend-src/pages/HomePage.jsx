@@ -58,7 +58,9 @@ function getDisplayPrice(product) {
 
 function getBestSeller(products, featuredProductId) {
   if (featuredProductId) {
-    const featured = products.find((product) => product.id === featuredProductId || product.productId === featuredProductId);
+    const featured = products.find(
+      (product) => product.id === featuredProductId || product.productId === featuredProductId,
+    );
     if (featured) return featured;
   }
   const preferredNames = ['Pizza Calabresa', 'Pizza Margherita', 'Combo Pizza + Refrigerante'];
@@ -156,7 +158,7 @@ export default function HomePage({
           }
         });
       },
-      { rootMargin: '-100px 0px -60% 0px' }
+      { rootMargin: '-100px 0px -60% 0px' },
     );
 
     const sections = document.querySelectorAll('[id^="category-"]');
@@ -175,12 +177,12 @@ export default function HomePage({
       imageUrl: getCategoryImage(category, products),
       products: getCategoryProducts(products, category),
     }))
-    .filter(section => section.products.length > 0); // Hide empty categories
+    .filter((section) => section.products.length > 0); // Hide empty categories
 
   // Promotions first
   const menuSections = [
-    ...rawMenuSections.filter(s => s.category.slug === 'promocoes'),
-    ...rawMenuSections.filter(s => s.category.slug !== 'promocoes')
+    ...rawMenuSections.filter((s) => s.category.slug === 'promocoes'),
+    ...rawMenuSections.filter((s) => s.category.slug !== 'promocoes'),
   ];
 
   return (
@@ -210,7 +212,8 @@ export default function HomePage({
               {store.name ?? 'Pizzaria'}
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-700 dark:text-slate-300 sm:mt-4 sm:text-lg sm:leading-7">
-              {store.description ?? "Pizzas artesanais, massa leve e recheio caprichado. Escolha a sua favorita e peça em poucos cliques."}
+              {store.description ??
+                'Pizzas artesanais, massa leve e recheio caprichado. Escolha a sua favorita e peça em poucos cliques.'}
             </p>
 
             <div className="mt-5 grid grid-cols-1 gap-2 sm:mt-6 sm:flex sm:flex-wrap">
@@ -290,31 +293,32 @@ export default function HomePage({
         <div className="sticky top-0 z-40 -mx-3 mb-6 max-w-[calc(100%+1.5rem)] border-y border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/95 sm:mx-0 sm:mb-8 sm:rounded-lg sm:border sm:px-4 sm:py-3">
           <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="flex w-max max-w-none gap-2 pr-3">
-            {menuSections.map(({ category, imageUrl, sectionId }) => {
-
-              return (
-                <a
-                  key={category.id}
-                  href={`#${sectionId}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className={`inline-flex h-11 min-w-[7.5rem] shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-sm font-black shadow-sm transition-all duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-95 sm:h-12 sm:min-w-0 sm:pr-4 ${
-                    activeCategory === sectionId
-                      ? 'border-red-600 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-400'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950 dark:hover:text-red-400'
-                  }`}
-                >
-                  <CategoryMark
-                    category={category}
-                    imageUrl={imageUrl}
-                    className="h-8 w-8 text-base"
-                  />
-                  <span className="whitespace-nowrap">{category.name}</span>
-                </a>
-              );
-            })}
+              {menuSections.map(({ category, imageUrl, sectionId }) => {
+                return (
+                  <a
+                    key={category.id}
+                    href={`#${sectionId}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document
+                        .getElementById(sectionId)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`inline-flex h-11 min-w-[7.5rem] shrink-0 items-center justify-center gap-2 rounded-full border px-3 text-sm font-black shadow-sm transition-all duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-95 sm:h-12 sm:min-w-0 sm:pr-4 ${
+                      activeCategory === sectionId
+                        ? 'border-red-600 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-400'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950 dark:hover:text-red-400'
+                    }`}
+                  >
+                    <CategoryMark
+                      category={category}
+                      imageUrl={imageUrl}
+                      className="h-8 w-8 text-base"
+                    />
+                    <span className="whitespace-nowrap">{category.name}</span>
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -347,47 +351,48 @@ export default function HomePage({
               </div>
 
               <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 sm:gap-6 justify-items-center">
-                {isLoading
-                  ? Array.from({ length: 4 }).map((_, index) => (
-                      <ProductSkeleton key={`sk-${category.id}-${index}`} />
-                    ))
-                  : categoryProducts.length === 0 ? (
-                      <div className="col-span-full w-full rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                        Nenhum produto disponivel nesta categoria.
-                      </div>
-                    )
-                  : categoryProducts.map((product) => (
-                      <button
-                        key={product.id}
-                        type="button"
-                        onClick={() => onAddToCart?.(product)}
-                        className="group flex w-full max-w-[280px] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-center shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-red-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900 dark:hover:border-red-900/50"
-                        aria-label={`Adicionar ${product.name} ao carrinho`}
-                      >
-                        <ProductVisual product={product} />
-                        <div className="flex flex-1 flex-col items-center p-5">
-                          <div className="mb-4 flex-1 w-full">
-                            <h4 className="text-lg font-black leading-snug text-slate-950 dark:text-white line-clamp-2">
-                              {product.name}
-                            </h4>
-                            {product.description ? (
-                              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                                {product.description}
-                              </p>
-                            ) : null}
-                          </div>
-                          <div className="mt-auto flex w-full flex-col items-center gap-3">
-                            <span className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(getDisplayPrice(product))}
-                            </span>
-                            <span className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-bold text-white transition-all duration-200 ease-out group-hover:bg-red-600 dark:bg-slate-800">
-                              <ShoppingCart className="h-4 w-4 shrink-0" />
-                              <span>Adicionar</span>
-                            </span>
-                          </div>
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <ProductSkeleton key={`sk-${category.id}-${index}`} />
+                  ))
+                ) : categoryProducts.length === 0 ? (
+                  <div className="col-span-full w-full rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                    Nenhum produto disponivel nesta categoria.
+                  </div>
+                ) : (
+                  categoryProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => onAddToCart?.(product)}
+                      className="group flex w-full max-w-[280px] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-center shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-red-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900 dark:hover:border-red-900/50"
+                      aria-label={`Adicionar ${product.name} ao carrinho`}
+                    >
+                      <ProductVisual product={product} />
+                      <div className="flex flex-1 flex-col items-center p-5">
+                        <div className="mb-4 flex-1 w-full">
+                          <h4 className="text-lg font-black leading-snug text-slate-950 dark:text-white line-clamp-2">
+                            {product.name}
+                          </h4>
+                          {product.description ? (
+                            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                              {product.description}
+                            </p>
+                          ) : null}
                         </div>
-                      </button>
-                    ))}
+                        <div className="mt-auto flex w-full flex-col items-center gap-3">
+                          <span className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(getDisplayPrice(product))}
+                          </span>
+                          <span className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 font-bold text-white transition-all duration-200 ease-out group-hover:bg-red-600 dark:bg-slate-800">
+                            <ShoppingCart className="h-4 w-4 shrink-0" />
+                            <span>Adicionar</span>
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           ))}

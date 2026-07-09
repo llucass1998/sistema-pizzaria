@@ -12,15 +12,16 @@ export default function OrderStatusPage() {
   const storeSettings = useCartStore((state) => state.storeSettings);
   const store = useCartStore((state) => state.store);
 
-  // Parse identifier from URL: /order/123
   useEffect(() => {
-    const path = window.location.pathname;
-    if (path.startsWith('/order/')) {
-      const id = path.split('/')[2];
-      if (id) {
-        setIdentifier(id);
-        fetchOrderById(id);
-      }
+    const hashPath = window.location.hash.replace(/^#/, '') || '/';
+    const [pathOnly, queryString = ''] = hashPath.split('?');
+    const queryId = new URLSearchParams(queryString).get('id');
+    const pathId = pathOnly.startsWith('/order/') ? pathOnly.split('/')[2] : '';
+    const id = pathId || queryId;
+
+    if (id) {
+      setIdentifier(id);
+      fetchOrderById(id);
     }
   }, []);
 
@@ -53,11 +54,13 @@ export default function OrderStatusPage() {
       const tenantId = storeSettings?.tenantId || store?.tenantId || '';
       const response = await fetch(
         `/api/pedidos/rastrear/${encodeURIComponent(idToSearch)}`,
-        {
-          headers: {
-            'x-tenant': tenantId,
-          },
-        },
+        tenantId
+          ? {
+              headers: {
+                'x-tenant-id': tenantId,
+              },
+            }
+          : undefined,
       );
 
       if (!response.ok) {
@@ -90,7 +93,7 @@ export default function OrderStatusPage() {
     return map[status] || status;
   }
 
-function getFulfillmentLabel(type) {
+  function getFulfillmentLabel(type) {
     return type === 'DELIVERY' ? 'Entrega' : 'Retirada';
   }
 
@@ -122,8 +125,12 @@ function getFulfillmentLabel(type) {
 
       <section className="mb-8 rounded-2xl border-2 border-orange-200 bg-white dark:bg-slate-900 p-4 shadow-xl sm:p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">Rastrear Pedido</h1>
-          <p className="text-slate-600 dark:text-slate-400">Acompanhe o status do seu pedido em tempo real.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">
+            Rastrear Pedido
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Acompanhe o status do seu pedido em tempo real.
+          </p>
         </div>
 
         <form onSubmit={handleSearch} className="flex flex-col gap-4 sm:flex-row">
@@ -223,8 +230,10 @@ function getFulfillmentLabel(type) {
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
                 <p className="font-black">Entrada paga</p>
                 <p className="mt-1 text-sm font-semibold">
-                  Voce ja pagou {formatCurrency(safeMoney(order.amountPaid || order.depositAmount))}.
-                  Falta pagar {formatCurrency(safeMoney(order.amountDue || order.remainingAmount))} na {order.fulfillmentType === 'DELIVERY' ? 'entrega' : 'retirada'}.
+                  Voce ja pagou {formatCurrency(safeMoney(order.amountPaid || order.depositAmount))}
+                  . Falta pagar{' '}
+                  {formatCurrency(safeMoney(order.amountDue || order.remainingAmount))} na{' '}
+                  {order.fulfillmentType === 'DELIVERY' ? 'entrega' : 'retirada'}.
                 </p>
                 <p className="mt-2 text-xs font-bold text-amber-800 dark:text-amber-200">
                   {order.fulfillmentType === 'DELIVERY'
@@ -244,7 +253,9 @@ function getFulfillmentLabel(type) {
           </div>
 
           <div className="border-t-2 border-orange-200 pt-6">
-            <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-100">Itens do Pedido</h3>
+            <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-100">
+              Itens do Pedido
+            </h3>
             <div className="space-y-3">
               {order.items.map((item) => (
                 <div
@@ -253,7 +264,7 @@ function getFulfillmentLabel(type) {
                 >
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-900 dark:text-slate-100">
-                      {item.quantity}x {item.product?.name || 'Item'}
+                      {item.quantity}x {item.displayName || item.product?.name || 'Item'}
                     </p>
                     {item.customizations && (
                       <p className="text-sm text-orange-700">{item.customizations}</p>

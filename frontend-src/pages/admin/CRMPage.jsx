@@ -17,7 +17,7 @@ import {
   Award,
   Calendar,
   UserCheck,
-  Download
+  Download,
 } from 'lucide-react';
 import { Panel } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
@@ -135,7 +135,7 @@ export function CRMPage() {
     const cleanPhone = customer.phone.replace(/\D/g, '');
     const fullPhone = cleanPhone.length <= 10 ? `55${cleanPhone}` : cleanPhone;
     const message = encodeURIComponent(
-      `Olá ${customer.name}, tudo bem? Aqui é da Pizzaria! Temos novidades e promoções especiais para você hoje.`
+      `Olá ${customer.name}, tudo bem? Aqui é da Pizzaria! Temos novidades e promoções especiais para você hoje.`,
     );
     window.open(`https://api.whatsapp.com/send?phone=${fullPhone}&text=${message}`, '_blank');
   };
@@ -143,7 +143,7 @@ export function CRMPage() {
   const handleOpenCustomerModal = async (customer) => {
     setSelectedCustomer(customer);
     setCustomerOrders([]);
-    
+
     try {
       setIsLoadingOrders(true);
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
@@ -172,18 +172,38 @@ export function CRMPage() {
     }
 
     const sanitizeCsvValue = (value) => {
-      const raw = value == null ? "" : String(value);
+      const raw = value == null ? '' : String(value);
       const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
       return `"${safe.replace(/"/g, '""')}"`;
     };
 
     const now = new Date();
-    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+    const dateStr =
+      now.getFullYear() +
+      '-' +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(now.getDate()).padStart(2, '0') +
+      '-' +
+      String(now.getHours()).padStart(2, '0') +
+      '-' +
+      String(now.getMinutes()).padStart(2, '0');
     const filename = `crm-clientes-segmento-${dateStr}.csv`;
 
-    const rows = [['nome', 'email', 'telefone', 'segmento', 'totalOrders', 'totalSpent', 'lastOrderDate', 'loyaltyBalance']];
-    
-    filteredCustomers.forEach(c => {
+    const rows = [
+      [
+        'nome',
+        'email',
+        'telefone',
+        'segmento',
+        'totalOrders',
+        'totalSpent',
+        'lastOrderDate',
+        'loyaltyBalance',
+      ],
+    ];
+
+    filteredCustomers.forEach((c) => {
       rows.push([
         c.name || '',
         c.email || '',
@@ -192,14 +212,14 @@ export function CRMPage() {
         c.totalOrders || 0,
         c.totalSpent || 0,
         c.lastOrderDate ? new Date(c.lastOrderDate).toISOString() : '',
-        c.loyaltyBalance || 0
+        c.loyaltyBalance || 0,
       ]);
     });
 
-    const csv = "\uFEFF" + rows.map((row) => row.map(sanitizeCsvValue).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = '\uFEFF' + rows.map((row) => row.map(sanitizeCsvValue).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -250,7 +270,8 @@ export function CRMPage() {
           <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-red-500" />
           <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Acesso Restrito</h3>
           <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para acessar o CRM e base de clientes.
+            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para acessar o CRM e base de
+            clientes.
           </p>
         </div>
       </div>
@@ -457,7 +478,8 @@ export function CRMPage() {
                         </>
                       ) : (
                         <>
-                          <Mail size={11} className="text-slate-400 inline" /> {c.email || 'Sem contato'}
+                          <Mail size={11} className="text-slate-400 inline" />{' '}
+                          {c.email || 'Sem contato'}
                         </>
                       )}
                     </p>
@@ -476,7 +498,9 @@ export function CRMPage() {
                     {formatCurrencySafe(c.loyaltyBalance)}
                   </td>
                   <td className="px-6 py-4 text-center text-slate-500 font-medium">
-                    {c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString('pt-BR') : 'N/A'}
+                    {c.lastOrderDate
+                      ? new Date(c.lastOrderDate).toLocaleDateString('pt-BR')
+                      : 'N/A'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -529,13 +553,18 @@ export function CRMPage() {
                 <option value={50}>50</option>
               </select>
               <span>
-                de <strong className="text-slate-700 dark:text-slate-300">{filteredCustomers.length}</strong> clientes
+                de{' '}
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {filteredCustomers.length}
+                </strong>{' '}
+                clientes
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-slate-500 mr-2">
-                Página <strong className="text-slate-700 dark:text-slate-300">{currentPage}</strong> de {totalPages}
+                Página <strong className="text-slate-700 dark:text-slate-300">{currentPage}</strong>{' '}
+                de {totalPages}
               </span>
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
@@ -634,25 +663,29 @@ export function CRMPage() {
                 {selectedCustomer.segment === 'VIP' && (
                   <li className="flex items-start gap-2">
                     <span className="text-yellow-500 font-bold">•</span>
-                    Cliente de alto valor. Envie um cupom de desconto exclusivo de agradecimento ou brinde na próxima compra.
+                    Cliente de alto valor. Envie um cupom de desconto exclusivo de agradecimento ou
+                    brinde na próxima compra.
                   </li>
                 )}
                 {selectedCustomer.segment === 'EM_RISCO' && (
                   <li className="flex items-start gap-2">
                     <span className="text-red-500 font-bold">•</span>
-                    Cliente inativo há muito tempo. Envie uma mensagem no WhatsApp perguntando se aconteceu algo e oferecendo frete grátis para reativar.
+                    Cliente inativo há muito tempo. Envie uma mensagem no WhatsApp perguntando se
+                    aconteceu algo e oferecendo frete grátis para reativar.
                   </li>
                 )}
                 {selectedCustomer.segment === 'NOVO' && (
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 font-bold">•</span>
-                    Novo cliente. Dê as boas-vindas ao programa de fidelidade e incentive a segunda compra com uma sobremesa especial.
+                    Novo cliente. Dê as boas-vindas ao programa de fidelidade e incentive a segunda
+                    compra com uma sobremesa especial.
                   </li>
                 )}
                 {selectedCustomer.segment === 'ATIVO' && (
                   <li className="flex items-start gap-2">
                     <span className="text-green-500 font-bold">•</span>
-                    Cliente regular. Mantenha o engajamento divulgando os novos sabores da temporada.
+                    Cliente regular. Mantenha o engajamento divulgando os novos sabores da
+                    temporada.
                   </li>
                 )}
               </ul>
@@ -681,36 +714,48 @@ export function CRMPage() {
 
             {/* Histórico de Pedidos */}
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <h4 className="font-bold text-slate-900 dark:text-white mb-3">Histórico de Pedidos</h4>
-              
+              <h4 className="font-bold text-slate-900 dark:text-white mb-3">
+                Histórico de Pedidos
+              </h4>
+
               {isLoadingOrders ? (
                 <div className="py-8 flex justify-center">
                   <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin dark:border-slate-800 dark:border-t-slate-100" />
                 </div>
               ) : customerOrders.length > 0 ? (
                 <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3">
-                  {customerOrders.map(order => (
-                    <div key={order.id} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                  {customerOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50"
+                    >
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-slate-500">
                           {new Date(order.createdAt).toLocaleString('pt-BR')}
                         </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          order.status === 'DELIVERED' || order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' :
-                          order.status === 'CANCELED' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400' :
-                          'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
-                        }`}>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            order.status === 'DELIVERED' || order.status === 'COMPLETED'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                              : order.status === 'CANCELED'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                          }`}
+                        >
                           {order.status}
                         </span>
                       </div>
-                      
+
                       <div className="text-sm font-medium text-slate-900 dark:text-slate-200 mb-2">
-                        {order.items?.map(item => `${item.quantity}x ${item.product?.name}`).join(', ')}
+                        {order.items
+                          ?.map((item) => `${item.quantity}x ${item.product?.name}`)
+                          .join(', ')}
                       </div>
-                      
+
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500">
-                          {order.fulfillmentType === 'DELIVERY' ? 'Entrega' : 'Retirada'} • {order.paymentMethod || 'PGTO Indisponível'}
+                          {order.fulfillmentType === 'DELIVERY' ? 'Entrega' : 'Retirada'} •{' '}
+                          {order.paymentMethod || 'PGTO Indisponível'}
                         </span>
                         <span className="font-black text-emerald-600 dark:text-emerald-400">
                           {formatCurrencySafe(order.total)}
@@ -720,9 +765,7 @@ export function CRMPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-sm text-slate-500 py-4">
-                  Nenhum pedido encontrado.
-                </p>
+                <p className="text-center text-sm text-slate-500 py-4">Nenhum pedido encontrado.</p>
               )}
             </div>
           </div>

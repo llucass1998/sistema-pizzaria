@@ -254,7 +254,7 @@ export default function CartPage({
   const [customerWhatsApp, setCustomerWhatsApp] = useState(formatPhoneBR(customer?.phone ?? ''));
   const [street, setStreet] = useState(customer?.street ?? '');
   const [number, setNumber] = useState('');
-  const [zipCode, setZipCode] = useState(customer?.zipCode ?? '');
+  const [zipCode, setZipCode] = useState(customer?.cep ?? customer?.zipCode ?? '');
   const [neighborhood, setNeighborhood] = useState(customer?.neighborhood ?? '');
   const [complement, setComplement] = useState('');
   const [notes, setNotes] = useState('');
@@ -332,11 +332,13 @@ export default function CartPage({
   }
 
   useEffect(() => {
-    setCustomerName(customer?.name ?? '');
-    setCustomerWhatsApp(formatPhoneBR(customer?.phone ?? ''));
-    setStreet(customer?.street ?? '');
-    setZipCode(customer?.zipCode ?? '');
-    setNeighborhood(customer?.neighborhood ?? '');
+    if (!customer) return;
+
+    setCustomerName((current) => customer.name ?? current);
+    setCustomerWhatsApp((current) => (customer.phone ? formatPhoneBR(customer.phone) : current));
+    setStreet((current) => customer.street ?? current);
+    setZipCode((current) => customer.cep ?? customer.zipCode ?? current);
+    setNeighborhood((current) => customer.neighborhood ?? current);
   }, [customer]);
 
   useEffect(() => {
@@ -393,12 +395,7 @@ export default function CartPage({
   const configuredServiceFee = hasItems ? safeNumber(store?.serviceFee, defaultServiceFee) : 0;
   const rawDeliveryFeeAmount =
     fulfillmentType === 'DELIVERY' && hasItems ? safeNumber(deliveryFeeResult.fee) : 0;
-  const {
-    checkoutTotal,
-    couponDiscountAmount,
-    loyaltyDiscountAmount,
-    deliveryFeeAmount,
-  } = useMemo(
+  const { checkoutTotal, couponDiscountAmount, loyaltyDiscountAmount, deliveryFeeAmount } = useMemo(
     () =>
       calculateCheckoutSummary({
         subtotal: cartSubtotal,
@@ -432,7 +429,8 @@ export default function CartPage({
     Math.max(1, Number(storeSettings?.depositPercent ?? store?.depositPercent ?? 50) || 50),
   );
   const depositMethods = useMemo(
-    () => parseDepositMethods(storeSettings?.depositRequiredMethods ?? store?.depositRequiredMethods),
+    () =>
+      parseDepositMethods(storeSettings?.depositRequiredMethods ?? store?.depositRequiredMethods),
     [storeSettings?.depositRequiredMethods, store?.depositRequiredMethods],
   );
   const isGatewayEnabled = Boolean(storeSettings?.gatewayEnabled || store?.gatewayEnabled);
@@ -507,7 +505,8 @@ export default function CartPage({
   }, [lastOrder]);
 
   useEffect(() => {
-    if (!lastOrder?.id || orderPaymentStatus === 'PAID' || orderPaymentStatus === 'COMPLETED') return;
+    if (!lastOrder?.id || orderPaymentStatus === 'PAID' || orderPaymentStatus === 'COMPLETED')
+      return;
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`${apiBaseUrl}/pedidos/rastrear/${lastOrder.id}`);
@@ -675,12 +674,16 @@ export default function CartPage({
     }
 
     if (fulfillmentType === 'DELIVERY' && !deliveryFeeResult.available) {
-      showError(deliveryFeeResult.message || 'Entrega indisponivel para as informacoes fornecidas.');
+      showError(
+        deliveryFeeResult.message || 'Entrega indisponivel para as informacoes fornecidas.',
+      );
       return;
     }
 
     if (paymentMethod === 'PIX' && !isPixKeyConfigured) {
-      showError('Pagamento via PIX temporariamente indisponivel. Escolha outra forma de pagamento.');
+      showError(
+        'Pagamento via PIX temporariamente indisponivel. Escolha outra forma de pagamento.',
+      );
       return;
     }
 
@@ -836,7 +839,8 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
               Pedido #{getOrderDisplayNumber(lastOrder)}
             </h1>
             <p className="mt-2 text-base font-bold text-slate-500 dark:text-slate-400">
-              {getFulfillmentLabel(lastOrder.fulfillmentType)} · {formatCurrencySafe(lastOrder.total)}
+              {getFulfillmentLabel(lastOrder.fulfillmentType)} ·{' '}
+              {formatCurrencySafe(lastOrder.total)}
             </p>
           </div>
 
@@ -844,7 +848,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
               <p className="text-sm font-black uppercase">Entrada paga</p>
               <p className="mt-1 text-sm font-bold">
-                Voce ja pagou {formatCurrencySafe(lastOrder.amountPaid || lastOrder.depositAmount)}. Falta pagar {formatCurrencySafe(lastOrder.amountDue || lastOrder.remainingAmount)} na {lastOrder.fulfillmentType === 'DELIVERY' ? 'entrega' : 'retirada'}.
+                Voce ja pagou {formatCurrencySafe(lastOrder.amountPaid || lastOrder.depositAmount)}.
+                Falta pagar {formatCurrencySafe(lastOrder.amountDue || lastOrder.remainingAmount)}{' '}
+                na {lastOrder.fulfillmentType === 'DELIVERY' ? 'entrega' : 'retirada'}.
               </p>
             </div>
           )}
@@ -864,7 +870,8 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-6 text-center text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 animate-bounce">
                   <p className="text-xl font-black">🎉 Pagamento PIX Confirmado!</p>
                   <p className="mt-1 text-sm font-bold">
-                    Recebemos seu pagamento em tempo real. Nossa cozinha já começou a preparar seu pedido!
+                    Recebemos seu pagamento em tempo real. Nossa cozinha já começou a preparar seu
+                    pedido!
                   </p>
                 </div>
               ) : (
@@ -955,8 +962,12 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
 
       <section className="mb-6 flex flex-col gap-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xl sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">Checkout</h1>
-          <p className="text-slate-600 dark:text-slate-400">Preencha seus dados para finalizar o pedido.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">
+            Checkout
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Preencha seus dados para finalizar o pedido.
+          </p>
         </div>
         <div className="shrink-0 text-left sm:text-right">
           <p className="text-sm font-bold uppercase text-red-600">Total atual</p>
@@ -974,9 +985,11 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
         >
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Finalizar pedido</h2>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                Finalizar pedido
+              </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                O pedido será enviado diretamente para o nosso WhatsApp.
+                O pedido será registrado no sistema e a loja também receberá o resumo pelo WhatsApp.
               </p>
             </div>
           </div>
@@ -1005,7 +1018,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                   </div>
 
                   <div className="min-w-0">
-                    <h4 className="line-clamp-2 font-bold text-slate-900 dark:text-slate-100">{item.name}</h4>
+                    <h4 className="line-clamp-2 font-bold text-slate-900 dark:text-slate-100">
+                      {item.name}
+                    </h4>
                     {item.customizations && (
                       <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                         {item.customizations}
@@ -1049,7 +1064,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
 
           <div className="mb-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Nome</label>
+              <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Nome
+              </label>
               <input
                 value={customerName}
                 onChange={(event) => {
@@ -1064,11 +1081,15 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 placeholder="Seu nome"
               />
               {fieldErrors.customerName && (
-                <p className="mt-1 text-sm font-semibold text-red-600">{fieldErrors.customerName}</p>
+                <p className="mt-1 text-sm font-semibold text-red-600">
+                  {fieldErrors.customerName}
+                </p>
               )}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">WhatsApp</label>
+              <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                WhatsApp
+              </label>
               <input
                 value={customerWhatsApp}
                 onChange={(event) => handlePhoneChange(event.target.value)}
@@ -1081,7 +1102,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 type="tel"
               />
               {fieldErrors.customerWhatsApp && (
-                <p className="mt-1 text-sm font-semibold text-red-600">{fieldErrors.customerWhatsApp}</p>
+                <p className="mt-1 text-sm font-semibold text-red-600">
+                  {fieldErrors.customerWhatsApp}
+                </p>
               )}
             </div>
           </div>
@@ -1102,7 +1125,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 <Truck size={24} />
               </div>
               <div className="mt-1 min-w-0 pr-7">
-                <span className={`block font-black ${fulfillmentType === 'DELIVERY' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}>
+                <span
+                  className={`block font-black ${fulfillmentType === 'DELIVERY' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}
+                >
                   Entrega / Envio
                 </span>
                 <span className="block mt-1 text-sm font-medium text-slate-500">
@@ -1130,7 +1155,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                 <PackageCheck size={24} />
               </div>
               <div className="mt-1 min-w-0 pr-7">
-                <span className={`block font-black ${fulfillmentType === 'PICKUP' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}>
+                <span
+                  className={`block font-black ${fulfillmentType === 'PICKUP' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-900 dark:text-slate-100'}`}
+                >
                   Retirada na loja
                 </span>
                 <span className="block mt-1 text-sm font-medium text-slate-500">
@@ -1147,7 +1174,10 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
 
           {fulfillmentType === 'PICKUP' && (
             <div className="mb-5 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              <p>Retirada escolhida: o pedido será preparado para buscar na loja e não terá taxa de entrega.</p>
+              <p>
+                Retirada escolhida: o pedido será preparado para buscar na loja e não terá taxa de
+                entrega.
+              </p>
               <p className="mt-2 font-bold text-emerald-700 dark:text-emerald-400">
                 {store?.address?.trim() || 'Endereço da loja ainda não configurado.'}
               </p>
@@ -1161,7 +1191,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
               <div className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-[150px_1fr]">
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">CEP</label>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      CEP
+                    </label>
                     <input
                       value={zipCode}
                       onChange={(event) => setZipCode(event.target.value)}
@@ -1172,7 +1204,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Rua</label>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      Rua
+                    </label>
                     <input
                       value={street}
                       onChange={(event) => {
@@ -1180,18 +1214,24 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                         setFieldErrors((current) => ({ ...current, street: '' }));
                       }}
                       className={`w-full rounded-xl border-2 bg-slate-50 px-4 py-3 font-medium transition-colors focus:border-red-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-red-500/10 dark:bg-slate-900 ${
-                        fieldErrors.street ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                        fieldErrors.street
+                          ? 'border-red-500'
+                          : 'border-slate-200 dark:border-slate-800'
                       }`}
                       placeholder="Nome da rua, avenida..."
                     />
                     {fieldErrors.street && (
-                      <p className="mt-1 text-sm font-semibold text-red-600">{fieldErrors.street}</p>
+                      <p className="mt-1 text-sm font-semibold text-red-600">
+                        {fieldErrors.street}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
                   <div className="min-w-0">
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Número</label>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      Número
+                    </label>
                     <input
                       value={number}
                       onChange={(event) => {
@@ -1199,16 +1239,22 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                         setFieldErrors((current) => ({ ...current, number: '' }));
                       }}
                       className={`w-full rounded-xl border-2 bg-slate-50 px-4 py-3 font-medium transition-colors focus:border-red-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-red-500/10 dark:bg-slate-900 ${
-                        fieldErrors.number ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                        fieldErrors.number
+                          ? 'border-red-500'
+                          : 'border-slate-200 dark:border-slate-800'
                       }`}
                       placeholder="123"
                     />
                     {fieldErrors.number && (
-                      <p className="mt-1 text-sm font-semibold text-red-600">{fieldErrors.number}</p>
+                      <p className="mt-1 text-sm font-semibold text-red-600">
+                        {fieldErrors.number}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Bairro</label>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      Bairro
+                    </label>
                     <input
                       value={neighborhood}
                       onChange={(event) => {
@@ -1230,7 +1276,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">Complemento</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Complemento
+                  </label>
                   <input
                     value={complement}
                     onChange={(event) => setComplement(event.target.value)}
@@ -1265,7 +1313,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                     <Icon size={20} />
                   </div>
                   <div className="min-w-0 pr-7">
-                    <span className="block font-bold text-slate-900 dark:text-slate-100">{label}</span>
+                    <span className="block font-bold text-slate-900 dark:text-slate-100">
+                      {label}
+                    </span>
                     <span className="block text-sm font-medium text-slate-500">{description}</span>
                   </div>
                   {paymentMethod === id && (
@@ -1277,16 +1327,15 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
               ))}
             </div>
             {fieldErrors.paymentMethod && (
-              <p className="mt-2 text-sm font-semibold text-red-600">
-                {fieldErrors.paymentMethod}
-              </p>
+              <p className="mt-2 text-sm font-semibold text-red-600">{fieldErrors.paymentMethod}</p>
             )}
 
             {paymentMethod === 'PIX' && (
               <div className="mt-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 sm:p-4">
                 {!isPixKeyConfigured ? (
                   <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-                    Pagamento via PIX temporariamente indisponivel. Escolha outra forma de pagamento.
+                    Pagamento via PIX temporariamente indisponivel. Escolha outra forma de
+                    pagamento.
                   </p>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-[220px_1fr]">
@@ -1357,28 +1406,32 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
             {isCardPayment && (
               <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm sm:p-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {cardPaymentModes.filter(mode => mode.id !== 'ONLINE' || storeSettings?.gatewayEnabled).map((mode) => (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => setCardPaymentMode(mode.id)}
-                      className={`relative flex flex-col justify-center rounded-xl border-2 p-3 text-left transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-                        cardPaymentMode === mode.id
-                          ? 'border-red-500 bg-slate-50 dark:bg-slate-950'
-                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 hover:bg-slate-50/50'
-                      }`}
-                    >
-                      <span className="font-bold text-slate-900 dark:text-slate-100 pr-6">{mode.label}</span>
-                      <span className="mt-1 block text-sm font-medium text-slate-500">
-                        {mode.description}
-                      </span>
-                      {cardPaymentMode === mode.id && (
-                        <div className="absolute right-3 top-3 text-red-500">
-                          <Check size={18} strokeWidth={3} />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {cardPaymentModes
+                    .filter((mode) => mode.id !== 'ONLINE' || storeSettings?.gatewayEnabled)
+                    .map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setCardPaymentMode(mode.id)}
+                        className={`relative flex flex-col justify-center rounded-xl border-2 p-3 text-left transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                          cardPaymentMode === mode.id
+                            ? 'border-red-500 bg-slate-50 dark:bg-slate-950'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <span className="font-bold text-slate-900 dark:text-slate-100 pr-6">
+                          {mode.label}
+                        </span>
+                        <span className="mt-1 block text-sm font-medium text-slate-500">
+                          {mode.description}
+                        </span>
+                        {cardPaymentMode === mode.id && (
+                          <div className="absolute right-3 top-3 text-red-500">
+                            <Check size={18} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    ))}
                 </div>
               </div>
             )}
@@ -1419,22 +1472,26 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                       Pagar {depositPercent}% agora
                     </span>
                     <span className="mt-1 block text-sm font-medium text-slate-500">
-                      {storeSettings?.depositLabel || store?.depositLabel || 'Pague a entrada agora e o restante na entrega.'}
+                      {storeSettings?.depositLabel ||
+                        store?.depositLabel ||
+                        'Pague a entrada agora e o restante na entrega.'}
                     </span>
                   </button>
                 </div>
                 {!canUseDepositWithCurrentMethod && (
                   <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-                    Para usar entrada, escolha cartao online ou PIX online quando o gateway estiver ativo.
+                    Para usar entrada, escolha cartao online ou PIX online quando o gateway estiver
+                    ativo.
                   </p>
                 )}
               </div>
             )}
           </section>
 
-
           {fulfillmentType === 'DELIVERY' && deliveryFeeResult.message && (
-            <p className={`mb-5 text-sm font-semibold ${deliveryFeeResult.available ? 'text-green-600' : 'text-red-600'}`}>
+            <p
+              className={`mb-5 text-sm font-semibold ${deliveryFeeResult.available ? 'text-green-600' : 'text-red-600'}`}
+            >
               {deliveryFeeResult.message}
             </p>
           )}
@@ -1462,7 +1519,8 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
               <p className="text-sm font-black uppercase">Pedido criado com sucesso</p>
               <p className="mt-1 text-2xl font-black">#{getOrderDisplayNumber(lastOrder)}</p>
               <p className="mt-1 text-sm font-semibold">
-                {getFulfillmentLabel(lastOrder.fulfillmentType)} - {formatCurrencySafe(lastOrder.total)}
+                {getFulfillmentLabel(lastOrder.fulfillmentType)} -{' '}
+                {formatCurrencySafe(lastOrder.total)}
               </p>
             </div>
           )}
@@ -1471,7 +1529,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
             <>
               {/* Cupom de Desconto */}
               <div className="mb-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-                <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">Cupom de Desconto</h2>
+                <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-slate-100">
+                  Cupom de Desconto
+                </h2>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
@@ -1552,7 +1612,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                   </div>
                   <div className="flex justify-between gap-4 text-sm font-medium text-slate-600 dark:text-slate-400">
                     <span>Pagamento:</span>
-                    <span className="text-right font-bold text-slate-900 dark:text-slate-100">{paymentSummary}</span>
+                    <span className="text-right font-bold text-slate-900 dark:text-slate-100">
+                      {paymentSummary}
+                    </span>
                   </div>
 
                   <div className="my-4 border-t border-slate-200 dark:border-slate-800 border-dashed"></div>
@@ -1576,7 +1638,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
                   {configuredServiceFee > 0 && (
                     <div className="flex justify-between gap-4 text-slate-600 dark:text-slate-400">
                       <span>Taxa de serviço:</span>
-                      <span className="font-medium">{formatCurrencySafe(configuredServiceFee)}</span>
+                      <span className="font-medium">
+                        {formatCurrencySafe(configuredServiceFee)}
+                      </span>
                     </div>
                   )}
                   {couponDiscountAmount > 0 && (
@@ -1607,7 +1671,9 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
 
                 <div className="bg-slate-50 dark:bg-slate-950 p-5 border-t border-slate-200 dark:border-slate-800">
                   <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <span className="text-lg font-bold text-slate-700 dark:text-slate-300">Total:</span>
+                    <span className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                      Total:
+                    </span>
                     <span className="break-words text-3xl font-black tracking-tight text-red-600 sm:text-right">
                       {formatCurrencySafe(checkoutTotal)}
                     </span>
@@ -1637,7 +1703,6 @@ ${cartItems.map((item) => `- ${item.qty}x ${item.name}${item.customizations ? ` 
               </div>
             </>
           )}
-
         </aside>
       </section>
     </main>

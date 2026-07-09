@@ -25,7 +25,7 @@ async function main() {
       const catPizzas = catBySlug.get('pizzas');
       if (catPizzas) {
         console.log('   -> Renomeando categoria "pizzas" para "pizzas-tradicionais"...');
-        catTradicionais = await prisma.menuCategory.update({
+        await prisma.menuCategory.update({
           where: { id: catPizzas.id },
           data: {
             slug: 'pizzas-tradicionais',
@@ -40,7 +40,7 @@ async function main() {
         });
       } else {
         console.log('   -> Criando categoria "pizzas-tradicionais"...');
-        catTradicionais = await prisma.menuCategory.create({
+        await prisma.menuCategory.create({
           data: {
             tenantId: tId,
             slug: 'pizzas-tradicionais',
@@ -63,7 +63,7 @@ async function main() {
       const catSobremesas = catBySlug.get('sobremesas');
       if (catSobremesas) {
         console.log('   -> Renomeando categoria "sobremesas" para "pizzas-doces"...');
-        catDoces = await prisma.menuCategory.update({
+        await prisma.menuCategory.update({
           where: { id: catSobremesas.id },
           data: {
             slug: 'pizzas-doces',
@@ -78,7 +78,7 @@ async function main() {
         });
       } else {
         console.log('   -> Criando categoria "pizzas-doces"...');
-        catDoces = await prisma.menuCategory.create({
+        await prisma.menuCategory.create({
           data: {
             tenantId: tId,
             slug: 'pizzas-doces',
@@ -101,7 +101,7 @@ async function main() {
       const catBebidas = catBySlug.get('bebidas');
       if (catBebidas) {
         console.log('   -> Renomeando categoria "bebidas" para "refrigerantes"...');
-        catRefrigerantes = await prisma.menuCategory.update({
+        await prisma.menuCategory.update({
           where: { id: catBebidas.id },
           data: {
             slug: 'refrigerantes',
@@ -116,7 +116,7 @@ async function main() {
         });
       } else {
         console.log('   -> Criando categoria "refrigerantes"...');
-        catRefrigerantes = await prisma.menuCategory.create({
+        await prisma.menuCategory.create({
           data: {
             tenantId: tId,
             slug: 'refrigerantes',

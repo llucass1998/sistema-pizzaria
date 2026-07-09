@@ -25,7 +25,8 @@ export function CartDrawer({
     let restoreFocusTimer;
 
     if (isOpen) {
-      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      openerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setIsRendered(true);
       document.body.style.overflow = 'hidden';
       firstFrame = requestAnimationFrame(() => {
@@ -115,7 +116,9 @@ export function CartDrawer({
               <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                 <ShoppingCart size={40} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Seu carrinho está vazio</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Seu carrinho está vazio
+              </h3>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                 Volte ao cardápio e adicione pizzas deliciosas!
               </p>
@@ -146,7 +149,9 @@ export function CartDrawer({
                   </div>
 
                   <div className="min-w-0">
-                    <h4 className="line-clamp-2 font-bold text-slate-900 dark:text-slate-100">{item.name}</h4>
+                    <h4 className="line-clamp-2 font-bold text-slate-900 dark:text-slate-100">
+                      {item.name}
+                    </h4>
                     {item.customizations && (
                       <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                         {item.customizations}
@@ -193,7 +198,9 @@ export function CartDrawer({
           <footer className="border-t border-slate-200 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:border-slate-800 dark:bg-slate-900 sm:p-6 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <div className="mb-4 flex items-center justify-between">
               <span className="font-bold text-slate-600 dark:text-slate-400">Subtotal</span>
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100">{formatCurrency(cartTotal)}</span>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                {formatCurrency(cartTotal)}
+              </span>
             </div>
             <a
               href={isClosed ? '#' : '#/checkout'}

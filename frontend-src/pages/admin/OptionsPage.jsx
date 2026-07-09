@@ -1,5 +1,15 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ListPlus, Layers3, Plus, Eye, EyeOff, Package, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  ListPlus,
+  Layers3,
+  Plus,
+  Eye,
+  EyeOff,
+  Package,
+  RefreshCw,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react';
 import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { OptionModal } from '../../components/admin/OptionModal.jsx';
@@ -46,7 +56,7 @@ export function OptionsPage() {
         const [addonsRes, crustsRes, ingRes] = await Promise.all([
           fetch(`${API_BASE_URL}/adicionais`, { headers }),
           fetch(`${API_BASE_URL}/bordas`, { headers }),
-          fetch(`${API_BASE_URL}/inventory/ingredients`, { headers }),
+          fetch(`${API_BASE_URL}/admin/inventory/ingredients`, { headers }),
         ]);
 
         if (addonsRes.ok && crustsRes.ok && isMounted) {
@@ -200,7 +210,9 @@ export function OptionsPage() {
   }
 
   const totalStockImpactCount = useMemo(() => {
-    return [...addons, ...crusts].filter(i => i.stockImpactType && i.stockImpactType !== 'NO_STOCK_IMPACT').length;
+    return [...addons, ...crusts].filter(
+      (i) => i.stockImpactType && i.stockImpactType !== 'NO_STOCK_IMPACT',
+    ).length;
   }, [addons, crusts]);
 
   if (isLoading) {
@@ -223,7 +235,8 @@ export function OptionsPage() {
             Opções, Bordas & Adicionais
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Personalize os extras do cardápio e vincule a baixa automática de ingredientes no estoque.
+            Personalize os extras do cardápio e vincule a baixa automática de ingredientes no
+            estoque.
           </p>
         </div>
         <button
@@ -242,20 +255,32 @@ export function OptionsPage() {
       {/* Mini KPIs de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-red-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total de Adicionais</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-1">{addons.length}</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Total de Adicionais
+          </span>
+          <span className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {addons.length}
+          </span>
         </Panel>
 
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-amber-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bordas Recheadas</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-1">{crusts.length}</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Bordas Recheadas
+          </span>
+          <span className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+            {crusts.length}
+          </span>
         </Panel>
 
         <Panel className="p-4 flex flex-col justify-center border-l-4 border-l-blue-500">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vínculos de Estoque Ativos</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Vínculos de Estoque Ativos
+          </span>
           <div className="flex items-center gap-2 mt-1">
             <Package size={18} className="text-blue-500" />
-            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{totalStockImpactCount}</span>
+            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+              {totalStockImpactCount}
+            </span>
             <span className="text-xs text-slate-500 font-bold">opções autobaixa</span>
           </div>
         </Panel>
@@ -311,7 +336,7 @@ export function OptionsPage() {
                       Ordem: {item.sortOrder}
                     </span>
                   </div>
-                  
+
                   {item.description && (
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                       {item.description}
@@ -320,22 +345,33 @@ export function OptionsPage() {
 
                   {/* Impacto no Estoque Badge */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    {(item.stockImpactType === 'CONSUME' || item.stockImpactType === 'ADD_INGREDIENT') && (
+                    {(item.stockImpactType === 'CONSUME' ||
+                      item.stockImpactType === 'ADD_INGREDIENT') && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
                         <Package size={12} className="text-blue-600" />
-                        Adiciona/Baixa: {item.ingredientQuantity || 1}x {ingredientsMap[item.ingredientId] || item.ingredientId || 'Ingrediente selecionado'}
+                        Adiciona/Baixa: {item.ingredientQuantity || 1}x{' '}
+                        {ingredientsMap[item.ingredientId] ||
+                          item.ingredientId ||
+                          'Ingrediente selecionado'}
                       </span>
                     )}
                     {item.stockImpactType === 'REMOVE_INGREDIENT' && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
                         <Package size={12} className="text-amber-600" />
-                        Remove insumo base: {ingredientsMap[item.ingredientId] || item.ingredientId || 'Ingrediente padrão'}
+                        Remove insumo base:{' '}
+                        {ingredientsMap[item.ingredientId] ||
+                          item.ingredientId ||
+                          'Ingrediente padrão'}
                       </span>
                     )}
-                    {(item.stockImpactType === 'REPLACE' || item.stockImpactType === 'REPLACE_INGREDIENT') && (
+                    {(item.stockImpactType === 'REPLACE' ||
+                      item.stockImpactType === 'REPLACE_INGREDIENT') && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
                         <RefreshCw size={12} className="text-purple-600" />
-                        Substitui {ingredientsMap[item.ingredientId] || 'insumo base'} por: {ingredientsMap[item.replacementIngredientId] || item.replacementIngredientId || 'Novo insumo'}
+                        Substitui {ingredientsMap[item.ingredientId] || 'insumo base'} por:{' '}
+                        {ingredientsMap[item.replacementIngredientId] ||
+                          item.replacementIngredientId ||
+                          'Novo insumo'}
                       </span>
                     )}
                     {(item.stockImpactType === 'NO_STOCK_IMPACT' || !item.stockImpactType) && (
@@ -358,10 +394,15 @@ export function OptionsPage() {
                   title={item.isAvailable ? 'Clique para Ocultar' : 'Clique para Disponibilizar'}
                 >
                   {item.isAvailable ? <Eye size={16} /> : <EyeOff size={16} />}
-                  <span className="hidden sm:inline">{item.isAvailable ? 'Disponível' : 'Oculto'}</span>
+                  <span className="hidden sm:inline">
+                    {item.isAvailable ? 'Disponível' : 'Oculto'}
+                  </span>
                 </button>
 
-                <RowActions onEdit={() => editOption(item)} onDelete={() => toggleAvailability(item)} />
+                <RowActions
+                  onEdit={() => editOption(item)}
+                  onDelete={() => toggleAvailability(item)}
+                />
               </div>
             </ListRow>
           ))}

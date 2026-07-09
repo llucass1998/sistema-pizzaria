@@ -13,7 +13,13 @@ function normalizeHost(value: string | undefined) {
     return '';
   }
 
-  return value.replace(/^https?:\/\//, '').split('/')[0]?.split(':')[0]?.toLowerCase() ?? '';
+  return (
+    value
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      ?.split(':')[0]
+      ?.toLowerCase() ?? ''
+  );
 }
 
 function getRequestHosts(req: Request) {
@@ -125,8 +131,27 @@ async function findDefaultTenant(columns: TenantColumns) {
   return rows[0]?.id ?? '';
 }
 
+async function isValidTenantId(tenantId: string) {
+  const columns = await getTenantColumns();
+  const activeFilter = columns.isActive ? 'AND "isActive" = true' : '';
+  const rows = await basePrisma.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT id
+       FROM "Tenant"
+      WHERE id = $1
+        ${activeFilter}
+      LIMIT 1`,
+    tenantId,
+  );
+
+  return Boolean(rows[0]?.id);
+}
+
 export async function tenantGuard(req: Request, res: Response, next: NextFunction) {
-  let tenantId = req.headers['x-tenant-id'] as string;
+  let tenantId = String(req.headers['x-tenant-id'] ?? '').trim();
+
+  if (tenantId && !(await isValidTenantId(tenantId))) {
+    return res.status(401).json({ message: 'Acesso negado: tenant invalido ou inativo.' });
+  }
 
   if (!tenantId) {
     tenantId = await resolveTenantIdFromRequest(req);

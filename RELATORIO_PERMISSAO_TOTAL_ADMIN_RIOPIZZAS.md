@@ -8,6 +8,7 @@
 ## 1. Estado Inicial e Causa do Bloqueio
 
 Durante nossa auditoria, descobrimos que havia **duas contas** diferentes no banco de dados com o mesmo e-mail `admin@riopizzas.com`:
+
 - Uma pertencente ao Tenant "Matriz" (Demo).
 - Outra pertencente ao Tenant "Pizzaria Lucas" (Domínio: `pizzarialucas.istigestao.com.br`).
 

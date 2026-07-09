@@ -38,7 +38,8 @@ const SAMPLE_CATEGORIES = [
   {
     slug: 'pizzas-doces',
     name: 'Pizzas Doces',
-    description: 'Deliciosas receitas doces com ingredientes selecionados para sobremesa ou lanche.',
+    description:
+      'Deliciosas receitas doces com ingredientes selecionados para sobremesa ou lanche.',
     imageUrl:
       'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
     sortOrder: 20,
@@ -65,25 +66,29 @@ const SAMPLE_PRODUCTS = [
     name: 'Pizza Margherita',
     category: 'pizzas-tradicionais',
     price: '39.90',
-    description: 'Molho de tomate artesanal, mussarela premium, rodelas de tomate e manjericão fresco.',
+    description:
+      'Molho de tomate artesanal, mussarela premium, rodelas de tomate e manjericão fresco.',
   },
   {
     name: 'Pizza Calabresa',
     category: 'pizzas-tradicionais',
     price: '42.90',
-    description: 'Calabresa fatiada de primeira linha, cebola em rodelas e azeitonas pretas selecionadas.',
+    description:
+      'Calabresa fatiada de primeira linha, cebola em rodelas e azeitonas pretas selecionadas.',
   },
   {
     name: 'Pizza Quatro Queijos',
     category: 'pizzas-tradicionais',
     price: '46.90',
-    description: 'Mussarela derretida, provolone defumado, catupiry original e queijo parmesão ralado.',
+    description:
+      'Mussarela derretida, provolone defumado, catupiry original e queijo parmesão ralado.',
   },
   {
     name: 'Pizza Portuguesa',
     category: 'pizzas-tradicionais',
     price: '49.90',
-    description: 'Presunto de qualidade, ovos cozidos, cebola, azeitonas, ervilha e bastante mussarela.',
+    description:
+      'Presunto de qualidade, ovos cozidos, cebola, azeitonas, ervilha e bastante mussarela.',
   },
   {
     name: 'Pizza Frango com Catupiry',
@@ -92,22 +97,79 @@ const SAMPLE_PRODUCTS = [
     description: 'Peito de frango desfiado e temperado, coberto com autêntico catupiry cremoso.',
   },
   {
+    name: 'Pizza Mussarela',
+    category: 'pizzas-tradicionais',
+    price: '40.90',
+    description: 'Molho de tomate artesanal, mussarela derretida, azeitonas e orégano.',
+  },
+  {
+    name: 'Pizza Napolitana',
+    category: 'pizzas-tradicionais',
+    price: '44.90',
+    description: 'Mussarela, tomate, parmesão ralado, alho frito e orégano.',
+  },
+  {
+    name: 'Pizza Toscana',
+    category: 'pizzas-tradicionais',
+    price: '47.90',
+    description: 'Calabresa moída, mussarela, cebola, azeitonas e orégano.',
+  },
+  {
+    name: 'Pizza Bacon',
+    category: 'pizzas-tradicionais',
+    price: '49.90',
+    description: 'Mussarela, bacon crocante, tomate em cubos e orégano.',
+  },
+  {
+    name: 'Pizza Milho com Catupiry',
+    category: 'pizzas-tradicionais',
+    price: '46.90',
+    description: 'Mussarela, milho verde, catupiry cremoso e orégano.',
+  },
+  {
     name: 'Pizza Brigadeiro com Morango',
     category: 'pizzas-doces',
     price: '45.90',
-    description: 'Delicioso creme de brigadeiro artesanal, granulado gourmet e morangos frescos fatiados.',
+    description:
+      'Delicioso creme de brigadeiro artesanal, granulado gourmet e morangos frescos fatiados.',
   },
   {
     name: 'Pizza Banana com Canela e Leite Condensado',
     category: 'pizzas-doces',
     price: '42.90',
-    description: 'Fatias de banana prata flambada com açúcar e canela, gratinada com leite condensado.',
+    description:
+      'Fatias de banana prata flambada com açúcar e canela, gratinada com leite condensado.',
   },
   {
     name: 'Pizza Romeu e Julieta',
     category: 'pizzas-doces',
     price: '44.90',
-    description: 'A clássica combinação mineira de goiabada derretida com generosas fatias de queijo minas.',
+    description:
+      'A clássica combinação mineira de goiabada derretida com generosas fatias de queijo minas.',
+  },
+  {
+    name: 'Pizza Chocolate com Confete',
+    category: 'pizzas-doces',
+    price: '43.90',
+    description: 'Creme de chocolate, confeitos coloridos e finalização com leite condensado.',
+  },
+  {
+    name: 'Pizza Prestígio',
+    category: 'pizzas-doces',
+    price: '46.90',
+    description: 'Chocolate cremoso, coco ralado e leite condensado sobre massa levemente assada.',
+  },
+  {
+    name: 'Pizza Doce de Leite com Banana',
+    category: 'pizzas-doces',
+    price: '45.90',
+    description: 'Doce de leite, banana fatiada, açúcar e canela.',
+  },
+  {
+    name: 'Pizza Chocolate Branco com Morango',
+    category: 'pizzas-doces',
+    price: '47.90',
+    description: 'Chocolate branco cremoso, morangos frescos e raspas de chocolate.',
   },
   {
     name: 'Coca-Cola lata 350ml',
@@ -126,6 +188,30 @@ const SAMPLE_PRODUCTS = [
     category: 'refrigerantes',
     price: '14.00',
     description: 'Refrigerante Coca-Cola Garrafa de 2 Litros para dividir com a família e amigos.',
+  },
+  {
+    name: 'Fanta Laranja lata 350ml',
+    category: 'refrigerantes',
+    price: '7.00',
+    description: 'Refrigerante Fanta Laranja lata 350ml extremamente gelado.',
+  },
+  {
+    name: 'Fanta Uva lata 350ml',
+    category: 'refrigerantes',
+    price: '7.00',
+    description: 'Refrigerante Fanta Uva lata 350ml extremamente gelado.',
+  },
+  {
+    name: 'Sprite lata 350ml',
+    category: 'refrigerantes',
+    price: '7.00',
+    description: 'Refrigerante Sprite lata 350ml extremamente gelado.',
+  },
+  {
+    name: 'Pepsi Garrafa 2L',
+    category: 'refrigerantes',
+    price: '13.00',
+    description: 'Refrigerante Pepsi Garrafa de 2 Litros para acompanhar pizzas grandes.',
   },
 ];
 
@@ -186,6 +272,20 @@ const SAMPLE_OPTIONS = [
     description: 'Borda doce recheada com chocolate.',
     price: '9.00',
     sortOrder: 30,
+  },
+  {
+    type: ProductOptionType.CRUST,
+    name: 'Borda Cream Cheese',
+    description: 'Borda recheada com cream cheese.',
+    price: '9.00',
+    sortOrder: 40,
+  },
+  {
+    type: ProductOptionType.CRUST,
+    name: 'Borda Doce de Leite',
+    description: 'Borda doce recheada com doce de leite.',
+    price: '9.00',
+    sortOrder: 50,
   },
 ];
 
@@ -376,9 +476,15 @@ async function seed() {
 
   for (const product of productsForCategoryLink) {
     const normalizedCategory =
-      product.category === 'pizzas' || product.category === 'especiais' || product.category === 'pizzas-especiais' ? 'pizzas-tradicionais' :
-      product.category === 'sobremesas' || product.category === 'doces' ? 'pizzas-doces' :
-      product.category === 'bebidas' ? 'refrigerantes' : product.category;
+      product.category === 'pizzas' ||
+      product.category === 'especiais' ||
+      product.category === 'pizzas-especiais'
+        ? 'pizzas-tradicionais'
+        : product.category === 'sobremesas' || product.category === 'doces'
+          ? 'pizzas-doces'
+          : product.category === 'bebidas'
+            ? 'refrigerantes'
+            : product.category;
     const category = categoryBySlug.get(normalizedCategory);
 
     if (

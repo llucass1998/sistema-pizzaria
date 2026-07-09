@@ -69,14 +69,23 @@ export const SuppliersController = {
 
     // Enriquecer com métricas calculadas
     const enriched = suppliers.map((sup) => {
-      const totalPurchasedOrders = sup.purchaseOrders.reduce((sum, po) => sum + Number(po.totalAmount || 0), 0);
-      const totalInvoiced = sup.inboundInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
-      
+      const totalPurchasedOrders = sup.purchaseOrders.reduce(
+        (sum, po) => sum + Number(po.totalAmount || 0),
+        0,
+      );
+      const totalInvoiced = sup.inboundInvoices.reduce(
+        (sum, inv) => sum + Number(inv.totalAmount || 0),
+        0,
+      );
+
       const lastOrderDate = sup.purchaseOrders[0]?.createdAt;
       const lastInvoiceDate = sup.inboundInvoices[0]?.issueDate;
-      const lastPurchaseDate = lastOrderDate && lastInvoiceDate
-        ? (new Date(lastOrderDate) > new Date(lastInvoiceDate) ? lastOrderDate : lastInvoiceDate)
-        : (lastOrderDate || lastInvoiceDate || null);
+      const lastPurchaseDate =
+        lastOrderDate && lastInvoiceDate
+          ? new Date(lastOrderDate) > new Date(lastInvoiceDate)
+            ? lastOrderDate
+            : lastInvoiceDate
+          : lastOrderDate || lastInvoiceDate || null;
 
       return {
         id: sup.id,

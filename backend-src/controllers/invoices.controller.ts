@@ -14,7 +14,10 @@ const createInvoiceSchema = z.object({
   issueDate: z.string().optional(),
   totalAmount: z.number().min(0, 'Valor total não pode ser negativo.'),
   notes: z.string().optional(),
-  status: z.enum(['RECEIVED', 'PENDING', 'PENDING_REVIEW', 'LINKED', 'COMPLETED', 'CANCELED']).optional().default('RECEIVED'),
+  status: z
+    .enum(['RECEIVED', 'PENDING', 'PENDING_REVIEW', 'LINKED', 'COMPLETED', 'CANCELED'])
+    .optional()
+    .default('RECEIVED'),
   items: z
     .array(
       z.object({
@@ -33,13 +36,18 @@ const updateInvoiceSchema = z.object({
   issueDate: z.string().optional(),
   totalAmount: z.number().min(0).optional(),
   notes: z.string().optional(),
-  status: z.enum(['RECEIVED', 'PENDING', 'PENDING_REVIEW', 'LINKED', 'COMPLETED', 'CANCELED']).optional(),
+  status: z
+    .enum(['RECEIVED', 'PENDING', 'PENDING_REVIEW', 'LINKED', 'COMPLETED', 'CANCELED'])
+    .optional(),
 });
 
 const linkPurchaseSchema = z.object({
   purchaseReceiptId: z.string().uuid().optional(),
   purchaseOrderId: z.string().uuid().optional(),
-  status: z.enum(['LINKED', 'COMPLETED', 'PENDING_REVIEW', 'RECEIVED']).optional().default('LINKED'),
+  status: z
+    .enum(['LINKED', 'COMPLETED', 'PENDING_REVIEW', 'RECEIVED'])
+    .optional()
+    .default('LINKED'),
   notes: z.string().optional(),
 });
 

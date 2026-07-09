@@ -1,0 +1,31 @@
+{
+  "name": "Pizzaria SaaS ERP Dev",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "../docker-compose.dev.yml"
+  ],
+  "service": "tools",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "runServices": [
+    "db-dev",
+    "waha-dev"
+  ],
+  "containerEnv": {
+    "DATABASE_URL": "postgresql://postgres:password@db-dev:5432/pizzaria?schema=public",
+    "NODE_ENV": "development",
+    "RUN_SAFE_STARTUP_SQL": "false",
+    "RUN_DB_PUSH_ON_STARTUP": "false",
+    "RUN_SEED_ON_STARTUP": "false",
+    "RUN_RESET_ADMIN_ON_STARTUP": "false"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

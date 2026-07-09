@@ -15,7 +15,7 @@ describe('CSV Sanitizer Utility', () => {
 
   it('should prefix dangerous CSV characters with single quote', () => {
     expect(sanitizeCsvField('=1+1')).toBe("'=1+1");
-    expect(sanitizeCsvField('=cmd|\' /C calc\'!A0')).toBe("'=cmd|' /C calc'!A0");
+    expect(sanitizeCsvField("=cmd|' /C calc'!A0")).toBe("'=cmd|' /C calc'!A0");
     expect(sanitizeCsvField('+1234567890')).toBe("'+1234567890");
     expect(sanitizeCsvField('-100')).toBe("'-100");
     expect(sanitizeCsvField('@SUM(A1:A10)')).toBe("'@SUM(A1:A10)");
@@ -44,7 +44,7 @@ describe('CSV Sanitizer Utility', () => {
     const headers = ['Nome', 'Observação'];
     const rows = [
       ['Joao', 'Normal text'],
-      ['Maria', '=cmd|\' /C calc\'!A0'],
+      ['Maria', "=cmd|' /C calc'!A0"],
       ['Carlos', 'He said "Hello"'],
     ];
 

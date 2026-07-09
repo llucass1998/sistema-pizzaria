@@ -62,8 +62,13 @@ export function formatCsvDate(date: unknown, includeTime = false): string {
 /**
  * Converte um array de objetos ou linhas em uma string CSV segura e sanitizada.
  */
-export function generateSafeCsv(headers: string[], rows: (string | number | boolean | null | undefined)[][]): string {
-  const escapedHeaders = headers.map((h) => `"${sanitizeCsvField(h).replace(/"/g, '""')}"`).join(';');
+export function generateSafeCsv(
+  headers: string[],
+  rows: (string | number | boolean | null | undefined)[][],
+): string {
+  const escapedHeaders = headers
+    .map((h) => `"${sanitizeCsvField(h).replace(/"/g, '""')}"`)
+    .join(';');
   const escapedRows = rows.map((row) =>
     row.map((cell) => `"${sanitizeCsvField(cell).replace(/"/g, '""')}"`).join(';'),
   );

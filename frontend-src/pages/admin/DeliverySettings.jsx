@@ -16,7 +16,7 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
   const [radiusRules, setRadiusRules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [newZone, setNewZone] = useState({ name: '', fee: '', minOrderValue: '' });
   const [newRadius, setNewRadius] = useState({ maxKm: '', fee: '', minOrderValue: '' });
 
@@ -35,7 +35,7 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
           headers: { Authorization: `Bearer ${getAdminToken()}` },
         }),
       ]);
-      
+
       if (zonesRes.ok) setZones(await zonesRes.json());
       if (rulesRes.ok) setRadiusRules(await rulesRes.json());
     } catch (err) {
@@ -133,8 +133,6 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
         Icon={MapPin}
       />
       <div className="p-5">
-
-        
         <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
           <label className="block text-sm font-black text-slate-900 dark:text-slate-100 mb-2">
             Metodo de Calculo da Entrega
@@ -149,9 +147,12 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
             <option value="DISTANCE">Por Distancia (Raio em Km) - Requer API de Mapas</option>
           </select>
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {deliveryFeeMode === 'FIXED' && 'A taxa fixa unica pode ser alterada no painel principal acima.'}
-            {deliveryFeeMode === 'NEIGHBORHOOD' && 'Adicione os bairros abaixo. Bairros nao listados serao recusados no checkout.'}
-            {deliveryFeeMode === 'DISTANCE' && 'Adicione faixas de quilometragem. Ex: Ate 3km = R$5, Ate 5km = R$10.'}
+            {deliveryFeeMode === 'FIXED' &&
+              'A taxa fixa unica pode ser alterada no painel principal acima.'}
+            {deliveryFeeMode === 'NEIGHBORHOOD' &&
+              'Adicione os bairros abaixo. Bairros nao listados serao recusados no checkout.'}
+            {deliveryFeeMode === 'DISTANCE' &&
+              'Adicione faixas de quilometragem. Ex: Ate 3km = R$5, Ate 5km = R$10.'}
           </p>
         </div>
 
@@ -160,15 +161,35 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
             <h3 className="font-bold text-slate-900 dark:text-white">Gerenciar Bairros</h3>
             <form onSubmit={handleAddZone} className="flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
-                <Field label="Nome do Bairro" value={newZone.name} onChange={(v) => setNewZone({...newZone, name: v})} placeholder="Ex: Copacabana" />
+                <Field
+                  label="Nome do Bairro"
+                  value={newZone.name}
+                  onChange={(v) => setNewZone({ ...newZone, name: v })}
+                  placeholder="Ex: Copacabana"
+                />
               </div>
               <div className="w-32">
-                <Field label="Taxa (R$)" type="number" value={newZone.fee} onChange={(v) => setNewZone({...newZone, fee: v})} placeholder="5.00" />
+                <Field
+                  label="Taxa (R$)"
+                  type="number"
+                  value={newZone.fee}
+                  onChange={(v) => setNewZone({ ...newZone, fee: v })}
+                  placeholder="5.00"
+                />
               </div>
               <div className="w-32">
-                <Field label="Pedido Minimo (R$)" type="number" value={newZone.minOrderValue} onChange={(v) => setNewZone({...newZone, minOrderValue: v})} placeholder="Opcional" />
+                <Field
+                  label="Pedido Minimo (R$)"
+                  type="number"
+                  value={newZone.minOrderValue}
+                  onChange={(v) => setNewZone({ ...newZone, minOrderValue: v })}
+                  placeholder="Opcional"
+                />
               </div>
-              <button type="submit" className="h-11 px-4 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white mb-2">
+              <button
+                type="submit"
+                className="h-11 px-4 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white mb-2"
+              >
                 <Plus className="w-5 h-5" />
               </button>
             </form>
@@ -188,9 +209,14 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
                     <tr key={z.id}>
                       <td className="p-3 font-medium">{z.name}</td>
                       <td className="p-3">R$ {Number(z.fee).toFixed(2)}</td>
-                      <td className="p-3">{z.minOrderValue ? `R$ ${Number(z.minOrderValue).toFixed(2)}` : '-'}</td>
+                      <td className="p-3">
+                        {z.minOrderValue ? `R$ ${Number(z.minOrderValue).toFixed(2)}` : '-'}
+                      </td>
                       <td className="p-3 text-right">
-                        <button onClick={() => handleDeleteZone(z.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <button
+                          onClick={() => handleDeleteZone(z.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
@@ -198,7 +224,9 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
                   ))}
                   {zones.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="p-4 text-center">Nenhum bairro cadastrado.</td>
+                      <td colSpan={4} className="p-4 text-center">
+                        Nenhum bairro cadastrado.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -212,15 +240,36 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
             <h3 className="font-bold text-slate-900 dark:text-white">Gerenciar Raios de Entrega</h3>
             <form onSubmit={handleAddRadius} className="flex flex-wrap items-end gap-3">
               <div className="w-40">
-                <Field label="Ate (Km)" type="number" value={newRadius.maxKm} onChange={(v) => setNewRadius({...newRadius, maxKm: v})} placeholder="Ex: 5" />
+                <Field
+                  label="Ate (Km)"
+                  type="number"
+                  value={newRadius.maxKm}
+                  onChange={(v) => setNewRadius({ ...newRadius, maxKm: v })}
+                  placeholder="Ex: 5"
+                />
               </div>
               <div className="w-32">
-                <Field label="Taxa (R$)" type="number" value={newRadius.fee} onChange={(v) => setNewRadius({...newRadius, fee: v})} placeholder="5.00" />
+                <Field
+                  label="Taxa (R$)"
+                  type="number"
+                  value={newRadius.fee}
+                  onChange={(v) => setNewRadius({ ...newRadius, fee: v })}
+                  placeholder="5.00"
+                />
               </div>
               <div className="w-32">
-                <Field label="Pedido Minimo (R$)" type="number" value={newRadius.minOrderValue} onChange={(v) => setNewRadius({...newRadius, minOrderValue: v})} placeholder="Opcional" />
+                <Field
+                  label="Pedido Minimo (R$)"
+                  type="number"
+                  value={newRadius.minOrderValue}
+                  onChange={(v) => setNewRadius({ ...newRadius, minOrderValue: v })}
+                  placeholder="Opcional"
+                />
               </div>
-              <button type="submit" className="h-11 px-4 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white mb-2">
+              <button
+                type="submit"
+                className="h-11 px-4 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white mb-2"
+              >
                 <Plus className="w-5 h-5" />
               </button>
             </form>
@@ -240,9 +289,14 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
                     <tr key={r.id}>
                       <td className="p-3 font-medium">Ate {Number(r.maxKm).toFixed(1)} km</td>
                       <td className="p-3">R$ {Number(r.fee).toFixed(2)}</td>
-                      <td className="p-3">{r.minOrderValue ? `R$ ${Number(r.minOrderValue).toFixed(2)}` : '-'}</td>
+                      <td className="p-3">
+                        {r.minOrderValue ? `R$ ${Number(r.minOrderValue).toFixed(2)}` : '-'}
+                      </td>
                       <td className="p-3 text-right">
-                        <button onClick={() => handleDeleteRadius(r.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <button
+                          onClick={() => handleDeleteRadius(r.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
@@ -250,7 +304,9 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
                   ))}
                   {radiusRules.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="p-4 text-center">Nenhuma regra cadastrada.</td>
+                      <td colSpan={4} className="p-4 text-center">
+                        Nenhuma regra cadastrada.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -258,7 +314,6 @@ export function DeliverySettings({ deliveryFeeMode, onModeChange }) {
             </div>
           </div>
         )}
-
       </div>
     </Panel>
   );

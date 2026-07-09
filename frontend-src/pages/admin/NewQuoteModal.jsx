@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BaseModal } from '../../components/ui/BaseModal.jsx';
 import { Plus, Trash2 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 const emptyFormData = {
   customerName: '',
@@ -77,10 +79,7 @@ export function NewQuoteModal({ isOpen, onClose, onSuccess, quote = null }) {
   }, [items]);
 
   const handleAddItem = () => {
-    setItems((currentItems) => [
-      ...currentItems,
-      { name: '', quantity: 1, unitPrice: 0 },
-    ]);
+    setItems((currentItems) => [...currentItems, { name: '', quantity: 1, unitPrice: 0 }]);
   };
 
   const handleRemoveItem = (index) => {

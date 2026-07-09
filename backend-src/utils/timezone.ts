@@ -21,7 +21,10 @@ const BRAZIL_OFFSET = '-03:00';
 /**
  * Retorna as partes de uma data (ano, mês, dia, dia da semana) no fuso horário especificado.
  */
-export function getBrazilDateParts(date: Date = new Date(), timeZone = DEFAULT_TIMEZONE): {
+export function getBrazilDateParts(
+  date: Date = new Date(),
+  timeZone = DEFAULT_TIMEZONE,
+): {
   year: number;
   month: number;
   day: number;
@@ -39,9 +42,17 @@ export function getBrazilDateParts(date: Date = new Date(), timeZone = DEFAULT_T
   const year = Number(parts.find((p) => p.type === 'year')?.value || date.getUTCFullYear());
   const month = Number(parts.find((p) => p.type === 'month')?.value || date.getUTCMonth() + 1);
   const day = Number(parts.find((p) => p.type === 'day')?.value || date.getUTCDate());
-  
+
   const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || 'Sun';
-  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const weekdayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
   const weekday = weekdayMap[weekdayStr] ?? 0;
 
   return { year, month, day, weekday };
@@ -79,7 +90,7 @@ export function normalizeBrazilDateRange(
   _timezone = DEFAULT_TIMEZONE,
 ): { startUtc: Date; endUtc: Date } {
   const nowParts = getBrazilDateParts(new Date(), _timezone);
-  
+
   let startYear = nowParts.year;
   let startMonth = nowParts.month;
   let startDay = nowParts.day;
@@ -89,7 +100,12 @@ export function normalizeBrazilDateRange(
   let endDay = nowParts.day;
 
   if (startDate) {
-    const sDate = typeof startDate === 'string' ? new Date(startDate.includes('T') ? startDate : `${startDate}T12:00:00.000${BRAZIL_OFFSET}`) : startDate;
+    const sDate =
+      typeof startDate === 'string'
+        ? new Date(
+            startDate.includes('T') ? startDate : `${startDate}T12:00:00.000${BRAZIL_OFFSET}`,
+          )
+        : startDate;
     if (!isNaN(sDate.getTime())) {
       const p = getBrazilDateParts(sDate, _timezone);
       startYear = p.year;
@@ -99,7 +115,10 @@ export function normalizeBrazilDateRange(
   }
 
   if (endDate) {
-    const eDate = typeof endDate === 'string' ? new Date(endDate.includes('T') ? endDate : `${endDate}T12:00:00.000${BRAZIL_OFFSET}`) : endDate;
+    const eDate =
+      typeof endDate === 'string'
+        ? new Date(endDate.includes('T') ? endDate : `${endDate}T12:00:00.000${BRAZIL_OFFSET}`)
+        : endDate;
     if (!isNaN(eDate.getTime())) {
       const p = getBrazilDateParts(eDate, _timezone);
       endYear = p.year;
@@ -112,9 +131,15 @@ export function normalizeBrazilDateRange(
   let eDateObj = createBrazilDate(endYear, endMonth, endDay, 0, 0, 0, 0);
 
   if (sDateObj > eDateObj) {
-    const tmpY = startYear, tmpM = startMonth, tmpD = startDay;
-    startYear = endYear; startMonth = endMonth; startDay = endDay;
-    endYear = tmpY; endMonth = tmpM; endDay = tmpD;
+    const tmpY = startYear,
+      tmpM = startMonth,
+      tmpD = startDay;
+    startYear = endYear;
+    startMonth = endMonth;
+    startDay = endDay;
+    endYear = tmpY;
+    endMonth = tmpM;
+    endDay = tmpD;
   }
 
   const startUtc = createBrazilDate(startYear, startMonth, startDay, 0, 0, 0, 0);
@@ -143,10 +168,10 @@ export function parsePeriodDateRange(
       const todayMid = createBrazilDate(nowParts.year, nowParts.month, nowParts.day, 12, 0, 0, 0);
       const yesterday = new Date(todayMid.getTime() - 86400000);
       const yParts = getBrazilDateParts(yesterday, timezone);
-      
+
       const startUtc = createBrazilDate(yParts.year, yParts.month, yParts.day, 0, 0, 0, 0);
       const endUtc = createBrazilDate(yParts.year, yParts.month, yParts.day, 23, 59, 59, 999);
-      
+
       return {
         startUtc,
         endUtc,
@@ -177,7 +202,7 @@ export function parsePeriodDateRange(
     case 'MONTH': {
       // 1º dia do mês até último dia do mês
       const startUtc = createBrazilDate(nowParts.year, nowParts.month, 1, 0, 0, 0, 0);
-      
+
       // Para achar o último dia do mês, vamos para o dia 1 do próximo mês e voltamos 1 milissegundo
       let nextYear = nowParts.year;
       let nextMonth = nowParts.month + 1;

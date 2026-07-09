@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BaseModal } from '../../components/ui/BaseModal.jsx';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
   const totalAmount = invoice ? Number(invoice.totalAmount || 0) : 0;
@@ -9,9 +11,9 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
 
   const [formData, setFormData] = useState({
     amount: remaining > 0 ? remaining.toFixed(2) : '',
-    method: 'PIX'
+    method: 'PIX',
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,7 +22,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
     if (isOpen && invoice) {
       setFormData({
         amount: remaining > 0 ? remaining.toFixed(2) : '',
-        method: 'PIX'
+        method: 'PIX',
       });
       setError('');
     }
@@ -31,12 +33,14 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
     setError('');
 
     const paymentAmount = Number(formData.amount);
-    
+
     if (paymentAmount <= 0) {
       return setError('O valor pago deve ser maior que zero.');
     }
     if (paymentAmount > remaining) {
-      return setError(`O valor pago não pode exceder o saldo restante (R$ ${remaining.toFixed(2)}).`);
+      return setError(
+        `O valor pago não pode exceder o saldo restante (R$ ${remaining.toFixed(2)}).`,
+      );
     }
 
     try {
@@ -46,14 +50,14 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
 
       const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices/${invoice.id}/payments`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: paymentAmount,
-          method: formData.method
-        })
+          method: formData.method,
+        }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -83,12 +87,18 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess, invoice }) {
 
         <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-            Fatura: <strong className="text-slate-800 dark:text-slate-200">{invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #{invoice.orderId?.slice(0, 6)}</strong>
+            Fatura:{' '}
+            <strong className="text-slate-800 dark:text-slate-200">
+              {invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #
+              {invoice.orderId?.slice(0, 6)}
+            </strong>
           </p>
           <div className="flex justify-between items-center mt-3">
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">Valor Total</p>
-              <p className="font-bold text-slate-900 dark:text-slate-100">R$ {totalAmount.toFixed(2)}</p>
+              <p className="font-bold text-slate-900 dark:text-slate-100">
+                R$ {totalAmount.toFixed(2)}
+              </p>
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">Já Pago</p>

@@ -107,7 +107,10 @@ export class WasteService {
       },
     });
 
-    const summary = new Map<string, { reason: string; ingredient: any; totalQuantity: number; count: number }>();
+    const summary = new Map<
+      string,
+      { reason: string; ingredient: any; totalQuantity: number; count: number }
+    >();
 
     for (const record of records) {
       const key = `${record.reason}_${record.ingredientId}`;

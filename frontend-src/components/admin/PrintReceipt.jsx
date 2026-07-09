@@ -49,7 +49,8 @@ export function PrintReceipt({ order, storeName }) {
   const isDelivery = order.fulfillmentType === 'DELIVERY';
   const resolvedStoreName = storeName || 'Pizzaria';
   const orderCode = String(order.id).slice(0, 8).toUpperCase();
-  const fulfillmentLabel = FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType || 'PEDIDO';
+  const fulfillmentLabel =
+    FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType || 'PEDIDO';
   const paymentLabel = PAYMENT_LABELS[order.paymentMethod] || order.paymentMethod || '-';
   const statusLabel = STATUS_LABELS[order.status] || order.status || '-';
 
@@ -74,13 +75,16 @@ export function PrintReceipt({ order, storeName }) {
         <p className="font-bold uppercase">
           Cliente: {safe(order.customer?.name, 'Não informado')}
         </p>
-        {order.customer?.phone && (
-          <p className="text-xs">Tel: {safe(order.customer.phone)}</p>
-        )}
+        {order.customer?.phone && <p className="text-xs">Tel: {safe(order.customer.phone)}</p>}
         {isDelivery && (
           <div className="mt-1 text-xs uppercase">
             <p className="font-bold">Endereço de Entrega:</p>
-            {order.street && <p>{safe(order.street)}{order.number ? `, ${safe(order.number)}` : ''}</p>}
+            {order.street && (
+              <p>
+                {safe(order.street)}
+                {order.number ? `, ${safe(order.number)}` : ''}
+              </p>
+            )}
             {order.complement && <p>{safe(order.complement)}</p>}
             {order.neighborhood && <p>{safe(order.neighborhood)}</p>}
             {order.city && <p>{safe(order.city)}</p>}
@@ -116,7 +120,9 @@ export function PrintReceipt({ order, storeName }) {
                     {Array.isArray(item.options) && item.options.length > 0 && (
                       <div className="text-[10px] mt-0.5 ml-1">
                         {item.options.map((opt, oi) => (
-                          <span key={oi} className="block">+ {safe(opt.name || opt)}</span>
+                          <span key={oi} className="block">
+                            + {safe(opt.name || opt)}
+                          </span>
                         ))}
                       </div>
                     )}

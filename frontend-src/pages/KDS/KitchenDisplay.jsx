@@ -74,7 +74,6 @@ function getSavedAdminSession() {
   try {
     return JSON.parse(window.localStorage.getItem(savedAdminKey) ?? 'null');
   } catch (error) {
-    
     return null;
   }
 }
@@ -140,7 +139,9 @@ function getNextStatus(order) {
 export default function KitchenDisplay({ apiBaseUrl }) {
   const [session] = useState(getSavedAdminSession);
   const [orders, setOrders] = useState(fallbackOrders);
-  const [previousOrderIds, setPreviousOrderIds] = useState(new Set(fallbackOrders.map(o => o.id)));
+  const [previousOrderIds, setPreviousOrderIds] = useState(
+    new Set(fallbackOrders.map((o) => o.id)),
+  );
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -204,15 +205,15 @@ export default function KitchenDisplay({ apiBaseUrl }) {
       }
 
       const nextOrders = Array.isArray(data) ? data : (data.data ?? []);
-      
+
       // Checar novos pedidos PENDING
       setPreviousOrderIds((prevIds) => {
-        const currentPending = nextOrders.filter(o => o.status === 'PENDING').map(o => o.id);
-        const hasNew = currentPending.some(id => !prevIds.has(id));
+        const currentPending = nextOrders.filter((o) => o.status === 'PENDING').map((o) => o.id);
+        const hasNew = currentPending.some((id) => !prevIds.has(id));
         if (hasNew) {
           playBeep();
         }
-        return new Set(nextOrders.map(o => o.id));
+        return new Set(nextOrders.map((o) => o.id));
       });
 
       setOrders(nextOrders);
@@ -289,8 +290,8 @@ export default function KitchenDisplay({ apiBaseUrl }) {
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
               className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-black transition ${
-                soundEnabled 
-                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' 
+                soundEnabled
+                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
                   : 'border-white/10 bg-white/[0.06] text-slate-400 hover:bg-white/[0.1]'
               }`}
             >
@@ -356,7 +357,9 @@ export default function KitchenDisplay({ apiBaseUrl }) {
                   {columnOrders.length === 0 ? (
                     <div className="flex h-full min-h-48 flex-col items-center justify-center rounded-lg border border-dashed border-white/10 bg-black/10 text-center">
                       <CheckSquare size={36} className="mb-3 text-slate-700 dark:text-slate-300" />
-                      <p className="text-sm font-black uppercase text-slate-600 dark:text-slate-400">Sem pedidos</p>
+                      <p className="text-sm font-black uppercase text-slate-600 dark:text-slate-400">
+                        Sem pedidos
+                      </p>
                     </div>
                   ) : (
                     columnOrders.map((order) => (

@@ -116,7 +116,8 @@ export class PurchasingService {
         if (line.quantityReceived <= 0) {
           throw businessError('Quantidade recebida deve ser maior que zero.', 422);
         }
-        const totalWillReceive = (alreadyReceived.get(line.ingredientId) ?? 0) + line.quantityReceived;
+        const totalWillReceive =
+          (alreadyReceived.get(line.ingredientId) ?? 0) + line.quantityReceived;
         if (totalWillReceive > ordered) {
           throw businessError(
             `Quantidade recebida (${totalWillReceive}) excede a pedida (${ordered}) para ingrediente ${line.ingredientId}.`,

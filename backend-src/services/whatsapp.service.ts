@@ -1,5 +1,19 @@
 const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3001/api';
+const WAHA_SESSION = process.env.WAHA_SESSION || 'default';
+const WAHA_API_KEY = process.env.WAHA_API_KEY || process.env.WHATSAPP_API_KEY || '';
+
 import { logger } from '../utils/logger.js';
+
+let disabledAfterUnauthorized = false;
+let unauthorizedWarningLogged = false;
+
+function buildHeaders() {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (WAHA_API_KEY) {
+    headers['X-Api-Key'] = WAHA_API_KEY;
+  }
+  return headers;
+}
 
 /**
  * Remove formatacoes de telefone e garante o sufixo @c.us exigido pelo WAHA.
@@ -26,18 +40,33 @@ export const WhatsAppService = {
       return false;
     }
 
+    if (disabledAfterUnauthorized) {
+      return false;
+    }
+
     try {
       const response = await fetch(`${WAHA_URL}/sendText`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders(),
         body: JSON.stringify({
           chatId,
           text,
-          session: 'default',
+          session: WAHA_SESSION,
         }),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          disabledAfterUnauthorized = true;
+          if (!unauthorizedWarningLogged) {
+            logger.warn(
+              '[WAHA] Envio desabilitado apos Unauthorized. Configure WAHA_API_KEY/WHATSAPP_API_KEY para reativar.',
+            );
+            unauthorizedWarningLogged = true;
+          }
+          return false;
+        }
+
         logger.error(`[WAHA] Erro ao enviar mensagem para ${chatId}: ${response.statusText}`);
         return false;
       }

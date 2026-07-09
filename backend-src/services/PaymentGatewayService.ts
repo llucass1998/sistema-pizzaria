@@ -16,10 +16,7 @@ export interface PaymentIntent {
 }
 
 export type PaymentTransactionType =
-  | 'FULL_PAYMENT'
-  | 'DEPOSIT_PAYMENT'
-  | 'REMAINING_PAYMENT'
-  | 'REFUND';
+  'FULL_PAYMENT' | 'DEPOSIT_PAYMENT' | 'REMAINING_PAYMENT' | 'REFUND';
 
 export interface NormalizedPaymentWebhook {
   provider: PaymentProvider;
@@ -51,7 +48,9 @@ type MercadoPagoPaymentResponse = {
 };
 
 function getConfiguredProvider(): PaymentProvider {
-  const provider = String(process.env.PAYMENT_GATEWAY ?? 'MOCK').trim().toUpperCase();
+  const provider = String(process.env.PAYMENT_GATEWAY ?? 'MOCK')
+    .trim()
+    .toUpperCase();
   if (provider === 'MERCADOPAGO') return 'MERCADOPAGO';
   return 'MOCK';
 }
@@ -163,7 +162,9 @@ export class PaymentGatewayService {
 
   static async normalizeWebhook(req: Request): Promise<NormalizedPaymentWebhook> {
     const body = safeJson(req.body);
-    const provider = String(req.query.provider ?? body.provider ?? getConfiguredProvider()).toUpperCase();
+    const provider = String(
+      req.query.provider ?? body.provider ?? getConfiguredProvider(),
+    ).toUpperCase();
 
     if (provider === 'MERCADOPAGO') {
       return this.normalizeMercadoPagoWebhook(req, body);
@@ -357,7 +358,9 @@ export class PaymentGatewayService {
     }
 
     const useProductionUrl = process.env.MERCADOPAGO_ENVIRONMENT === 'production';
-    const paymentUrl = useProductionUrl ? data.init_point : data.sandbox_init_point || data.init_point;
+    const paymentUrl = useProductionUrl
+      ? data.init_point
+      : data.sandbox_init_point || data.init_point;
     if (!paymentUrl) {
       throw new Error('Mercado Pago nao retornou URL de checkout.');
     }
@@ -378,7 +381,10 @@ export class PaymentGatewayService {
   }
 
   private static normalizeMockWebhook(body: Record<string, unknown>): NormalizedPaymentWebhook {
-    if (process.env.NODE_ENV === 'production' && process.env.PAYMENT_ALLOW_MOCK_WEBHOOKS !== 'true') {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.PAYMENT_ALLOW_MOCK_WEBHOOKS !== 'true'
+    ) {
       throw new Error('Webhook MOCK bloqueado em producao.');
     }
 
@@ -402,9 +408,9 @@ export class PaymentGatewayService {
       transactionType: String(
         body.transactionType ?? safeJson(body.metadata).transactionType ?? 'FULL_PAYMENT',
       ).toUpperCase() as PaymentTransactionType,
-      paymentMode: String(body.paymentMode ?? safeJson(body.metadata).paymentMode ?? 'FULL').toUpperCase() as
-        | 'FULL'
-        | 'DEPOSIT',
+      paymentMode: String(
+        body.paymentMode ?? safeJson(body.metadata).paymentMode ?? 'FULL',
+      ).toUpperCase() as 'FULL' | 'DEPOSIT',
       payload: body,
     };
   }
@@ -413,8 +419,9 @@ export class PaymentGatewayService {
     req: Request,
     body: Record<string, unknown>,
   ): Promise<NormalizedPaymentWebhook> {
-    const paymentId =
-      String(getQueryValue(req.query['data.id']) ?? safeJson(body.data).id ?? body.id ?? '').trim();
+    const paymentId = String(
+      getQueryValue(req.query['data.id']) ?? safeJson(body.data).id ?? body.id ?? '',
+    ).trim();
     if (!paymentId) {
       throw new Error('Webhook Mercado Pago sem data.id.');
     }
@@ -442,8 +449,7 @@ export class PaymentGatewayService {
         metadata.transaction_type ?? metadata.transactionType ?? 'FULL_PAYMENT',
       ).toUpperCase() as PaymentTransactionType,
       paymentMode: String(metadata.payment_mode ?? metadata.paymentMode ?? 'FULL').toUpperCase() as
-        | 'FULL'
-        | 'DEPOSIT',
+        'FULL' | 'DEPOSIT',
       payload: {
         notification: body,
         payment: {

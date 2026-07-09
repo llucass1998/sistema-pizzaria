@@ -96,21 +96,23 @@ describe('ShiftAuditService', () => {
   describe('validateSangria', () => {
     it('deve aprovar sangria dentro do limite de saldo em dinheiro da gaveta', async () => {
       // Saldo em dinheiro = 140
-      await expect(ShiftAuditService.validateSangria(TENANT, SHIFT_ID, 100, db)).resolves.not.toThrow();
+      await expect(
+        ShiftAuditService.validateSangria(TENANT, SHIFT_ID, 100, db),
+      ).resolves.not.toThrow();
     });
 
     it('deve bloquear sangria superior ao dinheiro disponível na gaveta (anti-fraude)', async () => {
       // Saldo em dinheiro = 140
       await expect(ShiftAuditService.validateSangria(TENANT, SHIFT_ID, 200, db)).rejects.toThrow(
-        /Saldo em caixa insuficiente para esta sangria/
+        /Saldo em caixa insuficiente para esta sangria/,
       );
     });
 
     it('não deve permitir sangria em caixa fechado', async () => {
       const mock = makeMockDb({ status: 'CLOSED' });
-      await expect(ShiftAuditService.validateSangria(TENANT, SHIFT_ID, 10, mock.db)).rejects.toThrow(
-        'Não é possível realizar sangria em um caixa fechado.'
-      );
+      await expect(
+        ShiftAuditService.validateSangria(TENANT, SHIFT_ID, 10, mock.db),
+      ).rejects.toThrow('Não é possível realizar sangria em um caixa fechado.');
     });
   });
 

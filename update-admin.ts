@@ -2,9 +2,9 @@ import { prisma } from './backend-src/lib/prisma.ts';
 
 async function main() {
   const email = 'admin@riopizzas.com';
-  
+
   const admin = await prisma.admin.findFirst({
-    where: { email }
+    where: { email },
   });
 
   if (!admin) {
@@ -12,7 +12,7 @@ async function main() {
   } else {
     const updated = await prisma.admin.update({
       where: { id: admin.id },
-      data: { role: 'SUPER_ADMIN' }
+      data: { role: 'SUPER_ADMIN' },
     });
     console.log(`Updated ${email} to SUPER_ADMIN`);
   }

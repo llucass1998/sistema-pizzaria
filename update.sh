@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# LEGADO: prefira scripts/compose-redeploy.sh para redeploy via Docker Compose.
+# Este script usa docker run manual e deve ser mantido apenas por compatibilidade.
 # Atualiza repositório e reinicia os containers com a versão mais nova.
 
 set -e  # Para imediatamente se qualquer comando falhar

@@ -13,34 +13,95 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthModal } from './components/AuthModal.jsx';
 import { ProductCustomizationModal } from './components/ProductCustomizationModal.jsx';
 
-const DashboardPage = lazy(() => import('./pages/admin/DashboardPage.jsx').then((m) => ({ default: m.DashboardPage || m.default })));
-const OrdersPage = lazy(() => import('./pages/admin/OrdersPage.jsx').then((m) => ({ default: m.OrdersPage || m.default })));
-const ProductsPage = lazy(() => import('./pages/admin/ProductsPage.jsx').then((m) => ({ default: m.ProductsPage || m.default })));
-const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage.jsx').then((m) => ({ default: m.CategoriesPage || m.default })));
-const OptionsPage = lazy(() => import('./pages/admin/OptionsPage.jsx').then((m) => ({ default: m.OptionsPage || m.default })));
-const CRMPage = lazy(() => import('./pages/admin/CRMPage.jsx').then((m) => ({ default: m.CRMPage || m.default })));
-const CouponsPage = lazy(() => import('./pages/admin/CouponsPage.jsx').then((m) => ({ default: m.CouponsPage || m.default })));
-const SettingsPage = lazy(() => import('./pages/admin/SettingsPage.jsx').then((m) => ({ default: m.SettingsPage || m.default })));
-const InventoryPage = lazy(() => import('./pages/admin/InventoryPage.jsx').then((m) => ({ default: m.InventoryPage || m.default })));
-const RecipesPage = lazy(() => import('./pages/admin/RecipesPage.jsx').then((m) => ({ default: m.RecipesPage || m.default })));
-const AdminsPage = lazy(() => import('./pages/admin/AdminsPage.jsx').then((m) => ({ default: m.AdminsPage || m.default })));
-const POSPage = lazy(() => import('./pages/admin/POSPage.jsx').then((m) => ({ default: m.POSPage || m.default })));
-const DispatchPage = lazy(() => import('./pages/admin/DispatchPage.jsx').then((m) => ({ default: m.DispatchPage || m.default })));
-const KDSPage = lazy(() => import('./pages/admin/KDSPage.jsx').then((m) => ({ default: m.KDSPage || m.default })));
+const DashboardPage = lazy(() =>
+  import('./pages/admin/DashboardPage.jsx').then((m) => ({
+    default: m.DashboardPage || m.default,
+  })),
+);
+const OrdersPage = lazy(() =>
+  import('./pages/admin/OrdersPage.jsx').then((m) => ({ default: m.OrdersPage || m.default })),
+);
+const ProductsPage = lazy(() =>
+  import('./pages/admin/ProductsPage.jsx').then((m) => ({ default: m.ProductsPage || m.default })),
+);
+const CategoriesPage = lazy(() =>
+  import('./pages/admin/CategoriesPage.jsx').then((m) => ({
+    default: m.CategoriesPage || m.default,
+  })),
+);
+const OptionsPage = lazy(() =>
+  import('./pages/admin/OptionsPage.jsx').then((m) => ({ default: m.OptionsPage || m.default })),
+);
+const CRMPage = lazy(() =>
+  import('./pages/admin/CRMPage.jsx').then((m) => ({ default: m.CRMPage || m.default })),
+);
+const CouponsPage = lazy(() =>
+  import('./pages/admin/CouponsPage.jsx').then((m) => ({ default: m.CouponsPage || m.default })),
+);
+const SettingsPage = lazy(() =>
+  import('./pages/admin/SettingsPage.jsx').then((m) => ({ default: m.SettingsPage || m.default })),
+);
+const InventoryPage = lazy(() =>
+  import('./pages/admin/InventoryPage.jsx').then((m) => ({
+    default: m.InventoryPage || m.default,
+  })),
+);
+const RecipesPage = lazy(() =>
+  import('./pages/admin/RecipesPage.jsx').then((m) => ({ default: m.RecipesPage || m.default })),
+);
+const AdminsPage = lazy(() =>
+  import('./pages/admin/AdminsPage.jsx').then((m) => ({ default: m.AdminsPage || m.default })),
+);
+const POSPage = lazy(() =>
+  import('./pages/admin/POSPage.jsx').then((m) => ({ default: m.POSPage || m.default })),
+);
+const DispatchPage = lazy(() =>
+  import('./pages/admin/DispatchPage.jsx').then((m) => ({ default: m.DispatchPage || m.default })),
+);
+const KDSPage = lazy(() =>
+  import('./pages/admin/KDSPage.jsx').then((m) => ({ default: m.KDSPage || m.default })),
+);
 const PurchasesPage = lazy(() => import('./pages/admin/PurchasesPage.jsx'));
 const InvoicesPage = lazy(() => import('./pages/admin/InvoicesPage.jsx'));
 const SuppliersPage = lazy(() => import('./pages/admin/SuppliersPage.jsx'));
 const Quotes = lazy(() => import('./pages/admin/Quotes.jsx'));
 const AccountsReceivable = lazy(() => import('./pages/admin/AccountsReceivable.jsx'));
 const AccountsPayable = lazy(() => import('./pages/admin/AccountsPayable.jsx'));
-const ShiftAuditPage = lazy(() => import('./pages/admin/ShiftAuditPage.jsx').then((m) => ({ default: m.ShiftAuditPage || m.default })));
-const CashFlowPage = lazy(() => import('./pages/admin/CashFlowPage.jsx').then((m) => ({ default: m.CashFlowPage || m.default })));
-const DREPage = lazy(() => import('./pages/admin/DREPage.jsx').then((m) => ({ default: m.DREPage || m.default })));
-const ReconciliationPage = lazy(() => import('./pages/admin/ReconciliationPage.jsx').then((m) => ({ default: m.ReconciliationPage || m.default })));
-const FiscalPage = lazy(() => import('./pages/admin/FiscalPage.jsx').then((m) => ({ default: m.FiscalPage || m.default })));
-const IntegrationsPage = lazy(() => import('./pages/admin/IntegrationsPage.jsx').then((m) => ({ default: m.IntegrationsPage || m.default })));
-const ReportsPage = lazy(() => import('./pages/admin/ReportsPage.jsx').then((m) => ({ default: m.ReportsPage || m.default })));
-const SaasDashboardPage = lazy(() => import('./pages/saas/SaasDashboardPage.jsx').then((m) => ({ default: m.SaasDashboardPage || m.default })));
+const ShiftAuditPage = lazy(() =>
+  import('./pages/admin/ShiftAuditPage.jsx').then((m) => ({
+    default: m.ShiftAuditPage || m.default,
+  })),
+);
+const CashFlowPage = lazy(() =>
+  import('./pages/admin/CashFlowPage.jsx').then((m) => ({ default: m.CashFlowPage || m.default })),
+);
+const DREPage = lazy(() =>
+  import('./pages/admin/DREPage.jsx').then((m) => ({ default: m.DREPage || m.default })),
+);
+const ReconciliationPage = lazy(() =>
+  import('./pages/admin/ReconciliationPage.jsx').then((m) => ({
+    default: m.ReconciliationPage || m.default,
+  })),
+);
+const FiscalPage = lazy(() =>
+  import('./pages/admin/FiscalPage.jsx').then((m) => ({ default: m.FiscalPage || m.default })),
+);
+const IntegrationsPage = lazy(() =>
+  import('./pages/admin/IntegrationsPage.jsx').then((m) => ({
+    default: m.IntegrationsPage || m.default,
+  })),
+);
+const ReportsPage = lazy(() =>
+  import('./pages/admin/ReportsPage.jsx').then((m) => ({ default: m.ReportsPage || m.default })),
+);
+const SaasDashboardPage = lazy(() =>
+  import('./pages/saas/SaasDashboardPage.jsx').then((m) => ({
+    default: m.SaasDashboardPage || m.default,
+  })),
+);
+const DriverLayout = lazy(() => import('./pages/driver/DriverLayout.jsx'));
+const DriverHomePage = lazy(() => import('./pages/driver/DriverHomePage.jsx'));
+const DriverOrderDetailsPage = lazy(() => import('./pages/driver/DriverOrderDetailsPage.jsx'));
 import { BottomNav } from './components/ui/BottomNav.jsx';
 import { CartDrawer } from './components/ui/CartDrawer.jsx';
 import { FloatingCartButton } from './components/ui/FloatingCartButton.jsx';
@@ -64,13 +125,20 @@ import {
   normalizeHexColor,
 } from './utils/visualIdentity.js';
 
-const API_BASE_URL = import.meta.env.PROD
-  ? '/api'
-  : (import.meta.env.VITE_API_URL ?? '/api');
+const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
 const savedCustomerKey = 'pizzaria-customer';
 const savedThemeKey = 'pizzaria-theme';
 const savedCartKey = 'pizzaria-cart';
-const ADMIN_SESSION_ROLES = ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN', 'DRIVER', 'INTEGRATION_MANAGER'];
+const ADMIN_SESSION_ROLES = [
+  'SUPER_ADMIN',
+  'OWNER',
+  'ADMIN',
+  'MANAGER',
+  'CASHIER',
+  'KITCHEN',
+  'DRIVER',
+  'INTEGRATION_MANAGER',
+];
 const ADMIN_ROUTE_ROLES = {
   dashboard: ['OWNER', 'ADMIN', 'MANAGER'],
   orders: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'],
@@ -216,6 +284,7 @@ function findMatchingVariant(product, selectedVariant) {
 const routes = {
   '/': { Component: HomePage },
   '/conta': { Component: AccountPage },
+  '/rastreio': { Component: OrderStatusPage },
   '/pizzas-tradicionais': { Component: CategoryPage, categoryId: 'pizzas-tradicionais' },
   '/pizzas-doces': { Component: CategoryPage, categoryId: 'pizzas-doces' },
   '/refrigerantes': { Component: CategoryPage, categoryId: 'refrigerantes' },
@@ -224,13 +293,36 @@ const routes = {
   '/mock-payment': { Component: MockPaymentPage },
 };
 
+const reservedPublicRoutePrefixes = new Set([
+  'admin',
+  'api',
+  'assets',
+  'public',
+  'motoboy',
+  'driver',
+  'entregador',
+  'saas',
+  'static',
+  'webhooks',
+]);
+
 function getRoute(path) {
-  if (path.startsWith('/order/')) return { Component: OrderStatusPage };
-  if (routes[path]) return routes[path];
-  if (path.startsWith('/') && !path.startsWith('/admin') && path.length > 1) {
-    const slug = path.replace('/', '');
+  const cleanPath = path.split('?')[0] || '/';
+  if (cleanPath === '/order' || cleanPath.startsWith('/order/'))
+    return { Component: OrderStatusPage };
+  if (routes[cleanPath]) return routes[cleanPath];
+
+  const segments = cleanPath.split('/').filter(Boolean);
+  const [slug] = segments;
+  if (
+    segments.length === 1 &&
+    slug &&
+    !reservedPublicRoutePrefixes.has(slug) &&
+    /^[a-z0-9][a-z0-9-]*$/i.test(slug)
+  ) {
     return { Component: CategoryPage, categoryId: slug };
   }
+
   return null;
 }
 
@@ -285,7 +377,7 @@ function getSavedCustomerSession() {
 
 function AdminIndexRedirect() {
   const role = getSavedAdminRole();
-  return <Navigate to={role === 'DRIVER' ? '/admin/dispatch' : '/admin/dashboard'} replace />;
+  return <Navigate to={role === 'DRIVER' ? '/motoboy' : '/admin/dashboard'} replace />;
 }
 
 function AccessDenied() {
@@ -304,7 +396,7 @@ function AccessDenied() {
 function ProtectedAdminRoute({ routeKey, children }) {
   const role = getSavedAdminRole();
   const allowedRoles = ADMIN_ROUTE_ROLES[routeKey] ?? [];
-  return (role === 'SUPER_ADMIN' || allowedRoles.includes(role)) ? children : <AccessDenied />;
+  return role === 'SUPER_ADMIN' || allowedRoles.includes(role) ? children : <AccessDenied />;
 }
 
 function getSavedCartItems() {
@@ -436,16 +528,41 @@ export default function PizzariaApp() {
         setTenant(data);
         setStoreSettings(data);
 
-        // Patch global fetch to ALWAYS inject x-tenant-id
         const originalFetch = window.fetch;
-        window.fetch = async (...args) => {
-          const [resource, config] = args;
-          const newConfig = config || {};
-          newConfig.headers = {
-            ...newConfig.headers,
-            'x-tenant-id': data.id,
-          };
-          return originalFetch(resource, newConfig);
+        window.fetch = async (resource, config) => {
+          const resourceUrl = typeof resource === 'string' ? resource : resource?.url;
+          const shouldInjectTenant = (() => {
+            if (!resourceUrl) return false;
+
+            try {
+              const requestUrl = new URL(resourceUrl, window.location.origin);
+              const apiUrl = new URL(API_BASE_URL, window.location.origin);
+              const isSameOriginApi =
+                requestUrl.origin === window.location.origin &&
+                requestUrl.pathname.startsWith('/api');
+              const isConfiguredApi =
+                requestUrl.origin === apiUrl.origin &&
+                requestUrl.pathname.startsWith(apiUrl.pathname);
+
+              return isSameOriginApi || isConfiguredApi;
+            } catch {
+              return resourceUrl.startsWith('/api');
+            }
+          })();
+
+          if (!shouldInjectTenant) {
+            return originalFetch(resource, config);
+          }
+
+          const headers = new Headers(
+            config?.headers || (resource instanceof Request ? resource.headers : undefined),
+          );
+          headers.set('x-tenant-id', data.id);
+
+          return originalFetch(resource, {
+            ...config,
+            headers,
+          });
         };
 
         // Apply some visuals from tenant immediately
@@ -626,7 +743,12 @@ export default function PizzariaApp() {
 
   const isAdminRoute = path.startsWith('/admin');
   const isSaasRoute = path.startsWith('/saas');
-  const route = isAdminRoute || isSaasRoute ? { hideNav: true } : (getRoute(path) ?? routes['/']);
+  const isDriverRoute =
+    path.startsWith('/motoboy') || path.startsWith('/driver') || path.startsWith('/entregador');
+  const route =
+    isAdminRoute || isSaasRoute || isDriverRoute
+      ? { hideNav: true }
+      : (getRoute(path) ?? routes['/']);
   const Page = route.Component;
   const isLoggedIn = Boolean(currentCustomer);
 
@@ -676,7 +798,11 @@ export default function PizzariaApp() {
         // Salva a sessao do administrador e redireciona para o painel admin.
         window.localStorage.setItem(
           'pizzaria-admin',
-          JSON.stringify({ admin: result.admin, token: result.token, role: result.role || result.admin?.role }),
+          JSON.stringify({
+            admin: result.admin,
+            token: result.token,
+            role: result.role || result.admin?.role,
+          }),
         );
         window.localStorage.removeItem(savedCustomerKey);
         setCurrentCustomer(null);
@@ -685,7 +811,8 @@ export default function PizzariaApp() {
         setAuthError('');
         setEmail('');
         setPassword('');
-        window.location.hash = '/admin/dashboard';
+        window.location.hash =
+          (result.role || result.admin?.role) === 'DRIVER' ? '/motoboy' : '/admin/dashboard';
       } else {
         finishAuth(result);
       }
@@ -797,8 +924,8 @@ export default function PizzariaApp() {
       message: 'O link que você acessou não corresponde a nenhuma loja ativa.',
     };
 
-    if (isSaasRoute) {
-      // Deixa prosseguir para renderizar a rota /saas
+    if (isSaasRoute || isAdminRoute || isDriverRoute) {
+      // Deixa prosseguir para rotas internas que validam autenticacao no backend.
     } else {
       return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 text-center p-4">
@@ -825,7 +952,7 @@ export default function PizzariaApp() {
 
   const isMaintenance = tenant?.isMaintenance === true;
 
-  if (isMaintenance && !isAdminRoute && !isSaasRoute) {
+  if (isMaintenance && !isAdminRoute && !isSaasRoute && !isDriverRoute) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 text-center p-4">
         <div className="max-w-md w-full">
@@ -969,11 +1096,17 @@ export default function PizzariaApp() {
           </header>
         )}
 
-        {isAdminRoute || isSaasRoute ? (
+        {isAdminRoute || isSaasRoute || isDriverRoute ? (
           <HashRouter>
             <Routes>
               <Route path="/saas/onboarding" element={<OnboardingPage />} />
               <Route path="/saas/dashboard" element={<SaasDashboardPage />} />
+              <Route path="/motoboy" element={<DriverLayout />}>
+                <Route index element={<DriverHomePage />} />
+                <Route path="orders/:orderId" element={<DriverOrderDetailsPage />} />
+              </Route>
+              <Route path="/driver" element={<Navigate to="/motoboy" replace />} />
+              <Route path="/entregador" element={<Navigate to="/motoboy" replace />} />
               <Route
                 path="/admin/login"
                 element={<LoginPage isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />}
@@ -984,42 +1117,287 @@ export default function PizzariaApp() {
                 element={<AdminLayout isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />}
               >
                 <Route index element={<AdminIndexRedirect />} />
-                <Route path="dashboard" element={<ProtectedAdminRoute routeKey="dashboard"><DashboardPage /></ProtectedAdminRoute>} />
-                <Route path="orders" element={<ProtectedAdminRoute routeKey="orders"><OrdersPage /></ProtectedAdminRoute>} />
-                <Route path="products" element={<ProtectedAdminRoute routeKey="products"><ProductsPage /></ProtectedAdminRoute>} />
-                <Route path="categories" element={<ProtectedAdminRoute routeKey="categories"><CategoriesPage /></ProtectedAdminRoute>} />
-                <Route path="options" element={<ProtectedAdminRoute routeKey="options"><OptionsPage /></ProtectedAdminRoute>} />
-                <Route path="crm" element={<ProtectedAdminRoute routeKey="crm"><CRMPage /></ProtectedAdminRoute>} />
-                <Route path="coupons" element={<ProtectedAdminRoute routeKey="coupons"><CouponsPage /></ProtectedAdminRoute>} />
-                <Route path="inventory" element={<ProtectedAdminRoute routeKey="inventory"><InventoryPage /></ProtectedAdminRoute>} />
-                <Route path="recipes" element={<ProtectedAdminRoute routeKey="recipes"><RecipesPage /></ProtectedAdminRoute>} />
-                <Route path="users" element={<ProtectedAdminRoute routeKey="users"><AdminsPage /></ProtectedAdminRoute>} />
-                <Route path="pos" element={<ProtectedAdminRoute routeKey="pos"><POSPage /></ProtectedAdminRoute>} />
-                <Route path="kds" element={<ProtectedAdminRoute routeKey="kds"><KDSPage /></ProtectedAdminRoute>} />
-                <Route path="dispatch" element={<ProtectedAdminRoute routeKey="dispatch"><DispatchPage /></ProtectedAdminRoute>} />
-                <Route path="settings" element={<ProtectedAdminRoute routeKey="settings"><SettingsPage /></ProtectedAdminRoute>} />
-                <Route path="purchases" element={<ProtectedAdminRoute routeKey="purchases"><PurchasesPage /></ProtectedAdminRoute>} />
-                <Route path="invoices" element={<ProtectedAdminRoute routeKey="invoices"><InvoicesPage /></ProtectedAdminRoute>} />
-                <Route path="quotes" element={<ProtectedAdminRoute routeKey="quotes"><Quotes /></ProtectedAdminRoute>} />
-                <Route path="receivables" element={<ProtectedAdminRoute routeKey="receivables"><AccountsReceivable /></ProtectedAdminRoute>} />
-                <Route path="payables" element={<ProtectedAdminRoute routeKey="payables"><AccountsPayable /></ProtectedAdminRoute>} />
-                <Route path="caixa" element={<ProtectedAdminRoute routeKey="caixa"><ShiftAuditPage /></ProtectedAdminRoute>} />
-                <Route path="fluxo-caixa" element={<ProtectedAdminRoute routeKey="fluxo-caixa"><CashFlowPage /></ProtectedAdminRoute>} />
-                <Route path="dre" element={<ProtectedAdminRoute routeKey="dre"><DREPage /></ProtectedAdminRoute>} />
-                <Route path="conciliacao" element={<ProtectedAdminRoute routeKey="conciliacao"><ReconciliationPage /></ProtectedAdminRoute>} />
-                <Route path="suppliers" element={<ProtectedAdminRoute routeKey="suppliers"><SuppliersPage /></ProtectedAdminRoute>} />
-                <Route path="fornecedores" element={<ProtectedAdminRoute routeKey="fornecedores"><SuppliersPage /></ProtectedAdminRoute>} />
-                <Route path="customers" element={<ProtectedAdminRoute routeKey="customers"><CRMPage /></ProtectedAdminRoute>} />
-                <Route path="team" element={<ProtectedAdminRoute routeKey="team"><AdminsPage /></ProtectedAdminRoute>} />
+                <Route
+                  path="dashboard"
+                  element={
+                    <ProtectedAdminRoute routeKey="dashboard">
+                      <DashboardPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="orders"
+                  element={
+                    <ProtectedAdminRoute routeKey="orders">
+                      <OrdersPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="products"
+                  element={
+                    <ProtectedAdminRoute routeKey="products">
+                      <ProductsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="categories"
+                  element={
+                    <ProtectedAdminRoute routeKey="categories">
+                      <CategoriesPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="options"
+                  element={
+                    <ProtectedAdminRoute routeKey="options">
+                      <OptionsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="crm"
+                  element={
+                    <ProtectedAdminRoute routeKey="crm">
+                      <CRMPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="coupons"
+                  element={
+                    <ProtectedAdminRoute routeKey="coupons">
+                      <CouponsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="inventory"
+                  element={
+                    <ProtectedAdminRoute routeKey="inventory">
+                      <InventoryPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="recipes"
+                  element={
+                    <ProtectedAdminRoute routeKey="recipes">
+                      <RecipesPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <ProtectedAdminRoute routeKey="users">
+                      <AdminsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="pos"
+                  element={
+                    <ProtectedAdminRoute routeKey="pos">
+                      <POSPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="kds"
+                  element={
+                    <ProtectedAdminRoute routeKey="kds">
+                      <KDSPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="dispatch"
+                  element={
+                    <ProtectedAdminRoute routeKey="dispatch">
+                      <DispatchPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <ProtectedAdminRoute routeKey="settings">
+                      <SettingsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="purchases"
+                  element={
+                    <ProtectedAdminRoute routeKey="purchases">
+                      <PurchasesPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="invoices"
+                  element={
+                    <ProtectedAdminRoute routeKey="invoices">
+                      <InvoicesPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="quotes"
+                  element={
+                    <ProtectedAdminRoute routeKey="quotes">
+                      <Quotes />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="receivables"
+                  element={
+                    <ProtectedAdminRoute routeKey="receivables">
+                      <AccountsReceivable />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="payables"
+                  element={
+                    <ProtectedAdminRoute routeKey="payables">
+                      <AccountsPayable />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="caixa"
+                  element={
+                    <ProtectedAdminRoute routeKey="caixa">
+                      <ShiftAuditPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="fluxo-caixa"
+                  element={
+                    <ProtectedAdminRoute routeKey="fluxo-caixa">
+                      <CashFlowPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="dre"
+                  element={
+                    <ProtectedAdminRoute routeKey="dre">
+                      <DREPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="conciliacao"
+                  element={
+                    <ProtectedAdminRoute routeKey="conciliacao">
+                      <ReconciliationPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="suppliers"
+                  element={
+                    <ProtectedAdminRoute routeKey="suppliers">
+                      <SuppliersPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="fornecedores"
+                  element={
+                    <ProtectedAdminRoute routeKey="fornecedores">
+                      <SuppliersPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="customers"
+                  element={
+                    <ProtectedAdminRoute routeKey="customers">
+                      <CRMPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="team"
+                  element={
+                    <ProtectedAdminRoute routeKey="team">
+                      <AdminsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
                 <Route path="financeiro" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="relatorios" element={<ProtectedAdminRoute routeKey="relatorios"><ReportsPage /></ProtectedAdminRoute>} />
-                <Route path="accounts-receivable" element={<ProtectedAdminRoute routeKey="accounts-receivable"><AccountsReceivable /></ProtectedAdminRoute>} />
-                <Route path="fiscal" element={<ProtectedAdminRoute routeKey="fiscal"><FiscalPage /></ProtectedAdminRoute>} />
-                <Route path="integrations" element={<ProtectedAdminRoute routeKey="integrations"><IntegrationsPage /></ProtectedAdminRoute>} />
-                <Route path="estoque" element={<ProtectedAdminRoute routeKey="estoque"><InventoryPage /></ProtectedAdminRoute>} />
-                <Route path="clientes" element={<ProtectedAdminRoute routeKey="clientes"><CRMPage /></ProtectedAdminRoute>} />
-                <Route path="motoboys" element={<ProtectedAdminRoute routeKey="motoboys"><DispatchPage defaultView="drivers" /></ProtectedAdminRoute>} />
-                <Route path="drivers" element={<ProtectedAdminRoute routeKey="drivers"><DispatchPage defaultView="drivers" /></ProtectedAdminRoute>} />
+                <Route
+                  path="relatorios"
+                  element={
+                    <ProtectedAdminRoute routeKey="relatorios">
+                      <ReportsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="accounts-receivable"
+                  element={
+                    <ProtectedAdminRoute routeKey="accounts-receivable">
+                      <AccountsReceivable />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="fiscal"
+                  element={
+                    <ProtectedAdminRoute routeKey="fiscal">
+                      <FiscalPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="integrations"
+                  element={
+                    <ProtectedAdminRoute routeKey="integrations">
+                      <IntegrationsPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="estoque"
+                  element={
+                    <ProtectedAdminRoute routeKey="estoque">
+                      <InventoryPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="clientes"
+                  element={
+                    <ProtectedAdminRoute routeKey="clientes">
+                      <CRMPage />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="motoboys"
+                  element={
+                    <ProtectedAdminRoute routeKey="motoboys">
+                      <DispatchPage defaultView="drivers" />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="drivers"
+                  element={
+                    <ProtectedAdminRoute routeKey="drivers">
+                      <DispatchPage defaultView="drivers" />
+                    </ProtectedAdminRoute>
+                  }
+                />
               </Route>
             </Routes>
           </HashRouter>

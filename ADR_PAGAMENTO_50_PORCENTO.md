@@ -18,6 +18,7 @@ Implementar pagamento com entrada como modo `DEPOSIT`, mantendo `Order` com camp
 ## 2. Campos novos
 
 Em `Order`:
+
 - `paymentMode`: `FULL` ou `DEPOSIT`.
 - `depositPercent`.
 - `depositAmount`.
@@ -28,11 +29,13 @@ Em `Order`:
 - `remainingPaidAt`.
 
 Em `PaymentTransaction`:
+
 - `type`: `FULL_PAYMENT`, `DEPOSIT_PAYMENT`, `REMAINING_PAYMENT`, `REFUND`.
 - `idempotencyKey`.
 - `paidAt`.
 
 Em `StoreSetting`:
+
 - `depositEnabled`.
 - `depositPercent`.
 - `depositRequiredMethods`.
@@ -68,6 +71,7 @@ Entrada online nao entra como dinheiro fisico no caixa. Pagamento restante regis
 ## 7. Relatorios
 
 Relatorios passam a separar:
+
 - total vendido: `total`;
 - total recebido: `amountPaid` ou pagamentos de invoice;
 - entrada recebida: `depositAmount` quando `PARTIALLY_PAID`/`PAID`;

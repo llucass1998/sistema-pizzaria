@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { BaseModal } from '../../components/ui/BaseModal.jsx';
 import { Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function ReversePaymentModal({ isOpen, onClose, onSuccess, invoice }) {
   const [loadingId, setLoadingId] = useState(null);
@@ -19,12 +21,15 @@ export function ReversePaymentModal({ isOpen, onClose, onSuccess, invoice }) {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
 
-      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices/${invoice.id}/payments/${paymentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const res = await fetch(
+        `${API_BASE_URL}/admin/receivables/invoices/${invoice.id}/payments/${paymentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -53,7 +58,11 @@ export function ReversePaymentModal({ isOpen, onClose, onSuccess, invoice }) {
 
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950">
           <p className="text-slate-500 dark:text-slate-400">
-            Fatura: <strong className="text-slate-800 dark:text-slate-200">{invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #{invoice.orderId?.slice(0, 6)}</strong>
+            Fatura:{' '}
+            <strong className="text-slate-800 dark:text-slate-200">
+              {invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #
+              {invoice.orderId?.slice(0, 6)}
+            </strong>
           </p>
           <p className="mt-1 font-bold text-slate-700 dark:text-slate-300">
             Total da Fatura: R$ {Number(invoice.totalAmount || 0).toFixed(2)}

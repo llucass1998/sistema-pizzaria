@@ -44,24 +44,28 @@ Principais áreas do produto:
 
 ## 3. Comandos Essenciais
 
-- Instalar dependências: `npm install`
-- Rodar frontend: `npm run dev`
-- Rodar backend: `npm run api`
-- Rodar build frontend: `npm run build`
-- Rodar build backend: `npm run build:api`
-- Rodar typecheck estrito: `npm run typecheck:strict`
-- Rodar lint: `npx eslint .`
-- Rodar format check: `npm run format:check`
-- Rodar testes unit/API: `npm run test` ou `npm run test:api`
-- Rodar testes smoke: `npm run test:smoke`
-- Rodar testes E2E configurados: `npm run test:e2e`
-- Gerar Prisma Client: `npm run prisma:generate`
-- Criar/aplicar migration dev: `npm run prisma:migrate`
-- Aplicar migrations em ambiente existente: `npm run prisma:deploy`
-- Formatar Prisma: `npm run format:prisma`
-- Subir Docker: `docker compose up -d --build`
+Regra operacional: Node, npm, npx, Prisma, Vite, Vitest e scripts Bash do projeto devem rodar dentro do container Linux. Evite executar esses comandos diretamente no Windows/PowerShell.
+
+- Subir dev isolado (`db-dev`/`waha-dev`/`api-dev`/`web-dev`, volumes `pizzaria_dev_*`): `bash scripts/dev.sh up`
+- Shell do projeto em Linux/container: `bash scripts/dev.sh shell`
+- Rodar frontend via container: `bash scripts/dev.sh npm run dev`
+- Rodar backend via container: `bash scripts/dev.sh npm run api`
+- Rodar build frontend: `bash scripts/dev.sh npm run build`
+- Rodar build backend: `bash scripts/dev.sh npm run build:api`
+- Rodar typecheck estrito: `bash scripts/dev.sh npm run typecheck:strict`
+- Rodar lint: `bash scripts/dev.sh npx eslint .`
+- Rodar format check: `bash scripts/dev.sh npm run format:check`
+- Rodar testes unit/API: `bash scripts/dev.sh npm run test` ou `bash scripts/dev.sh npm run test:api`
+- Rodar testes smoke: `bash scripts/dev.sh npm run test:smoke`
+- Rodar testes E2E configurados: `bash scripts/dev.sh npm run test:e2e`
+- Gerar Prisma Client: `bash scripts/dev.sh npm run prisma:generate`
+- Criar/aplicar migration dev: `bash scripts/dev.sh npm run prisma:migrate`
+- Aplicar migrations em ambiente existente: `bash scripts/dev.sh npm run prisma:deploy`
+- Formatar Prisma: `bash scripts/dev.sh npm run format:prisma`
+- Subir Docker production/local: `docker compose up -d --build`
 - Rebuild sem cache de API/web: `docker compose build --no-cache api web`
 - Recriar API/web sem mexer no banco: `docker compose up -d --no-deps --force-recreate api web`
+- Redeploy Compose seguro: `bash scripts/compose-redeploy.sh`
 - Ver containers: `docker compose ps`
 - Validar WSL: `wsl -l -v`
 - Validar API: `curl.exe -I http://127.0.0.1/api/status`
@@ -74,6 +78,8 @@ Principais áreas do produto:
 - Nunca executar reset destrutivo em dados reais.
 - Nunca deletar tenant, loja, pedidos, clientes, pagamentos, fiscal ou estoque sem pedido explícito e backup validado.
 - Nunca alterar `docker-compose.yml`, `Caddyfile`, `.env`, portas, domínio, volumes ou proxy sem necessidade comprovada.
+- Nunca usar `docker compose down -v`, remover volumes ou limpar banco para resolver cache/ambiente sem pedido explícito e backup validado.
+- Para SQL com aspas sensíveis, preferir heredoc Bash ou arquivo `.sql` executado dentro do container; evitar PowerShell para esses comandos.
 - Nunca commitar segredo, token, senha, certificado A1, `clientSecret`, access token, refresh token ou credencial de gateway/iFood.
 - Nunca confiar em valores enviados pelo frontend para preço, taxa, desconto, status, tenant, saldo, pagamento ou permissão.
 - Cálculo de pedido deve acontecer no backend.
@@ -172,6 +178,6 @@ Se não foi possível rodar algum teste, explicar o motivo de forma direta.
 - Preservei tenant e permissões.
 - Não toquei em segredo/env/infra sem necessidade.
 - Não apaguei dados.
-- Mantive compatibilidade com pedidos antigos.  
+- Mantive compatibilidade com pedidos antigos.
 - Rodei typecheck/build/testes proporcionais ao risco.
 - Validei Docker/cache quando subi atualização.

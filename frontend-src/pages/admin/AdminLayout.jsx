@@ -29,7 +29,7 @@ import {
   ChevronDown,
   ChevronRight,
   Sun,
-  Moon
+  Moon,
 } from 'lucide-react';
 import { useState, useMemo, Suspense, useEffect, useCallback } from 'react';
 import pizzariaLogo from '../../assets/rio-pizzas-logo.png';
@@ -87,7 +87,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
   // No desktop, a sidebar expande exclusivamente ao passar o mouse (ou ao abrir drawer no mobile)
   const sidebarExpanded = sidebarHovered;
-  const sidebarWidth = sidebarExpanded ? "280px" : "80px";
+  const sidebarWidth = sidebarExpanded ? '280px' : '80px';
 
   // Accordion groups state
   const [openGroups, setOpenGroups] = useState(() => {
@@ -108,7 +108,6 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
     localStorage.setItem('adminSidebarGroups', JSON.stringify(newGroups));
   };
 
-
   const adminDataString = window.localStorage.getItem('pizzaria-admin');
 
   if (!adminDataString) {
@@ -121,41 +120,147 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
   const operationItems = useMemo(() => {
     return [
-      { to: '/admin/caixa', icon: Wallet, label: 'Turnos de Caixa', roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'] },
-      { to: '/admin/orders', icon: ClipboardList, label: 'Pedidos Live', roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'] },
-      { to: '/admin/kds', icon: ChefHat, label: 'KDS', roles: ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN'] },
-      { to: '/admin/dispatch', icon: Truck, label: 'Despacho', roles: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'] },
+      {
+        to: '/admin/caixa',
+        icon: Wallet,
+        label: 'Turnos de Caixa',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER'],
+      },
+      {
+        to: '/admin/orders',
+        icon: ClipboardList,
+        label: 'Pedidos Live',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'KITCHEN'],
+      },
+      {
+        to: '/admin/kds',
+        icon: ChefHat,
+        label: 'KDS',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'KITCHEN'],
+      },
+      {
+        to: '/admin/dispatch',
+        icon: Truck,
+        label: 'Despacho',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'DRIVER'],
+      },
     ].filter((item) => role === 'SUPER_ADMIN' || item.roles.includes(role));
   }, [role]);
 
   const allErpItems = useMemo(() => {
     return [
-      { to: '/admin/fluxo-caixa', icon: TrendingUp, label: 'Fluxo de Caixa', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/dre', icon: BarChart3, label: 'DRE Simplificado', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/conciliacao', icon: Scale, label: 'Conciliação', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/payables', icon: DollarSign, label: 'Contas a Pagar', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/receivables', icon: Wallet, label: 'Contas a Receber', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/purchases', icon: Truck, label: 'Compras & Pedidos', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/invoices', icon: FileText, label: 'Notas Fiscais', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/suppliers', icon: Truck, label: 'Fornecedores', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/quotes', icon: FileText, label: 'Orçamentos', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
+      {
+        to: '/admin/fluxo-caixa',
+        icon: TrendingUp,
+        label: 'Fluxo de Caixa',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/dre',
+        icon: BarChart3,
+        label: 'DRE Simplificado',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/conciliacao',
+        icon: Scale,
+        label: 'Conciliação',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/payables',
+        icon: DollarSign,
+        label: 'Contas a Pagar',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/receivables',
+        icon: Wallet,
+        label: 'Contas a Receber',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/purchases',
+        icon: Truck,
+        label: 'Compras & Pedidos',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/invoices',
+        icon: FileText,
+        label: 'Notas Fiscais',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/suppliers',
+        icon: Truck,
+        label: 'Fornecedores',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/quotes',
+        icon: FileText,
+        label: 'Orçamentos',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
     ].filter((item) => role === 'SUPER_ADMIN' || item.roles.includes(role));
   }, [role]);
 
   const managementItems = useMemo(() => {
     return [
-      { to: '/admin/products', icon: Package, label: 'Produtos', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/categories', icon: Tags, label: 'Categorias', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/options', icon: Layers, label: 'Opções Extras', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/inventory', icon: Archive, label: 'Estoque', roles: ['OWNER', 'ADMIN', 'MANAGER'], badge: lowStockCount },
-      { to: '/admin/recipes', icon: List, label: 'Fichas Técnicas', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
+      {
+        to: '/admin/products',
+        icon: Package,
+        label: 'Produtos',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/categories',
+        icon: Tags,
+        label: 'Categorias',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/options',
+        icon: Layers,
+        label: 'Opções Extras',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/inventory',
+        icon: Archive,
+        label: 'Estoque',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+        badge: lowStockCount,
+      },
+      {
+        to: '/admin/recipes',
+        icon: List,
+        label: 'Fichas Técnicas',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
       { to: '/admin/crm', icon: Users, label: 'Clientes', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
       { to: '/admin/coupons', icon: Ticket, label: 'Cupons', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
       { to: '/admin/users', icon: UserCog, label: 'Equipe', roles: ['OWNER', 'ADMIN'] },
       { to: '/admin/settings', icon: Settings, label: 'Configurações', roles: ['OWNER', 'ADMIN'] },
-      { to: '/admin/relatorios', icon: PieChart, label: 'Relatórios & BI', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-      { to: '/admin/integrations', icon: Globe, label: 'Integrações (iFood)', roles: ['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER'] },
-      { to: '/admin/fiscal', icon: Receipt, label: 'Fiscal (NFC-e)', roles: ['OWNER', 'ADMIN', 'MANAGER'] },
+      {
+        to: '/admin/relatorios',
+        icon: PieChart,
+        label: 'Relatórios & BI',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
+      {
+        to: '/admin/integrations',
+        icon: Globe,
+        label: 'Integrações (iFood)',
+        roles: ['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER'],
+      },
+      {
+        to: '/admin/fiscal',
+        icon: Receipt,
+        label: 'Fiscal (NFC-e)',
+        roles: ['OWNER', 'ADMIN', 'MANAGER'],
+      },
     ].filter((item) => role === 'SUPER_ADMIN' || item.roles.includes(role));
   }, [role]);
 
@@ -172,9 +277,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       className={({ isActive }) =>
         `flex items-center px-3 py-2 rounded-lg font-bold text-sm transition-all duration-200 relative group overflow-hidden ${
           expanded ? 'justify-start gap-3 pl-11' : 'justify-center'
-        } ${
-          isActive ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-white/10 text-blue-50'
-        }`
+        } ${isActive ? 'bg-red-600 text-white shadow-sm' : 'hover:bg-white/10 text-blue-50'}`
       }
     >
       <item.icon size={19} className="shrink-0" />
@@ -197,7 +300,8 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       )}
       {!expanded && (
         <span className="hidden lg:block absolute left-[84px] w-max bg-slate-900 text-white text-xs font-bold px-2 py-1 rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-[60] shadow-xl">
-          {item.label}{item.badge > 0 ? ` (${item.badge} alerta${item.badge !== 1 ? 's' : ''})` : ''}
+          {item.label}
+          {item.badge > 0 ? ` (${item.badge} alerta${item.badge !== 1 ? 's' : ''})` : ''}
         </span>
       )}
     </NavLink>
@@ -223,28 +327,38 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       <div className="flex flex-col gap-1.5 p-2.5 border-b border-white/10 shrink-0">
         <button
           type="button"
-          onClick={() => { navigate('/admin/dashboard'); setIsSidebarOpen(false); }}
-          title={!expanded ? "Dashboard" : undefined}
+          onClick={() => {
+            navigate('/admin/dashboard');
+            setIsSidebarOpen(false);
+          }}
+          title={!expanded ? 'Dashboard' : undefined}
           className={`flex items-center px-3 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 relative group overflow-hidden ${
             expanded ? 'justify-start gap-3' : 'justify-center'
           } hover:bg-white/10 text-blue-50`}
         >
           <LayoutDashboard size={20} className="shrink-0" />
-          <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+          <span
+            className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+          >
             Dashboard
           </span>
         </button>
 
         <button
           type="button"
-          onClick={() => { navigate('/admin/pos'); setIsSidebarOpen(false); }}
-          title={!expanded ? "PDV (Caixa)" : undefined}
+          onClick={() => {
+            navigate('/admin/pos');
+            setIsSidebarOpen(false);
+          }}
+          title={!expanded ? 'PDV (Caixa)' : undefined}
           className={`flex items-center px-3 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 relative group overflow-hidden ${
             expanded ? 'justify-start gap-3' : 'justify-center'
           } hover:bg-white/10 text-blue-50`}
         >
           <Store size={20} className="shrink-0" />
-          <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+          <span
+            className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+          >
             PDV (Caixa)
           </span>
         </button>
@@ -263,8 +377,13 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               }`}
             >
               <div className={`flex items-center ${expanded ? 'gap-2' : 'justify-center w-full'}`}>
-                <Layers size={18} className="shrink-0 text-blue-100 group-hover:text-white transition-colors" />
-                <span className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+                <Layers
+                  size={18}
+                  className="shrink-0 text-blue-100 group-hover:text-white transition-colors"
+                />
+                <span
+                  className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+                >
                   Operação
                 </span>
               </div>
@@ -279,7 +398,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
                 </span>
               )}
             </button>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.operation ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.operation ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+            >
               <div className="space-y-1 flex flex-col">
                 {operationItems.map((item) => (
                   <NavItem key={item.to} item={item} expanded={expanded} />
@@ -300,8 +421,13 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               }`}
             >
               <div className={`flex items-center ${expanded ? 'gap-2' : 'justify-center w-full'}`}>
-                <Wallet size={18} className="shrink-0 text-blue-100 group-hover:text-white transition-colors" />
-                <span className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+                <Wallet
+                  size={18}
+                  className="shrink-0 text-blue-100 group-hover:text-white transition-colors"
+                />
+                <span
+                  className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+                >
                   ERP & Financeiro
                 </span>
               </div>
@@ -316,7 +442,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
                 </span>
               )}
             </button>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.erp ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.erp ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+            >
               <div className="space-y-1 flex flex-col">
                 {allErpItems.map((item) => (
                   <NavItem key={item.to} item={item} expanded={expanded} />
@@ -337,8 +465,13 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               }`}
             >
               <div className={`flex items-center ${expanded ? 'gap-2' : 'justify-center w-full'}`}>
-                <Settings size={18} className="shrink-0 text-blue-100 group-hover:text-white transition-colors" />
-                <span className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+                <Settings
+                  size={18}
+                  className="shrink-0 text-blue-100 group-hover:text-white transition-colors"
+                />
+                <span
+                  className={`text-xs font-black uppercase tracking-wide text-white transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+                >
                   Cadastros & Gestão
                 </span>
               </div>
@@ -353,7 +486,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
                 </span>
               )}
             </button>
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.management ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${expanded && openGroups.management ? 'max-h-[1000px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+            >
               <div className="space-y-1 flex flex-col">
                 {managementItems.map((item) => (
                   <NavItem key={item.to} item={item} expanded={expanded} />
@@ -396,7 +531,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               }`}
             >
               <Building2 size={18} className="shrink-0" />
-              <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+              <span
+                className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+              >
                 Hub SaaS
               </span>
               {!expanded && (
@@ -416,7 +553,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
             }`}
           >
             <LogOut size={18} className="shrink-0" />
-            <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+            >
               Sair
             </span>
             {!expanded && (
@@ -434,8 +573,14 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
               expanded ? 'px-3 gap-2 w-full justify-start' : 'px-0 w-full justify-center'
             }`}
           >
-            {isDarkMode ? <Sun size={18} className="shrink-0" /> : <Moon size={18} className="shrink-0" />}
-            <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}>
+            {isDarkMode ? (
+              <Sun size={18} className="shrink-0" />
+            ) : (
+              <Moon size={18} className="shrink-0" />
+            )}
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 block' : 'opacity-0 hidden w-0'}`}
+            >
               {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
             </span>
             {!expanded && (
@@ -452,13 +597,13 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
   return (
     <div
       className={`flex h-screen w-full overflow-hidden relative transition-all duration-300 ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}
-      style={{ "--sidebar-width": sidebarWidth }}
+      style={{ '--sidebar-width': sidebarWidth }}
     >
       {/* Desktop & Notebook Sidebar */}
       <aside
         onMouseEnter={() => setSidebarHovered(true)}
         onMouseLeave={() => setSidebarHovered(false)}
-        style={{ width: "var(--sidebar-width)" }}
+        style={{ width: 'var(--sidebar-width)' }}
         className="hidden lg:flex shrink-0 h-full bg-[#123B63] text-blue-50 flex-col shadow-2xl overflow-hidden select-none transition-all duration-300 print:hidden z-20"
       >
         {renderSidebarContent(sidebarExpanded)}
@@ -474,9 +619,7 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
       {/* Gaveta Mobile */}
       {isSidebarOpen && (
-        <aside
-          className="fixed inset-y-0 left-0 z-50 bg-[#123B63] text-blue-50 flex flex-col shadow-2xl w-[280px] transform transition-transform duration-300 ease-in-out print:hidden lg:hidden translate-x-0"
-        >
+        <aside className="fixed inset-y-0 left-0 z-50 bg-[#123B63] text-blue-50 flex flex-col shadow-2xl w-[280px] transform transition-transform duration-300 ease-in-out print:hidden lg:hidden translate-x-0">
           {renderSidebarContent(true)}
         </aside>
       )}
@@ -484,7 +627,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
       {/* Área Principal Única (Compartilhada entre Desktop e Mobile) */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative transition-all duration-300">
         {/* Cabeçalho Mobile (Apenas visível em telas menores) */}
-        <header className={`flex lg:hidden h-16 border-b items-center px-4 shrink-0 shadow-sm justify-between z-30 relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <header
+          className={`flex lg:hidden h-16 border-b items-center px-4 shrink-0 shadow-sm justify-between z-30 relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}
+        >
           <div className="flex min-w-0 flex-1 items-center">
             <button
               type="button"
@@ -494,7 +639,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
             >
               <Menu size={24} />
             </button>
-            <span className={`ml-2 truncate font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+            <span
+              className={`ml-2 truncate font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}
+            >
               Pizzaria ADM
             </span>
           </div>
@@ -508,7 +655,9 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
           </button>
         </header>
 
-        <div className={`flex-1 overflow-y-auto overflow-x-hidden print:overflow-visible print:bg-white relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+        <div
+          className={`flex-1 overflow-y-auto overflow-x-hidden print:overflow-visible print:bg-white relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}
+        >
           <Suspense fallback={<AdminLoadingFallback />}>
             <Outlet />
           </Suspense>

@@ -4,8 +4,8 @@ import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { CategoryModal } from '../../components/admin/CategoryModal.jsx';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 function normalizeCategory(category) {
@@ -41,11 +41,11 @@ export function CategoriesPage() {
         const adminDataStr = window.localStorage.getItem('pizzaria-admin');
         if (!adminDataStr) return;
         const { token } = JSON.parse(adminDataStr);
-        
-        const response = await fetch(`${API_BASE_URL}/categorias?includeInactive=true`, { 
-          headers: { 'Authorization': `Bearer ${token}` } 
+
+        const response = await fetch(`${API_BASE_URL}/categorias?includeInactive=true`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         if (response.ok && isMounted) {
           const cats = await response.json();
           setCategories((cats ?? []).map(normalizeCategory));
@@ -58,7 +58,9 @@ export function CategoriesPage() {
       }
     }
     loadData();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function saveCategory(data) {
@@ -66,7 +68,7 @@ export function CategoriesPage() {
       setIsSaving(true);
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const { token } = JSON.parse(adminDataStr);
-      
+
       const payload = {
         ...data,
         sortOrder: Number(data.sortOrder ?? 0),
@@ -74,21 +76,26 @@ export function CategoriesPage() {
 
       const isEditing = Boolean(data.id);
 
-      const response = await fetch(`${API_BASE_URL}${isEditing ? `/categorias/${data.id}` : '/categorias'}`, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `${API_BASE_URL}${isEditing ? `/categorias/${data.id}` : '/categorias'}`,
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (!response.ok) throw new Error('Erro ao salvar categoria');
       const saved = await response.json();
 
       setCategories((current) =>
         isEditing
-          ? current.map((category) => (category.id === saved.id ? normalizeCategory(saved) : category))
+          ? current.map((category) =>
+              category.id === saved.id ? normalizeCategory(saved) : category,
+            )
           : [...current, normalizeCategory(saved)],
       );
 
@@ -124,21 +131,21 @@ export function CategoriesPage() {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const { token } = JSON.parse(adminDataStr);
       const updatedStatus = !category.isActive;
-      
+
       const response = await fetch(`${API_BASE_URL}/categorias/${category.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...category, isActive: updatedStatus })
+        body: JSON.stringify({ ...category, isActive: updatedStatus }),
       });
-      
+
       if (!response.ok) throw new Error('Erro ao atualizar status da categoria');
       const saved = await response.json();
-      
+
       setCategories((current) =>
-        current.map((item) => (item.id === category.id ? normalizeCategory(saved) : item))
+        current.map((item) => (item.id === category.id ? normalizeCategory(saved) : item)),
       );
       showSuccess(`Categoria ${updatedStatus ? 'ativada' : 'inativada'} com sucesso.`);
     } catch (err) {
@@ -150,16 +157,16 @@ export function CategoriesPage() {
     if (isReordering) return;
     const sorted = [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
+
     if (targetIndex < 0 || targetIndex >= sorted.length) return;
-    
+
     const currentCat = sorted[index];
     const targetCat = sorted[targetIndex];
-    
+
     // Garantir ordens distintas se forem iguais
     let newCurrentOrder = targetCat.sortOrder;
     let newTargetOrder = currentCat.sortOrder;
-    
+
     if (newCurrentOrder === newTargetOrder) {
       newCurrentOrder = direction === 'up' ? targetCat.sortOrder - 10 : targetCat.sortOrder + 10;
     }
@@ -168,19 +175,19 @@ export function CategoriesPage() {
     try {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const { token } = JSON.parse(adminDataStr);
-      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
       const [res1, res2] = await Promise.all([
         fetch(`${API_BASE_URL}/categorias/${currentCat.id}`, {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ ...currentCat, sortOrder: newCurrentOrder })
+          body: JSON.stringify({ ...currentCat, sortOrder: newCurrentOrder }),
         }),
         fetch(`${API_BASE_URL}/categorias/${targetCat.id}`, {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ ...targetCat, sortOrder: newTargetOrder })
-        })
+          body: JSON.stringify({ ...targetCat, sortOrder: newTargetOrder }),
+        }),
       ]);
 
       if (!res1.ok || !res2.ok) throw new Error('Erro na reordenação no servidor');
@@ -193,7 +200,7 @@ export function CategoriesPage() {
           if (cat.id === updated1.id) return normalizeCategory(updated1);
           if (cat.id === updated2.id) return normalizeCategory(updated2);
           return cat;
-        })
+        }),
       );
       showSuccess('Ordem atualizada!');
     } catch (err) {
@@ -222,12 +229,16 @@ export function CategoriesPage() {
             Categorias do Cardápio
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Organize as seções da sua loja, ajuste a ordem de exibição e ative tamanhos ou pizzas meio a meio.
+            Organize as seções da sua loja, ajuste a ordem de exibição e ative tamanhos ou pizzas
+            meio a meio.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => { setCategoryForm(null); setIsCategoryModalOpen(true); }}
+          onClick={() => {
+            setCategoryForm(null);
+            setIsCategoryModalOpen(true);
+          }}
           className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700 shadow-md"
         >
           <Tags size={16} />
@@ -307,15 +318,22 @@ export function CategoriesPage() {
                   title={category.isActive ? 'Clique para Inativar' : 'Clique para Ativar'}
                 >
                   {category.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-                  <span className="hidden sm:inline">{category.isActive ? 'Visível' : 'Oculto'}</span>
+                  <span className="hidden sm:inline">
+                    {category.isActive ? 'Visível' : 'Oculto'}
+                  </span>
                 </button>
 
-                <RowActions onEdit={() => editCategory(category)} onDelete={() => toggleCategoryStatus(category)} />
+                <RowActions
+                  onEdit={() => editCategory(category)}
+                  onDelete={() => toggleCategoryStatus(category)}
+                />
               </div>
             </ListRow>
           ))}
           {sortedCategories.length === 0 && (
-            <div className="p-12 text-center text-slate-500 font-bold">Nenhuma categoria cadastrada ainda.</div>
+            <div className="p-12 text-center text-slate-500 font-bold">
+              Nenhuma categoria cadastrada ainda.
+            </div>
           )}
         </div>
       </Panel>

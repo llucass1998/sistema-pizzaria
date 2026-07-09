@@ -37,7 +37,7 @@ deliveryRoutes.get(
       orderBy: { name: 'asc' },
     });
     res.json(zones);
-  })
+  }),
 );
 
 deliveryRoutes.post(
@@ -50,7 +50,7 @@ deliveryRoutes.post(
     const { name, fee, minOrderValue, isActive } = req.body;
 
     const existing = await prisma.deliveryZone.findFirst({
-      where: { tenantId, name: { equals: name, mode: 'insensitive' } }
+      where: { tenantId, name: { equals: name, mode: 'insensitive' } },
     });
 
     if (existing) {
@@ -65,11 +65,11 @@ deliveryRoutes.post(
         fee,
         minOrderValue,
         isActive: isActive ?? true,
-      }
+      },
     });
 
     res.status(201).json(zone);
-  })
+  }),
 );
 
 deliveryRoutes.put(
@@ -83,7 +83,7 @@ deliveryRoutes.put(
     const { name, fee, minOrderValue, isActive } = req.body;
 
     const existing = await prisma.deliveryZone.findFirst({
-      where: { tenantId, name: { equals: name, mode: 'insensitive' }, id: { not: id } }
+      where: { tenantId, name: { equals: name, mode: 'insensitive' }, id: { not: id } },
     });
 
     if (existing) {
@@ -91,7 +91,7 @@ deliveryRoutes.put(
       return;
     }
 
-    const zoneTarget = await prisma.deliveryZone.findFirst({ where: { id, tenantId }});
+    const zoneTarget = await prisma.deliveryZone.findFirst({ where: { id, tenantId } });
     if (!zoneTarget) {
       res.status(404).json({ message: 'Bairro não encontrado.' });
       return;
@@ -99,11 +99,11 @@ deliveryRoutes.put(
 
     const updated = await prisma.deliveryZone.update({
       where: { id },
-      data: { name, fee, minOrderValue, isActive }
+      data: { name, fee, minOrderValue, isActive },
     });
 
     res.json(updated);
-  })
+  }),
 );
 
 deliveryRoutes.delete(
@@ -114,7 +114,7 @@ deliveryRoutes.delete(
     const tenantId = getTenantId();
     const id = req.params.id as string;
 
-    const zone = await prisma.deliveryZone.findFirst({ where: { id, tenantId }});
+    const zone = await prisma.deliveryZone.findFirst({ where: { id, tenantId } });
     if (!zone) {
       res.status(404).json({ message: 'Bairro não encontrado.' });
       return;
@@ -122,7 +122,7 @@ deliveryRoutes.delete(
 
     await prisma.deliveryZone.delete({ where: { id } });
     res.json({ message: 'Bairro removido com sucesso.' });
-  })
+  }),
 );
 
 // ─── RADIUS (DISTÂNCIA) ────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ deliveryRoutes.get(
       orderBy: { maxKm: 'asc' },
     });
     res.json(rules);
-  })
+  }),
 );
 
 deliveryRoutes.post(
@@ -150,7 +150,7 @@ deliveryRoutes.post(
     const { maxKm, fee, minOrderValue, isActive } = req.body;
 
     const existing = await prisma.deliveryRadiusRule.findFirst({
-      where: { tenantId, maxKm }
+      where: { tenantId, maxKm },
     });
 
     if (existing) {
@@ -165,11 +165,11 @@ deliveryRoutes.post(
         fee,
         minOrderValue,
         isActive: isActive ?? true,
-      }
+      },
     });
 
     res.status(201).json(rule);
-  })
+  }),
 );
 
 deliveryRoutes.put(
@@ -182,14 +182,14 @@ deliveryRoutes.put(
     const id = req.params.id as string;
     const { maxKm, fee, minOrderValue, isActive } = req.body;
 
-    const ruleTarget = await prisma.deliveryRadiusRule.findFirst({ where: { id, tenantId }});
+    const ruleTarget = await prisma.deliveryRadiusRule.findFirst({ where: { id, tenantId } });
     if (!ruleTarget) {
       res.status(404).json({ message: 'Regra não encontrada.' });
       return;
     }
 
     const existing = await prisma.deliveryRadiusRule.findFirst({
-      where: { tenantId, maxKm, id: { not: id } }
+      where: { tenantId, maxKm, id: { not: id } },
     });
 
     if (existing) {
@@ -199,11 +199,11 @@ deliveryRoutes.put(
 
     const updated = await prisma.deliveryRadiusRule.update({
       where: { id },
-      data: { maxKm, fee, minOrderValue, isActive }
+      data: { maxKm, fee, minOrderValue, isActive },
     });
 
     res.json(updated);
-  })
+  }),
 );
 
 deliveryRoutes.delete(
@@ -214,7 +214,7 @@ deliveryRoutes.delete(
     const tenantId = getTenantId();
     const id = req.params.id as string;
 
-    const rule = await prisma.deliveryRadiusRule.findFirst({ where: { id, tenantId }});
+    const rule = await prisma.deliveryRadiusRule.findFirst({ where: { id, tenantId } });
     if (!rule) {
       res.status(404).json({ message: 'Regra não encontrada.' });
       return;
@@ -222,7 +222,7 @@ deliveryRoutes.delete(
 
     await prisma.deliveryRadiusRule.delete({ where: { id } });
     res.json({ message: 'Regra removida com sucesso.' });
-  })
+  }),
 );
 
 // ─── PUBLIC CHECKOUT CALCULATOR ────────────────────────────────────────────────
@@ -237,7 +237,7 @@ deliveryRoutes.get(
       orderBy: { name: 'asc' },
     });
     res.json(zones);
-  })
+  }),
 );
 
 const calcFeeSchema = z.object({
@@ -266,12 +266,16 @@ deliveryRoutes.post(
 
     if (mode === 'NEIGHBORHOOD') {
       if (!neighborhood) {
-        res.status(400).json({ available: false, message: 'Bairro é obrigatório para cálculo da taxa.', deliveryFee: 0 });
+        res.status(400).json({
+          available: false,
+          message: 'Bairro é obrigatório para cálculo da taxa.',
+          deliveryFee: 0,
+        });
         return;
       }
 
       const zone = await prisma.deliveryZone.findFirst({
-        where: { tenantId, name: { equals: neighborhood, mode: 'insensitive' }, isActive: true }
+        where: { tenantId, name: { equals: neighborhood, mode: 'insensitive' }, isActive: true },
       });
 
       if (!zone) {
@@ -289,14 +293,18 @@ deliveryRoutes.post(
       }
     } else if (mode === 'DISTANCE') {
       if (distanceKm === undefined || distanceKm === null) {
-        res.status(400).json({ available: false, message: 'Distância é obrigatória para cálculo da taxa.', deliveryFee: 0 });
+        res.status(400).json({
+          available: false,
+          message: 'Distância é obrigatória para cálculo da taxa.',
+          deliveryFee: 0,
+        });
         return;
       }
 
       // Procura a menor regra onde maxKm >= distanceKm
       const rule = await prisma.deliveryRadiusRule.findFirst({
         where: { tenantId, isActive: true, maxKm: { gte: distanceKm } },
-        orderBy: { maxKm: 'asc' }
+        orderBy: { maxKm: 'asc' },
       });
 
       if (!rule) {
@@ -318,7 +326,7 @@ deliveryRoutes.post(
       deliveryFee,
       available,
       message,
-      mode
+      mode,
     });
-  })
+  }),
 );

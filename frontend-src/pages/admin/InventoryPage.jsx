@@ -20,7 +20,7 @@ import {
   ShieldAlert,
   RefreshCw,
   AlertOctagon,
-  Download
+  Download,
 } from 'lucide-react';
 import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
 import { downloadCsv } from '../../utils/csvHelper.js';
@@ -103,7 +103,7 @@ export function InventoryPage() {
       const headers = { Authorization: `Bearer ${token}` };
 
       // 1. Resumo de Estoque e Ingredientes
-      const invRes = await fetch(`${API_BASE_URL}/inventory/summary`, { headers });
+      const invRes = await fetch(`${API_BASE_URL}/admin/inventory/summary`, { headers });
       if (invRes.ok) {
         const invResult = await invRes.json();
         setData({ ingredients: invResult.ingredients || [], summary: invResult });
@@ -142,8 +142,8 @@ export function InventoryPage() {
     try {
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
       const url = editingIngredient
-        ? `${API_BASE_URL}/inventory/ingredients/${editingIngredient.id}`
-        : `${API_BASE_URL}/inventory/ingredients`;
+        ? `${API_BASE_URL}/admin/inventory/ingredients/${editingIngredient.id}`
+        : `${API_BASE_URL}/admin/inventory/ingredients`;
 
       const response = await fetch(url, {
         method: editingIngredient ? 'PATCH' : 'POST',
@@ -171,7 +171,7 @@ export function InventoryPage() {
     e.preventDefault();
     try {
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
-      const response = await fetch(`${API_BASE_URL}/inventory/transactions`, {
+      const response = await fetch(`${API_BASE_URL}/admin/inventory/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -326,7 +326,7 @@ export function InventoryPage() {
         {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.ok) {
@@ -348,13 +348,31 @@ export function InventoryPage() {
 
   const getWasteReasonBadge = (reason) => {
     const map = {
-      EXPIRED: { label: 'Validade / Vencido', bg: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300' },
-      DAMAGED: { label: 'Avaria / Quebra', bg: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300' },
-      MISTAKE: { label: 'Erro de Preparo', bg: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300' },
-      QUALITY_REJECT: { label: 'Rejeitado (Qualidade)', bg: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300' },
-      OTHER: { label: 'Outro Motivo', bg: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300' },
+      EXPIRED: {
+        label: 'Validade / Vencido',
+        bg: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300',
+      },
+      DAMAGED: {
+        label: 'Avaria / Quebra',
+        bg: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300',
+      },
+      MISTAKE: {
+        label: 'Erro de Preparo',
+        bg: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300',
+      },
+      QUALITY_REJECT: {
+        label: 'Rejeitado (Qualidade)',
+        bg: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300',
+      },
+      OTHER: {
+        label: 'Outro Motivo',
+        bg: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300',
+      },
     };
-    const item = map[reason] || { label: reason, bg: 'bg-slate-100 text-slate-800 border-slate-200' };
+    const item = map[reason] || {
+      label: reason,
+      bg: 'bg-slate-100 text-slate-800 border-slate-200',
+    };
     return (
       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold border ${item.bg}`}>
         {item.label}
@@ -398,25 +416,36 @@ export function InventoryPage() {
   };
 
   const handleExportPurchaseOrder = () => {
-    const itemsToBuy = (data.summary?.purchaseSuggestion && Array.isArray(data.summary.purchaseSuggestion))
-      ? data.summary.purchaseSuggestion
-      : data.ingredients.filter(i => i.status === 'OUT' || i.status === 'CRITICAL' || i.status === 'LOW').map(i => ({
-          name: i.name,
-          unit: i.unit,
-          currentStock: i.stock,
-          minStock: i.minStock,
-          suggestedPurchase: Math.max(0, i.minStock - i.stock) || 1,
-          estimatedCost: i.cost
-        }));
+    const itemsToBuy =
+      data.summary?.purchaseSuggestion && Array.isArray(data.summary.purchaseSuggestion)
+        ? data.summary.purchaseSuggestion
+        : data.ingredients
+            .filter((i) => i.status === 'OUT' || i.status === 'CRITICAL' || i.status === 'LOW')
+            .map((i) => ({
+              name: i.name,
+              unit: i.unit,
+              currentStock: i.stock,
+              minStock: i.minStock,
+              suggestedPurchase: Math.max(0, i.minStock - i.stock) || 1,
+              estimatedCost: i.cost,
+            }));
 
     if (itemsToBuy.length === 0) {
       showError('Não há insumos em situação crítica ou baixa para gerar pedido.');
       return;
     }
 
-    const headers = ['Insumo', 'Unidade', 'Estoque Atual', 'Estoque Mínimo', 'Sugestão de Compra', 'Custo Estimado Unit.', 'Custo Estimado Total'];
+    const headers = [
+      'Insumo',
+      'Unidade',
+      'Estoque Atual',
+      'Estoque Mínimo',
+      'Sugestão de Compra',
+      'Custo Estimado Unit.',
+      'Custo Estimado Total',
+    ];
     const rows = [headers];
-    itemsToBuy.forEach(item => {
+    itemsToBuy.forEach((item) => {
       const q = item.suggestedQuantity || item.suggestedPurchase || 1;
       const c = item.cost || item.estimatedCost || 0;
       rows.push([
@@ -426,12 +455,17 @@ export function InventoryPage() {
         item.minStock || 0,
         q,
         c,
-        (q * c).toFixed(2)
+        (q * c).toFixed(2),
       ]);
     });
 
     const now = new Date();
-    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const dateStr =
+      now.getFullYear() +
+      '-' +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(now.getDate()).padStart(2, '0');
     downloadCsv(`pedido-compra-${dateStr}.csv`, rows);
   };
 
@@ -442,7 +476,8 @@ export function InventoryPage() {
           <ShieldAlert className="mx-auto mb-3 h-12 w-12 text-red-500" />
           <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Acesso Restrito</h3>
           <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para acessar o controle de estoque e manufatura.
+            Seu perfil ({adminRole || 'Sem Perfil'}) não tem permissão para acessar o controle de
+            estoque e manufatura.
           </p>
         </div>
       </div>
@@ -511,7 +546,10 @@ export function InventoryPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          <AlertOctagon size={16} className={activeTab === 'WASTE' ? 'text-white' : 'text-red-500'} />
+          <AlertOctagon
+            size={16}
+            className={activeTab === 'WASTE' ? 'text-white' : 'text-red-500'}
+          />
           Registro de Perdas ({wasteRecords.length})
         </button>
 
@@ -523,7 +561,10 @@ export function InventoryPage() {
               : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          <Factory size={16} className={activeTab === 'MANUFACTURING' ? 'text-white' : 'text-blue-500'} />
+          <Factory
+            size={16}
+            className={activeTab === 'MANUFACTURING' ? 'text-white' : 'text-blue-500'}
+          />
           Ordens de Produção ({manufacturingOrders.length})
         </button>
       </div>
@@ -584,14 +625,18 @@ export function InventoryPage() {
 
           <Panel>
             <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="font-bold text-base text-slate-900 dark:text-white">Insumos Cadastrados</h2>
+              <h2 className="font-bold text-base text-slate-900 dark:text-white">
+                Insumos Cadastrados
+              </h2>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {data.ingredients.map((ing) => (
                 <ListRow key={ing.id}>
                   <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white truncate">{ing.name}</p>
+                      <p className="font-bold text-slate-900 dark:text-white truncate">
+                        {ing.name}
+                      </p>
                       <p className="text-xs text-slate-500">
                         Custo: {formatCurrencySafe(ing.cost)} / {ing.unit}
                       </p>
@@ -603,8 +648,8 @@ export function InventoryPage() {
                           ing.status === 'CRITICAL' || ing.status === 'OUT'
                             ? 'text-rose-600'
                             : ing.status === 'LOW'
-                            ? 'text-amber-500'
-                            : 'text-emerald-600'
+                              ? 'text-amber-500'
+                              : 'text-emerald-600'
                         }`}
                       >
                         {ing.stock} {ing.unit}
@@ -623,8 +668,8 @@ export function InventoryPage() {
                           ing.status === 'CRITICAL' || ing.status === 'OUT'
                             ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
                             : ing.status === 'LOW'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
                         }`}
                       >
                         {ing.status}
@@ -662,7 +707,8 @@ export function InventoryPage() {
                 Gestão de Quebras, Desperdício e Validade (`/waste`)
               </h3>
               <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
-                O registro de perda deduz automaticamente o saldo do ingrediente em estoque e gera relatório de custos de quebra.
+                O registro de perda deduz automaticamente o saldo do ingrediente em estoque e gera
+                relatório de custos de quebra.
               </p>
             </div>
             <button
@@ -694,7 +740,10 @@ export function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {wasteRecords.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <tr
+                      key={r.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                    >
                       <td className="px-6 py-3.5 font-bold text-slate-900 dark:text-white">
                         {r.ingredient?.name || 'Ingrediente Removido'}
                       </td>
@@ -737,7 +786,8 @@ export function InventoryPage() {
                 Manufatura e Pré-Preparo (`/manufacturing`)
               </h3>
               <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-                Crie ordens de produção para massas, molhos e pré-montagens. Ao concluir, o sistema adiciona o saldo produzido diretamente ao estoque do insumo gerado.
+                Crie ordens de produção para massas, molhos e pré-montagens. Ao concluir, o sistema
+                adiciona o saldo produzido diretamente ao estoque do insumo gerado.
               </p>
             </div>
             <button
@@ -769,7 +819,10 @@ export function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {manufacturingOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <tr
+                      key={o.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                    >
                       <td className="px-6 py-3.5">
                         <p className="font-bold text-slate-900 dark:text-white">
                           {o.product?.name || 'Produto sem nome'}
@@ -895,7 +948,9 @@ export function InventoryPage() {
                   placeholder="EAN ou SKU do insumo"
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                   value={ingredientForm.barcode || ''}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, barcode: e.target.value })}
+                  onChange={(e) =>
+                    setIngredientForm({ ...ingredientForm, barcode: e.target.value })
+                  }
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -940,7 +995,9 @@ export function InventoryPage() {
                     min="0"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                     value={ingredientForm.minStock}
-                    onChange={(e) => setIngredientForm({ ...ingredientForm, minStock: e.target.value })}
+                    onChange={(e) =>
+                      setIngredientForm({ ...ingredientForm, minStock: e.target.value })
+                    }
                   />
                 </div>
                 {!editingIngredient && (
@@ -955,7 +1012,9 @@ export function InventoryPage() {
                       min="0"
                       className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                       value={ingredientForm.stock}
-                      onChange={(e) => setIngredientForm({ ...ingredientForm, stock: e.target.value })}
+                      onChange={(e) =>
+                        setIngredientForm({ ...ingredientForm, stock: e.target.value })
+                      }
                     />
                   </div>
                 )}
@@ -986,7 +1045,9 @@ export function InventoryPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-black text-lg text-slate-900 dark:text-white">
-                {transactionForm.type === 'IN' ? 'Registrar Entrada de Estoque' : 'Registrar Saída de Estoque'}
+                {transactionForm.type === 'IN'
+                  ? 'Registrar Entrada de Estoque'
+                  : 'Registrar Saída de Estoque'}
               </h3>
             </div>
             <form onSubmit={handleSaveTransaction} className="p-6 space-y-4 text-sm">
@@ -1252,9 +1313,7 @@ export function InventoryPage() {
                   <select
                     className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     value={mfgForm.outputIngredientId}
-                    onChange={(e) =>
-                      setMfgForm({ ...mfgForm, outputIngredientId: e.target.value })
-                    }
+                    onChange={(e) => setMfgForm({ ...mfgForm, outputIngredientId: e.target.value })}
                   >
                     <option value="">Nenhum (Apenas controle visual)</option>
                     {data.ingredients.map((ing) => (

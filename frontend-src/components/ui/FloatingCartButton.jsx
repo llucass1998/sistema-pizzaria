@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 
-export function FloatingCartButton({
-  cartItemCount,
-  isCartOpen,
-  currentPath,
-  onCartClick,
-}) {
+export function FloatingCartButton({ cartItemCount, isCartOpen, currentPath, onCartClick }) {
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window === 'undefined' ? false : window.matchMedia('(min-width: 768px)').matches,
   );

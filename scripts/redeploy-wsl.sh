@@ -1,4 +1,6 @@
 #!/bin/bash
+# LEGADO: prefira scripts/compose-redeploy.sh para redeploy via Docker Compose.
+# Este script usa docker run manual e deve ser mantido apenas por compatibilidade.
 set -e
 
 echo "========================================="

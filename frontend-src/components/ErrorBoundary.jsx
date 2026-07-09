@@ -24,9 +24,12 @@ export class ErrorBoundary extends React.Component {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
               <AlertCircle size={32} />
             </div>
-            <h1 className="mb-2 text-2xl font-black text-slate-900 dark:text-slate-100">Ops! Algo deu errado.</h1>
+            <h1 className="mb-2 text-2xl font-black text-slate-900 dark:text-slate-100">
+              Ops! Algo deu errado.
+            </h1>
             <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
-              Tivemos um problema inesperado ao carregar esta tela. Já fomos notificados e estamos trabalhando para resolver.
+              Tivemos um problema inesperado ao carregar esta tela. Já fomos notificados e estamos
+              trabalhando para resolver.
             </p>
             <button
               onClick={() => window.location.reload()}

@@ -35,10 +35,13 @@ const STATUS_LABELS = {
   CANCELED: 'Cancelado',
 };
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export default function AccountsReceivable() {
-  const adminDataStr = typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
+  const adminDataStr =
+    typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
   const adminData = adminDataStr ? JSON.parse(adminDataStr) : null;
   const userRole = adminData?.user?.role || adminData?.role || '';
 
@@ -74,7 +77,7 @@ export default function AccountsReceivable() {
       setLoading(true);
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}` };
 
       // Carregar Summary
       fetch(`${API_BASE_URL}/admin/receivables/invoices/summary`, { headers })
@@ -97,12 +100,16 @@ export default function AccountsReceivable() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices?${params.toString()}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/admin/receivables/invoices?${params.toString()}`, {
+        headers,
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.data)) {
           setInvoices(data.data);
-          setPagination(data.pagination || { page: 1, limit: 10, total: data.data.length, totalPages: 1 });
+          setPagination(
+            data.pagination || { page: 1, limit: 10, total: data.data.length, totalPages: 1 },
+          );
         } else if (Array.isArray(data)) {
           setInvoices(data);
           setPagination({ page: 1, limit: 10, total: data.length, totalPages: 1 });
@@ -140,7 +147,8 @@ export default function AccountsReceivable() {
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4 animate-pulse" />
           <h2 className="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
           <p className="text-slate-300 max-w-md mx-auto">
-            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui permissões para acessar Contas a Receber.
+            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui
+            permissões para acessar Contas a Receber.
           </p>
         </div>
       </div>
@@ -150,10 +158,12 @@ export default function AccountsReceivable() {
   return (
     <>
       <div className="mx-auto max-w-7xl p-4 md:p-8">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">Contas a Receber</h1>
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">
+                Contas a Receber
+              </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Gestão financeira ERP, recebíveis, conciliação e estornos
               </p>
@@ -242,7 +252,10 @@ export default function AccountsReceivable() {
 
         {/* Barra de Filtros */}
         <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5"
+          >
             <div className="md:col-span-2 lg:col-span-2">
               <label className="mb-1 block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
                 Buscar (Pedido, Cliente ou Telefone)
@@ -354,7 +367,8 @@ export default function AccountsReceivable() {
                 const totalPaid = inv.payments?.reduce((acc, p) => acc + Number(p.amount), 0) || 0;
                 const totalAmount = Number(inv.totalAmount || 0);
                 const remaining = Math.max(0, totalAmount - totalPaid);
-                const progress = totalAmount > 0 ? Math.min(100, (totalPaid / totalAmount) * 100) : 0;
+                const progress =
+                  totalAmount > 0 ? Math.min(100, (totalPaid / totalAmount) * 100) : 0;
                 const isOverdue = !isCompleted && inv.dueDate && new Date(inv.dueDate) < new Date();
 
                 return (
@@ -364,8 +378,8 @@ export default function AccountsReceivable() {
                       isOverdue
                         ? 'border-red-200 bg-red-50/30 dark:border-red-900/50 dark:bg-red-950/10'
                         : isCompleted
-                        ? 'border-emerald-200/60 bg-emerald-50/10 dark:border-emerald-900/30 dark:bg-emerald-950/10'
-                        : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'
+                          ? 'border-emerald-200/60 bg-emerald-50/10 dark:border-emerald-900/30 dark:bg-emerald-950/10'
+                          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'
                     }`}
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -381,17 +395,27 @@ export default function AccountsReceivable() {
                           )}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-                          <span>Emissão: {new Date(inv.issueDate || inv.createdAt || Date.now()).toLocaleDateString()}</span>
-                          <span className={isOverdue ? 'text-red-600 font-black' : ''}>
-                            Vencimento: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'À vista'}
+                          <span>
+                            Emissão:{' '}
+                            {new Date(
+                              inv.issueDate || inv.createdAt || Date.now(),
+                            ).toLocaleDateString()}
                           </span>
-                          {inv.order?.customer?.phone && <span>Tel: {inv.order.customer.phone}</span>}
+                          <span className={isOverdue ? 'text-red-600 font-black' : ''}>
+                            Vencimento:{' '}
+                            {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'À vista'}
+                          </span>
+                          {inv.order?.customer?.phone && (
+                            <span>Tel: {inv.order.customer.phone}</span>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="text-right mr-2">
-                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Valor Total</p>
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                            Valor Total
+                          </p>
                           <p className="text-lg font-black text-slate-900 dark:text-white">
                             {formatCurrencySafe(totalAmount)}
                           </p>
@@ -407,7 +431,10 @@ export default function AccountsReceivable() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            <AlertCircle size={14} /> {['PARTIALLY_PAID', 'PARTIAL'].includes(inv.status) ? 'Pago Parcial' : 'Pendente'}
+                            <AlertCircle size={14} />{' '}
+                            {['PARTIALLY_PAID', 'PARTIAL'].includes(inv.status)
+                              ? 'Pago Parcial'
+                              : 'Pendente'}
                           </span>
                         )}
 
@@ -452,7 +479,11 @@ export default function AccountsReceivable() {
                       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            isCompleted ? 'bg-emerald-500' : isOverdue ? 'bg-red-500' : 'bg-amber-500'
+                            isCompleted
+                              ? 'bg-emerald-500'
+                              : isOverdue
+                                ? 'bg-red-500'
+                                : 'bg-amber-500'
                           }`}
                           style={{ width: `${progress}%` }}
                         ></div>

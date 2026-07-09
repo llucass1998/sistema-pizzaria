@@ -81,6 +81,7 @@ Criado `backend-src/services/orderFinancial.service.spec.ts` para calculo em cen
 ## 19. Testes manuais realizados
 
 Validados via Docker/curl:
+
 - `http://127.0.0.1/` retornou 200.
 - `/api/status` retornou 200.
 - `/api/public/resolve-store` retornou loja ativa, sem manutencao indevida, e novos campos de entrada.
@@ -97,6 +98,7 @@ Validados via Docker/curl:
 ## 22. Docker/WSL
 
 Executado:
+
 - `docker compose ps`
 - `docker compose build api`
 - `docker compose build web`

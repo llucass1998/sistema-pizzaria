@@ -29,22 +29,52 @@ const STATUS_LABELS = {
 };
 
 const CATEGORY_BADGES = {
-  SUPPLIER: { label: 'Insumos', bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  RENT: { label: 'Imóvel/Aluguel', bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
-  ENERGY: { label: 'Energia', bg: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20' },
-  WATER: { label: 'Água', bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  INTERNET: { label: 'Internet/Tel', bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20' },
-  SALARY: { label: 'Salário/Pessoal', bg: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20' },
-  MARKETING: { label: 'Marketing', bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
+  SUPPLIER: {
+    label: 'Insumos',
+    bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  },
+  RENT: {
+    label: 'Imóvel/Aluguel',
+    bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  ENERGY: {
+    label: 'Energia',
+    bg: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
+  },
+  WATER: {
+    label: 'Água',
+    bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  INTERNET: {
+    label: 'Internet/Tel',
+    bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  },
+  SALARY: {
+    label: 'Salário/Pessoal',
+    bg: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
+  },
+  MARKETING: {
+    label: 'Marketing',
+    bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+  },
   TAX: { label: 'Impostos', bg: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' },
-  MAINTENANCE: { label: 'Manutenção', bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20' },
-  OTHER: { label: 'Outros', bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' },
+  MAINTENANCE: {
+    label: 'Manutenção',
+    bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
+  },
+  OTHER: {
+    label: 'Outros',
+    bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
+  },
 };
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export default function AccountsPayable() {
-  const adminDataStr = typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
+  const adminDataStr =
+    typeof window !== 'undefined' ? window.localStorage.getItem('pizzaria-admin') : null;
   const adminData = adminDataStr ? JSON.parse(adminDataStr) : null;
   const userRole = adminData?.user?.role || adminData?.role || '';
 
@@ -74,7 +104,7 @@ export default function AccountsPayable() {
       setLoading(true);
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}` };
 
       const queryParams = new URLSearchParams();
       if (statusFilter !== 'ALL') queryParams.append('status', statusFilter);
@@ -108,7 +138,7 @@ export default function AccountsPayable() {
       const token = adminDataStr ? JSON.parse(adminDataStr).token : '';
       const res = await fetch(`${API_BASE_URL}/admin/payables/${id}/cancel`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         loadData();
@@ -138,7 +168,8 @@ export default function AccountsPayable() {
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4 animate-pulse" />
           <h2 className="text-2xl font-bold text-white mb-2">Acesso Restrito</h2>
           <p className="text-slate-300 max-w-md mx-auto">
-            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui permissões para acessar Contas a Pagar.
+            O seu perfil (<span className="text-red-400 font-semibold">{userRole}</span>) não possui
+            permissões para acessar Contas a Pagar.
           </p>
         </div>
       </div>
@@ -148,13 +179,13 @@ export default function AccountsPayable() {
   return (
     <>
       <div className="mx-auto max-w-7xl p-4 md:p-8">
-      {/* Cabeçalho */}
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">
-              Contas a Pagar
-            </h1>
+        {/* Cabeçalho */}
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100">
+                Contas a Pagar
+              </h1>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 ERP Financeiro — Gestão de despesas, insumos, fornecedores e vencimentos
               </p>
@@ -374,7 +405,8 @@ export default function AccountsPayable() {
                         </span>
                         {paidAmount > 0 && !isPaid && (
                           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            Pago: {formatCurrencySafe(paidAmount)} | Resta: {formatCurrencySafe(remaining)}
+                            Pago: {formatCurrencySafe(paidAmount)} | Resta:{' '}
+                            {formatCurrencySafe(remaining)}
                           </span>
                         )}
                       </div>
@@ -457,7 +489,9 @@ export default function AccountsPayable() {
                   {new Date(selectedForDetails.dueDate + 'T00:00:00').toLocaleDateString()}
                 </p>
                 {selectedForDetails.notes && (
-                  <p className="mt-2 text-xs italic text-slate-500">&quot;{selectedForDetails.notes}&quot;</p>
+                  <p className="mt-2 text-xs italic text-slate-500">
+                    &quot;{selectedForDetails.notes}&quot;
+                  </p>
                 )}
               </div>
 

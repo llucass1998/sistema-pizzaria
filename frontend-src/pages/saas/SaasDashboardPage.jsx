@@ -1,7 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
-import { 
-  Building2, Search, X, CheckCircle2, XCircle, 
-  Users, ShoppingBag, BarChart3, AlertCircle, Play, Pause, ExternalLink
+import {
+  Building2,
+  Search,
+  X,
+  CheckCircle2,
+  XCircle,
+  Users,
+  ShoppingBag,
+  BarChart3,
+  AlertCircle,
+  Play,
+  Pause,
+  ExternalLink,
 } from 'lucide-react';
 import { Panel } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
@@ -16,7 +26,7 @@ export function SaasDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { showError, showSuccess } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Status Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
@@ -29,7 +39,7 @@ export function SaasDashboardPage() {
 
   useEffect(() => {
     if (!isSuperAdmin) return;
-    
+
     let isMounted = true;
     async function fetchTenants() {
       try {
@@ -39,7 +49,7 @@ export function SaasDashboardPage() {
         const { token } = JSON.parse(adminDataStr);
 
         const res = await fetch(`${API_BASE_URL}/saas/admin/tenants`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.ok && isMounted) {
@@ -55,19 +65,22 @@ export function SaasDashboardPage() {
         if (isMounted) setIsLoading(false);
       }
     }
-    
+
     fetchTenants();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [isSuperAdmin, showError]);
 
   const filteredTenants = useMemo(() => {
     let list = tenants;
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase().trim();
-      list = list.filter(t => 
-        t.name?.toLowerCase().includes(q) || 
-        t.slug?.toLowerCase().includes(q) ||
-        t.ownerEmail?.toLowerCase().includes(q)
+      list = list.filter(
+        (t) =>
+          t.name?.toLowerCase().includes(q) ||
+          t.slug?.toLowerCase().includes(q) ||
+          t.ownerEmail?.toLowerCase().includes(q),
       );
     }
     return list;
@@ -75,16 +88,16 @@ export function SaasDashboardPage() {
 
   const metrics = useMemo(() => {
     const totalTenants = tenants.length;
-    const activeTenants = tenants.filter(t => t.isActive).length;
+    const activeTenants = tenants.filter((t) => t.isActive).length;
     const totalPlatformOrders = tenants.reduce((acc, t) => acc + (t.totalOrders || 0), 0);
     const totalPlatformCustomers = tenants.reduce((acc, t) => acc + (t.totalCustomers || 0), 0);
-    
+
     return { totalTenants, activeTenants, totalPlatformOrders, totalPlatformCustomers };
   }, [tenants]);
 
   const handleToggleStatus = async () => {
     if (!selectedTenant) return;
-    
+
     try {
       setIsUpdatingStatus(true);
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
@@ -93,16 +106,18 @@ export function SaasDashboardPage() {
 
       const res = await fetch(`${API_BASE_URL}/saas/admin/tenants/${selectedTenant.id}/status`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ isActive: newStatus })
+        body: JSON.stringify({ isActive: newStatus }),
       });
 
       if (!res.ok) throw new Error('Erro ao atualizar status');
 
-      setTenants(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, isActive: newStatus } : t));
+      setTenants((prev) =>
+        prev.map((t) => (t.id === selectedTenant.id ? { ...t, isActive: newStatus } : t)),
+      );
       showSuccess(`Loja ${newStatus ? 'Ativada' : 'Suspensa'} com sucesso.`);
       setIsStatusModalOpen(false);
     } catch (error) {
@@ -118,9 +133,12 @@ export function SaasDashboardPage() {
       <div className="mx-auto max-w-7xl p-4 md:p-8">
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-900/50 dark:bg-red-950/20">
           <AlertCircle className="mx-auto mb-3 h-12 w-12 text-red-500" />
-          <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Acesso Restrito: Nível Máximo Requerido</h3>
+          <h3 className="text-lg font-bold text-red-800 dark:text-red-300">
+            Acesso Restrito: Nível Máximo Requerido
+          </h3>
           <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-            Apenas usuários <strong>SUPER_ADMIN</strong> têm permissão para acessar o painel SaaS de gestão de lojas.
+            Apenas usuários <strong>SUPER_ADMIN</strong> têm permissão para acessar o painel SaaS de
+            gestão de lojas.
           </p>
         </div>
       </div>
@@ -204,7 +222,11 @@ export function SaasDashboardPage() {
             </div>
           </div>
           <p className="mt-2 text-2xl font-black text-white flex items-center gap-2">
-            Online <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
+            Online{' '}
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
           </p>
           <span className="mt-1 block text-xs font-medium text-indigo-100">
             Node.js API • DB PostgreSQL
@@ -246,7 +268,9 @@ export function SaasDashboardPage() {
                 <th className="px-5 py-4 font-bold tracking-wider text-center">Pedidos</th>
                 <th className="px-5 py-4 font-bold tracking-wider text-center">Clientes</th>
                 <th className="px-5 py-4 font-bold tracking-wider text-center">Status</th>
-                <th className="px-5 py-4 font-bold tracking-wider text-right">Ações Administrativas</th>
+                <th className="px-5 py-4 font-bold tracking-wider text-right">
+                  Ações Administrativas
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/10">
@@ -255,11 +279,22 @@ export function SaasDashboardPage() {
                   <td className="px-5 py-4">
                     <p className="font-bold text-slate-900 dark:text-slate-100">{t.name}</p>
                     <p className="text-xs font-mono text-slate-500 flex items-center gap-1 mt-0.5">
-                      /{t.slug} <a href={`http://${t.slug}.localhost:5173`} target="_blank" rel="noreferrer" title="Acessar subdomínio" className="text-indigo-500 hover:text-indigo-600"><ExternalLink size={10} /></a>
+                      /{t.slug}{' '}
+                      <a
+                        href={`http://${t.slug}.localhost:5173`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Acessar subdomínio"
+                        className="text-indigo-500 hover:text-indigo-600"
+                      >
+                        <ExternalLink size={10} />
+                      </a>
                     </p>
                   </td>
                   <td className="px-5 py-4">
-                    <p className="font-medium text-slate-800 dark:text-slate-200">{t.ownerName || '—'}</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                      {t.ownerName || '—'}
+                    </p>
                     <p className="text-xs text-slate-500">{t.ownerEmail || '—'}</p>
                   </td>
                   <td className="px-5 py-4 text-center font-bold text-slate-700 dark:text-slate-300">
@@ -287,15 +322,19 @@ export function SaasDashboardPage() {
                           setIsStatusModalOpen(true);
                         }}
                         className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition ${
-                          t.isActive 
-                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50' 
+                          t.isActive
+                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50'
                             : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50'
                         }`}
                       >
                         {t.isActive ? (
-                          <><Pause size={12} /> Suspender</>
+                          <>
+                            <Pause size={12} /> Suspender
+                          </>
                         ) : (
-                          <><Play size={12} /> Ativar</>
+                          <>
+                            <Play size={12} /> Ativar
+                          </>
                         )}
                       </button>
                     </div>
@@ -316,27 +355,32 @@ export function SaasDashboardPage() {
 
       {/* Confirmation Modal */}
       {isStatusModalOpen && selectedTenant && (
-        <BaseModal title={selectedTenant.isActive ? 'Suspender Loja' : 'Ativar Loja'} onClose={() => setIsStatusModalOpen(false)}>
+        <BaseModal
+          title={selectedTenant.isActive ? 'Suspender Loja' : 'Ativar Loja'}
+          onClose={() => setIsStatusModalOpen(false)}
+        >
           <div className="p-4">
-            <div className={`p-4 rounded-xl border mb-6 ${
-              selectedTenant.isActive 
-                ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-300' 
-                : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-300'
-            }`}>
+            <div
+              className={`p-4 rounded-xl border mb-6 ${
+                selectedTenant.isActive
+                  ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-300'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-300'
+              }`}
+            >
               <p className="text-sm font-bold flex items-center gap-2">
                 {selectedTenant.isActive ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
                 Você está prestes a {selectedTenant.isActive ? 'SUSPENDER' : 'ATIVAR'} a loja:
               </p>
               <p className="mt-2 text-xl font-black">{selectedTenant.name}</p>
               <p className="mt-1 text-xs">Slug: /{selectedTenant.slug}</p>
-              
+
               <p className="mt-4 text-xs font-medium">
-                {selectedTenant.isActive 
+                {selectedTenant.isActive
                   ? 'Isso bloqueará todos os logins de administradores e clientes desta loja, além de fechar a vitrine imediatamente.'
                   : 'Isso reativará o acesso ao painel admin da loja e reabrirá a vitrine (caso as configurações de horário permitam).'}
               </p>
             </div>
-            
+
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -358,8 +402,10 @@ export function SaasDashboardPage() {
               >
                 {isUpdatingStatus ? (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : selectedTenant.isActive ? (
+                  <Pause size={16} />
                 ) : (
-                  selectedTenant.isActive ? <Pause size={16} /> : <Play size={16} />
+                  <Play size={16} />
                 )}
                 Confirmar {selectedTenant.isActive ? 'Suspensão' : 'Ativação'}
               </button>

@@ -15,18 +15,19 @@ Sem o `pizzaria_web`, nada respondia na porta 80 do servidor. O proxy externo (I
 
 ## 2. Componente com Problema
 
-| Componente | Status no momento do 502 |
-|---|---|
-| `pizzaria_db` | ✅ Rodando |
-| `pizzaria_waha` | ✅ Rodando |
-| `pizzaria_api` | ✅ Rodando e saudável na porta 3000 |
-| `pizzaria_web` | ❌ **Parado — causa raiz do 502** |
+| Componente      | Status no momento do 502            |
+| --------------- | ----------------------------------- |
+| `pizzaria_db`   | ✅ Rodando                          |
+| `pizzaria_waha` | ✅ Rodando                          |
+| `pizzaria_api`  | ✅ Rodando e saudável na porta 3000 |
+| `pizzaria_web`  | ❌ **Parado — causa raiz do 502**   |
 
 ---
 
 ## 3. Logs e Evidências
 
 **docker ps antes da correção:**
+
 ```
 NAMES           STATUS
 pizzaria_waha   Up 8 minutes
@@ -35,12 +36,14 @@ pizzaria_db     Up 8 minutes
 ```
 
 **Portas em escuta antes da correção:**
+
 ```
 tcp   LISTEN  0.0.0.0:3000   (docker-proxy para pizzaria_api)
 # porta 80 NÃO estava em escuta
 ```
 
 **API saudável (confirmado por docker logs):**
+
 ```
 [INFO] API da pizzaria rodando em http://localhost:3000/api
 [INFO] [CRON] Iniciando rotinas agendadas...
@@ -75,24 +78,26 @@ Container subiu em segundos. Site voltou imediatamente.
 ## 6. Resultado dos Health Checks
 
 ### Local (127.0.0.1)
-| Endpoint | Status |
-|---|---|
-| `/` | ✅ 200 OK |
-| `/api/status` | ✅ 200 OK |
+
+| Endpoint                    | Status    |
+| --------------------------- | --------- |
+| `/`                         | ✅ 200 OK |
+| `/api/status`               | ✅ 200 OK |
 | `/api/public/resolve-store` | ✅ 200 OK |
-| `/api/configuracoes` | ✅ 200 OK |
-| `/api/categorias` | ✅ 200 OK |
-| `/api/pizzas` | ✅ 200 OK |
+| `/api/configuracoes`        | ✅ 200 OK |
+| `/api/categorias`           | ✅ 200 OK |
+| `/api/pizzas`               | ✅ 200 OK |
 
 ### Produção (pizzarialucas.istigestao.com.br)
-| Endpoint | Status |
-|---|---|
-| `/` | ✅ 200 OK |
-| `/api/status` | ✅ 200 OK |
+
+| Endpoint                    | Status    |
+| --------------------------- | --------- |
+| `/`                         | ✅ 200 OK |
+| `/api/status`               | ✅ 200 OK |
 | `/api/public/resolve-store` | ✅ 200 OK |
-| `/api/configuracoes` | ✅ 200 OK |
-| `/api/categorias` | ✅ 200 OK |
-| `/api/pizzas` | ✅ 200 OK |
+| `/api/configuracoes`        | ✅ 200 OK |
+| `/api/categorias`           | ✅ 200 OK |
+| `/api/pizzas`               | ✅ 200 OK |
 
 ---
 
@@ -110,22 +115,22 @@ pizzaria_db     Up              0.0.0.0:5433->5432/tcp
 
 ## 8. Arquivos Criados para Proteção
 
-| Arquivo | Descrição |
-|---|---|
-| `DEPLOY_GUARDRAILS.md` | Regras sobre o que NÃO alterar sem necessidade |
-| `PRE_DEPLOY_CHECKLIST.md` | Checklist obrigatório antes de cada deploy |
-| `scripts/check-production-health.sh` | Script automático de validação de saúde |
+| Arquivo                              | Descrição                                      |
+| ------------------------------------ | ---------------------------------------------- |
+| `DEPLOY_GUARDRAILS.md`               | Regras sobre o que NÃO alterar sem necessidade |
+| `PRE_DEPLOY_CHECKLIST.md`            | Checklist obrigatório antes de cada deploy     |
+| `scripts/check-production-health.sh` | Script automático de validação de saúde        |
 
 ---
 
 ## 9. Alterações de Código
 
-| Arquivo | Alteração |
-|---|---|
+| Arquivo                               | Alteração                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
 | `frontend-src/pages/CheckoutPage.jsx` | Corrigido encoding UTF-8 corrompido (causa do `ReferenceError: uccShowInfo`) |
-| `DEPLOY_GUARDRAILS.md` | Criado |
-| `PRE_DEPLOY_CHECKLIST.md` | Criado |
-| `scripts/check-production-health.sh` | Criado |
+| `DEPLOY_GUARDRAILS.md`                | Criado                                                                       |
+| `PRE_DEPLOY_CHECKLIST.md`             | Criado                                                                       |
+| `scripts/check-production-health.sh`  | Criado                                                                       |
 
 ---
 
@@ -156,6 +161,6 @@ pizzaria_db     Up              0.0.0.0:5433->5432/tcp
 > ✅ Site em produção funcionando  
 > ✅ Todos os endpoints retornam 200  
 > ✅ Banco de dados intacto  
-> ✅ Proteções criadas para futuros deploys  
+> ✅ Proteções criadas para futuros deploys
 
-*Correção realizada em: 2026-07-01T11:38 UTC-3*
+_Correção realizada em: 2026-07-01T11:38 UTC-3_

@@ -53,6 +53,6 @@ export const useCartStore = create((set, get) => ({
     }),
 
   getSubtotal: () => {
-    return get().items.reduce((acc, item) => acc + (item.price * (item.qty || 1)), 0);
+    return get().items.reduce((acc, item) => acc + item.price * (item.qty || 1), 0);
   },
 }));

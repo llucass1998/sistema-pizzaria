@@ -7,17 +7,17 @@
 
 ## ⚠️ Arquivos Críticos — NÃO ALTERE sem necessidade comprovada
 
-| Arquivo | Risco se alterado sem cuidado |
-|---|---|
-| `docker-compose.yml` | Pode derrubar todos os containers |
-| `Dockerfile.api` | Pode quebrar o build da API |
-| `Dockerfile.web` | Pode quebrar o Nginx/frontend |
-| `nginx.conf` | Pode derrubar o proxy `/api` e o frontend |
-| `update.sh` | Pode impedir o deploy correto |
-| `docker-entrypoint.sh` | Pode impedir a API de subir |
-| `.env` | Credenciais e `DATABASE_URL` — jamais expor |
-| `prisma/schema.prisma` | Migrations erradas destroem dados |
-| `backend-src/server.ts` | Porta e prefixo da API |
+| Arquivo                 | Risco se alterado sem cuidado               |
+| ----------------------- | ------------------------------------------- |
+| `docker-compose.yml`    | Pode derrubar todos os containers           |
+| `Dockerfile.api`        | Pode quebrar o build da API                 |
+| `Dockerfile.web`        | Pode quebrar o Nginx/frontend               |
+| `nginx.conf`            | Pode derrubar o proxy `/api` e o frontend   |
+| `update.sh`             | Pode impedir o deploy correto               |
+| `docker-entrypoint.sh`  | Pode impedir a API de subir                 |
+| `.env`                  | Credenciais e `DATABASE_URL` — jamais expor |
+| `prisma/schema.prisma`  | Migrations erradas destroem dados           |
+| `backend-src/server.ts` | Porta e prefixo da API                      |
 
 ---
 
@@ -64,15 +64,15 @@ Internet
 
 ## 🛠️ Configurações Fixas — NÃO MUDE
 
-| Parâmetro | Valor |
-|---|---|
-| `pizzaria_api` internal port | `3000` |
-| `pizzaria_web` external port | `80` |
-| `pizzaria_db` internal port | `5432` |
-| Docker network | `sgbi` |
-| API prefix | `/api` |
-| `API_BASE_URL` (prod) | `/api` (relativo) |
-| `DATABASE_URL` host | `db` (nome do serviço Docker) |
+| Parâmetro                    | Valor                         |
+| ---------------------------- | ----------------------------- |
+| `pizzaria_api` internal port | `3000`                        |
+| `pizzaria_web` external port | `80`                          |
+| `pizzaria_db` internal port  | `5432`                        |
+| Docker network               | `sgbi`                        |
+| API prefix                   | `/api`                        |
+| `API_BASE_URL` (prod)        | `/api` (relativo)             |
+| `DATABASE_URL` host          | `db` (nome do serviço Docker) |
 
 ---
 
@@ -82,12 +82,14 @@ O erro 502 ocorre quando `pizzaria_web` (Nginx) **não está rodando**.
 Sem o `pizzaria_web`, nada responde na porta 80 e o proxy externo retorna 502.
 
 **Principais causas identificadas:**
+
 - `pizzaria_web` removido/reiniciado sem ser iniciado novamente
 - Build do `pizzaria_web` falhou silenciosamente
 - `update.sh` interrompido no meio do processo
 - Imagem antiga do `pizzaria_web` sendo usada após mudança de `package.json`
 
 **Solução rápida se 502 ocorrer:**
+
 ```bash
 # Verificar containers
 sudo docker ps -a
@@ -105,6 +107,7 @@ sudo docker run -d --name pizzaria_web --network sgbi --restart always -p 80:80 
 ## 📋 Antes de alterar qualquer arquivo de infraestrutura
 
 Responda estas perguntas:
+
 1. **Por que preciso alterar esse arquivo?**
 2. **Qual o risco se algo der errado?**
 3. **Qual o impacto nos outros serviços?**
@@ -115,4 +118,4 @@ Se não conseguir responder todas as 5, **não altere**.
 
 ---
 
-*Última atualização: 2026-07-01 — Após correção do 502 por pizzaria_web não estar rodando.*
+_Última atualização: 2026-07-01 — Após correção do 502 por pizzaria_web não estar rodando._

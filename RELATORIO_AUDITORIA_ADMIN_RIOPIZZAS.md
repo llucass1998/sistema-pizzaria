@@ -9,12 +9,13 @@
 
 Durante a consulta ao banco de dados (`PostgreSQL`), descobrimos que o e-mail `admin@riopizzas.com` **não é único**. Existem **DUAS** contas vinculadas a este mesmo e-mail, cada uma em um `Tenant` (loja) diferente:
 
-| ID | E-mail | Role | Nome do Tenant | Tenant ID (Resumo) | Domínio Vinculado |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `4b0e5edc...` | `admin@riopizzas.com` | `SUPER_ADMIN` | Pizzaria Matriz (Default) | `f0cf1e54...` | Nenhum (slug: `demo`) |
-| `ca3e87dd...` | `admin@riopizzas.com` | `SUPER_ADMIN` | Pizzaria Lucas | `37c646b4...` | `pizzarialucas.istigestao.com.br` |
+| ID            | E-mail                | Role          | Nome do Tenant            | Tenant ID (Resumo) | Domínio Vinculado                 |
+| :------------ | :-------------------- | :------------ | :------------------------ | :----------------- | :-------------------------------- |
+| `4b0e5edc...` | `admin@riopizzas.com` | `SUPER_ADMIN` | Pizzaria Matriz (Default) | `f0cf1e54...`      | Nenhum (slug: `demo`)             |
+| `ca3e87dd...` | `admin@riopizzas.com` | `SUPER_ADMIN` | Pizzaria Lucas            | `37c646b4...`      | `pizzarialucas.istigestao.com.br` |
 
 ### ⚠️ Causa Provável dos Bloqueios:
+
 Como o login provavemente busca o usuário usando `findFirst({ where: { email } })`, a API pode estar retornando a primeira conta (a do Tenant "Pizzaria Matriz"). Ao entrar no admin, o `tenantId` injetado no token JWT é o da Matriz, mas o front-end está rodando no domínio `pizzarialucas.istigestao.com.br` (Pizzaria Lucas).
 Isso causa **incompatibilidade de Tenant**, fazendo com que o middleware RBAC e o Tenant Guard bloqueiem rotas ou não encontrem os dados da loja certa, resultando em "Acesso Negado" ou telas vazias/quebradas.
 

@@ -58,7 +58,9 @@ export function POSQuickPayModal({ isOpen, onClose, cartTotal, onConfirmPay }) {
         <form onSubmit={handleConfirm} className="p-6 space-y-6">
           {/* Total da Venda */}
           <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center">
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Total do Pedido:</span>
+            <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+              Total do Pedido:
+            </span>
             <span className="text-2xl font-black text-slate-900 dark:text-white">
               {formatCurrency(cartTotal)}
             </span>

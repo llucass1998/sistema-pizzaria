@@ -255,7 +255,8 @@ export const PurchasesController = {
           create: payload.items.map((item) => ({
             ingredientId: item.ingredientId,
             quantityRequested: item.quantityRequested.toFixed(4),
-            unitCostEstimate: item.unitCostEstimate != null ? item.unitCostEstimate.toFixed(2) : null,
+            unitCostEstimate:
+              item.unitCostEstimate != null ? item.unitCostEstimate.toFixed(2) : null,
           })),
         },
       },
@@ -503,4 +504,3 @@ export const PurchasesController = {
     res.json(updated);
   },
 };
-

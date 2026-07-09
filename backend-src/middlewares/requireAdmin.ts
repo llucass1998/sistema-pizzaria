@@ -9,7 +9,6 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   const payload = verifyToken(token);
 
   if (!payload || !payload.role) {
-    console.log('requireAdmin blocked:', req.originalUrl);
     res.status(401).json({ message: 'Entre como administrador para continuar.' });
     return;
   }

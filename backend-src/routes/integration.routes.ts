@@ -12,8 +12,9 @@ import { IfoodService } from '../integrations/ifood/ifood.service.js';
 
 export const integrationRoutes = Router();
 
-integrationRoutes.use(requireAdmin);
+const CREDENTIAL_WRITE_ROLES = ['OWNER', 'ADMIN', 'MANAGER'];
 
+integrationRoutes.use('/integrations', requireAdmin);
 
 function parseProvider(value: unknown) {
   const provider = normalizeText(value).toUpperCase();
@@ -83,9 +84,18 @@ integrationRoutes.get(
   }),
 );
 
+integrationRoutes.get(
+  '/integrations/ifood/health',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (_req, res) => {
+    const health = await IfoodService.getHealth();
+    res.json(health);
+  }),
+);
+
 integrationRoutes.post(
   '/integrations/credentials',
-  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  requireRole(CREDENTIAL_WRITE_ROLES),
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
     const provider = parseProvider(req.body.provider);
@@ -134,7 +144,7 @@ integrationRoutes.post(
 
 integrationRoutes.put(
   '/integrations/credentials/:id',
-  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  requireRole(CREDENTIAL_WRITE_ROLES),
   asyncHandler(async (req, res) => {
     const id = getIdParam(req, res);
     if (!id) return;
@@ -182,7 +192,7 @@ integrationRoutes.put(
 
 integrationRoutes.delete(
   '/integrations/credentials/:id',
-  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  requireRole(CREDENTIAL_WRITE_ROLES),
   asyncHandler(async (req, res) => {
     const id = getIdParam(req, res);
     if (!id) return;
@@ -239,14 +249,58 @@ integrationRoutes.get(
   '/integrations/events',
   requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
   asyncHandler(async (req, res) => {
+    const tenantId = getTenantId();
     const provider = req.query.provider ? parseProvider(req.query.provider) : null;
     const events = await prisma.integrationEventLog.findMany({
-      where: provider ? { provider } : {},
+      where: provider ? { tenantId, provider } : { tenantId },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
 
     res.json(events);
+  }),
+);
+
+integrationRoutes.get(
+  '/integrations/ifood/events',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const events = await IfoodService.listEvents({
+      status: normalizeText(req.query.status),
+      type: normalizeText(req.query.type),
+      q: normalizeText(req.query.q),
+      failedOnly: req.query.failedOnly === 'true',
+      pendingOnly: req.query.pendingOnly === 'true',
+      page: Number(req.query.page ?? 1),
+      pageSize: Number(req.query.pageSize ?? 20),
+    });
+
+    res.json(events);
+  }),
+);
+
+integrationRoutes.post(
+  '/integrations/ifood/events/:eventId/reprocess',
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'INTEGRATION_MANAGER']),
+  asyncHandler(async (req, res) => {
+    const eventId = normalizeText(req.params.eventId);
+    if (!eventId) {
+      res.status(400).json({ message: 'eventId is required' });
+      return;
+    }
+
+    try {
+      const result = await IfoodService.reprocessEvent(eventId, {
+        force: req.body?.force === true,
+        adminId: (req as any).admin?.id,
+      });
+      res.json(result);
+    } catch (error) {
+      const statusCode = (error as any)?.statusCode ?? 500;
+      res.status(statusCode).json({
+        message: error instanceof Error ? error.message : 'Erro ao reprocessar evento iFood.',
+      });
+    }
   }),
 );
 

@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { getTenantId } from '../core/context/TenantContext.js';
-import { getBrazilDateParts, normalizeBrazilDateRange, createBrazilDate } from '../utils/timezone.js';
+import {
+  getBrazilDateParts,
+  normalizeBrazilDateRange,
+  createBrazilDate,
+} from '../utils/timezone.js';
 
 /**
  * Helper para obter o tenantId de forma segura a partir do usuário autenticado (req.admin/req.user),
@@ -24,17 +28,31 @@ async function resolveSecureTenantId(req: Request): Promise<string> {
 /**
  * Resolução robusta de período de datas respeitando o timezone America/Sao_Paulo.
  */
-function resolveReportPeriod(req: Request): { startUtc: Date; endUtc: Date; label: string; timezone: string } {
-  const { startDate, endDate, quickRange, period } = req.query as Record<string, string | undefined>;
+function resolveReportPeriod(req: Request): {
+  startUtc: Date;
+  endUtc: Date;
+  label: string;
+  timezone: string;
+} {
+  const { startDate, endDate, quickRange, period } = req.query as Record<
+    string,
+    string | undefined
+  >;
   const rangeType = (quickRange || period || '').toUpperCase();
   const timezone = 'America/Sao_Paulo';
 
   // Validação de datas ISO se fornecidas
   if (startDate && isNaN(new Date(startDate).getTime())) {
-    throw Object.assign(new Error('Data inicial (startDate) inválida. Utilize formato ISO (YYYY-MM-DD).'), { statusCode: 400 });
+    throw Object.assign(
+      new Error('Data inicial (startDate) inválida. Utilize formato ISO (YYYY-MM-DD).'),
+      { statusCode: 400 },
+    );
   }
   if (endDate && isNaN(new Date(endDate).getTime())) {
-    throw Object.assign(new Error('Data final (endDate) inválida. Utilize formato ISO (YYYY-MM-DD).'), { statusCode: 400 });
+    throw Object.assign(
+      new Error('Data final (endDate) inválida. Utilize formato ISO (YYYY-MM-DD).'),
+      { statusCode: 400 },
+    );
   }
 
   const nowParts = getBrazilDateParts(new Date(), timezone);
@@ -83,7 +101,15 @@ function getBrazilDayAndHour(date: Date): { dayOfWeek: number; hour: number } {
   });
   const parts = formatter.formatToParts(date);
   const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || 'Sun';
-  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const weekdayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
   const dayOfWeek = weekdayMap[weekdayStr] ?? 0;
 
   let hourStr = parts.find((p) => p.type === 'hour')?.value || '0';
@@ -157,24 +183,30 @@ export class ReportsController {
         .reduce((acc, o) => acc + Number(o.total || 0), 0);
       const totalReceived = orders
         .filter((o) => !isOrderCanceled(o))
-        .reduce((acc, o) => acc + Number(o.amountPaid || (o.paymentStatus === 'PAID' ? o.total : 0) || 0), 0);
+        .reduce(
+          (acc, o) => acc + Number(o.amountPaid || (o.paymentStatus === 'PAID' ? o.total : 0) || 0),
+          0,
+        );
       const depositReceived = orders
         .filter((o) => !isOrderCanceled(o) && o.paymentMode === 'DEPOSIT')
-        .reduce((acc, o) => acc + Math.min(Number(o.depositAmount || 0), Number(o.amountPaid || 0)), 0);
+        .reduce(
+          (acc, o) => acc + Math.min(Number(o.depositAmount || 0), Number(o.amountPaid || 0)),
+          0,
+        );
       const pendingBalance = orders
         .filter((o) => !isOrderCanceled(o))
         .reduce((acc, o) => acc + Number(o.amountDue || 0), 0);
       const remainingReceived = orders
         .filter((o) => !isOrderCanceled(o) && o.paymentMode === 'DEPOSIT')
         .reduce(
-          (acc, o) =>
-            acc + Math.max(0, Number(o.amountPaid || 0) - Number(o.depositAmount || 0)),
+          (acc, o) => acc + Math.max(0, Number(o.amountPaid || 0) - Number(o.depositAmount || 0)),
           0,
         );
       const partiallyPaidOrders = orders.filter((o) => o.paymentStatus === 'PARTIALLY_PAID').length;
       const paidOrders = orders.filter((o) => o.paymentStatus === 'PAID').length;
       const revenueRealized = totalReceived;
-      const revenuePending = pendingBalance || pendingOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+      const revenuePending =
+        pendingBalance || pendingOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
       const canceledAmount = canceledOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
 
       const totalOrdersCount = orders.length;
@@ -182,13 +214,13 @@ export class ReportsController {
       const pendingOrdersCount = pendingOrders.length;
       const canceledOrdersCount = canceledOrders.length;
 
-      const cancellationRate = totalOrdersCount > 0
-        ? Number(((canceledOrdersCount / totalOrdersCount) * 100).toFixed(2))
-        : 0;
+      const cancellationRate =
+        totalOrdersCount > 0
+          ? Number(((canceledOrdersCount / totalOrdersCount) * 100).toFixed(2))
+          : 0;
 
-      const averageTicket = completedOrdersCount > 0
-        ? Number((revenueRealized / completedOrdersCount).toFixed(2))
-        : 0;
+      const averageTicket =
+        completedOrdersCount > 0 ? Number((revenueRealized / completedOrdersCount).toFixed(2)) : 0;
 
       res.json({
         revenueRealized: Number(revenueRealized.toFixed(2)),
@@ -220,7 +252,9 @@ export class ReportsController {
         return;
       }
       console.error('Erro em getGeneralSummary:', err);
-      res.status(500).json({ message: 'Não foi possível carregar os relatórios. Tente novamente.' });
+      res
+        .status(500)
+        .json({ message: 'Não foi possível carregar os relatórios. Tente novamente.' });
     }
   }
 
@@ -273,25 +307,37 @@ export class ReportsController {
         },
       });
 
-      const productMap = new Map<string, { productId: string; productName: string; quantitySold: number; grossRevenue: number }>();
+      const productMap = new Map<
+        string,
+        { productId: string; productName: string; quantitySold: number; grossRevenue: number }
+      >();
 
       for (const item of items) {
         const name = item.displayName || item.product?.name || 'Produto removido';
         const key = item.productId || name || 'removido';
-        const current = productMap.get(key) || { productId: key, productName: name, quantitySold: 0, grossRevenue: 0 };
+        const current = productMap.get(key) || {
+          productId: key,
+          productName: name,
+          quantitySold: 0,
+          grossRevenue: 0,
+        };
         current.quantitySold += Number(item.quantity || 0);
         current.grossRevenue += Number(item.total || 0);
         productMap.set(key, current);
       }
 
-      const sortedProducts = Array.from(productMap.values()).sort((a, b) => b.grossRevenue - a.grossRevenue);
+      const sortedProducts = Array.from(productMap.values()).sort(
+        (a, b) => b.grossRevenue - a.grossRevenue,
+      );
       const totalRevenue = sortedProducts.reduce((acc, p) => acc + p.grossRevenue, 0);
 
       let cumulativeRevenue = 0;
       const result = sortedProducts.map((prod, idx) => {
-        const percentageOfRevenue = totalRevenue > 0 ? Number(((prod.grossRevenue / totalRevenue) * 100).toFixed(2)) : 0;
+        const percentageOfRevenue =
+          totalRevenue > 0 ? Number(((prod.grossRevenue / totalRevenue) * 100).toFixed(2)) : 0;
         cumulativeRevenue += prod.grossRevenue;
-        const cumulativePercentage = totalRevenue > 0 ? Number(((cumulativeRevenue / totalRevenue) * 100).toFixed(2)) : 0;
+        const cumulativePercentage =
+          totalRevenue > 0 ? Number(((cumulativeRevenue / totalRevenue) * 100).toFixed(2)) : 0;
 
         let abcClass = 'A';
         if (idx > 0 && cumulativePercentage > 95) {
@@ -353,7 +399,10 @@ export class ReportsController {
       });
 
       // Inicializar grade 7 (Dom-Sáb) x 24 (00h-23h)
-      const gridMap = new Map<string, { dayOfWeek: number; hour: number; ordersCount: number; revenue: number }>();
+      const gridMap = new Map<
+        string,
+        { dayOfWeek: number; hour: number; ordersCount: number; revenue: number }
+      >();
       for (let d = 0; d < 7; d++) {
         for (let h = 0; h < 24; h++) {
           gridMap.set(`${d}-${h}`, { dayOfWeek: d, hour: h, ordersCount: 0, revenue: 0 });
@@ -425,7 +474,14 @@ export class ReportsController {
 
       const driverMap = new Map<
         string,
-        { driverId: string; driverName: string; deliveriesCompleted: number; revenueDelivered: number; deliveryFees: number; canceledDeliveries: number }
+        {
+          driverId: string;
+          driverName: string;
+          deliveriesCompleted: number;
+          revenueDelivered: number;
+          deliveryFees: number;
+          canceledDeliveries: number;
+        }
       >();
 
       for (const order of orders) {
@@ -458,9 +514,10 @@ export class ReportsController {
           deliveriesCompleted: d.deliveriesCompleted,
           revenueDelivered: Number(d.revenueDelivered.toFixed(2)),
           deliveryFees: Number(d.deliveryFees.toFixed(2)),
-          averageDeliveryValue: d.deliveriesCompleted > 0
-            ? Number((d.revenueDelivered / d.deliveriesCompleted).toFixed(2))
-            : 0,
+          averageDeliveryValue:
+            d.deliveriesCompleted > 0
+              ? Number((d.revenueDelivered / d.deliveriesCompleted).toFixed(2))
+              : 0,
           canceledDeliveries: d.canceledDeliveries,
         }));
 
@@ -471,7 +528,9 @@ export class ReportsController {
         return;
       }
       console.error('Erro em getDriverRanking:', err);
-      res.status(500).json({ message: 'Não foi possível carregar o ranking de entregadores. Tente novamente.' });
+      res
+        .status(500)
+        .json({ message: 'Não foi possível carregar o ranking de entregadores. Tente novamente.' });
     }
   }
 
@@ -512,12 +571,20 @@ export class ReportsController {
         ONLINE: { method: 'ONLINE_CARD', label: 'Cartão Online' },
       };
 
-      const groupMap = new Map<string, { paymentMethod: string; label: string; ordersCount: number; totalAmount: number }>();
+      const groupMap = new Map<
+        string,
+        { paymentMethod: string; label: string; ordersCount: number; totalAmount: number }
+      >();
 
       for (const order of validOrders) {
         const raw = (order.paymentMethod || 'OTHER').toUpperCase().trim();
         const info = labelMap[raw] || { method: 'OTHER', label: 'Outro' };
-        const current = groupMap.get(info.method) || { paymentMethod: info.method, label: info.label, ordersCount: 0, totalAmount: 0 };
+        const current = groupMap.get(info.method) || {
+          paymentMethod: info.method,
+          label: info.label,
+          ordersCount: 0,
+          totalAmount: 0,
+        };
         current.ordersCount += 1;
         current.totalAmount += Number(order.total || 0);
         groupMap.set(info.method, current);
@@ -530,7 +597,8 @@ export class ReportsController {
           label: g.label,
           ordersCount: g.ordersCount,
           totalAmount: Number(g.totalAmount.toFixed(2)),
-          percentage: totalAmountAll > 0 ? Number(((g.totalAmount / totalAmountAll) * 100).toFixed(2)) : 0,
+          percentage:
+            totalAmountAll > 0 ? Number(((g.totalAmount / totalAmountAll) * 100).toFixed(2)) : 0,
         }));
 
       res.json(result);
@@ -540,7 +608,9 @@ export class ReportsController {
         return;
       }
       console.error('Erro em getPaymentMethods:', err);
-      res.status(500).json({ message: 'Não foi possível carregar os métodos de pagamento. Tente novamente.' });
+      res
+        .status(500)
+        .json({ message: 'Não foi possível carregar os métodos de pagamento. Tente novamente.' });
     }
   }
 
@@ -596,7 +666,9 @@ export class ReportsController {
         return;
       }
       console.error('Erro em getCancellations:', err);
-      res.status(500).json({ message: 'Não foi possível carregar os dados de cancelamento. Tente novamente.' });
+      res
+        .status(500)
+        .json({ message: 'Não foi possível carregar os dados de cancelamento. Tente novamente.' });
     }
   }
 }

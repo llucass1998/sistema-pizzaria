@@ -64,6 +64,7 @@ sudo docker ps
 ```
 
 **Critério:** Todos os 4 containers estão `Up`:
+
 - [ ] `pizzaria_db` — Up
 - [ ] `pizzaria_waha` — Up
 - [ ] `pizzaria_api` — Up
@@ -83,6 +84,7 @@ curl -I http://127.0.0.1/api/pizzas
 ```
 
 **Critério:** Todos retornam `200 OK`.
+
 - [ ] `/` — 200
 - [ ] `/api/status` — 200
 - [ ] `/api/public/resolve-store` — 200
@@ -104,6 +106,7 @@ curl -I https://pizzarialucas.istigestao.com.br/api/pizzas
 ```
 
 **Critério:** Todos retornam `200 OK`. **Zero 502.**
+
 - [ ] Site produção `/` — 200
 - [ ] `/api/status` produção — 200
 - [ ] `/api/public/resolve-store` produção — 200
@@ -143,4 +146,4 @@ bash scripts/check-production-health.sh
 
 ---
 
-*Última atualização: 2026-07-01*
+_Última atualização: 2026-07-01_

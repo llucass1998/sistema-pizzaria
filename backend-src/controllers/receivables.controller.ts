@@ -55,7 +55,9 @@ export const ReceivablesController = {
     };
 
     const wantsPagination =
-      req.query.paginated === 'true' || req.query.page !== undefined || req.query.limit !== undefined;
+      req.query.paginated === 'true' ||
+      req.query.page !== undefined ||
+      req.query.limit !== undefined;
 
     if (!wantsPagination) {
       const allInvoices = await prisma.invoice.findMany({

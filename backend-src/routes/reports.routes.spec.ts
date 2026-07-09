@@ -51,9 +51,7 @@ describe('Reports Routes & BI Controller', () => {
   });
 
   it('deve bloquear acesso com role não permitida (ex: CASHIER)', async () => {
-    const res = await request(app)
-      .get('/api/admin/reports/summary')
-      .set('x-test-role', 'CASHIER');
+    const res = await request(app).get('/api/admin/reports/summary').set('x-test-role', 'CASHIER');
     expect(res.status).toBe(403);
   });
 
@@ -90,9 +88,27 @@ describe('Reports Routes & BI Controller', () => {
 
   it('GET /api/admin/reports/abc-products — deve calcular curva ABC corretamente', async () => {
     mocks.orderItemFindMany.mockResolvedValue([
-      { productId: 'p1', displayName: 'Pizza A', quantity: 10, total: 850, product: { name: 'Pizza A' } },
-      { productId: 'p2', displayName: 'Pizza B', quantity: 2, total: 100, product: { name: 'Pizza B' } },
-      { productId: 'p3', displayName: 'Refri C', quantity: 5, total: 50, product: { name: 'Refri C' } },
+      {
+        productId: 'p1',
+        displayName: 'Pizza A',
+        quantity: 10,
+        total: 850,
+        product: { name: 'Pizza A' },
+      },
+      {
+        productId: 'p2',
+        displayName: 'Pizza B',
+        quantity: 2,
+        total: 100,
+        product: { name: 'Pizza B' },
+      },
+      {
+        productId: 'p3',
+        displayName: 'Refri C',
+        quantity: 5,
+        total: 50,
+        product: { name: 'Refri C' },
+      },
     ]);
 
     const res = await request(app)
@@ -127,8 +143,20 @@ describe('Reports Routes & BI Controller', () => {
 
   it('GET /api/admin/reports/driver-ranking — deve agrupar ranking de entregadores corretamente', async () => {
     mocks.orderFindMany.mockResolvedValue([
-      { status: 'DELIVERED', total: 100, deliveryFee: 10, driverId: 'd1', driver: { id: 'd1', name: 'Motoboy João' } },
-      { status: 'DELIVERED', total: 120, deliveryFee: 12, driverId: 'd1', driver: { id: 'd1', name: 'Motoboy João' } },
+      {
+        status: 'DELIVERED',
+        total: 100,
+        deliveryFee: 10,
+        driverId: 'd1',
+        driver: { id: 'd1', name: 'Motoboy João' },
+      },
+      {
+        status: 'DELIVERED',
+        total: 120,
+        deliveryFee: 12,
+        driverId: 'd1',
+        driver: { id: 'd1', name: 'Motoboy João' },
+      },
       { status: 'DELIVERED', total: 80, deliveryFee: 8, driverId: null, driver: null },
     ]);
 

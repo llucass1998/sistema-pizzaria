@@ -90,8 +90,20 @@ describe('ReceivablesController', () => {
 
   it('getSummary calculates correct financial KPIs', async () => {
     const mockInvoices = [
-      { id: 'inv-1', totalAmount: 100, status: 'PENDING', dueDate: new Date('2020-01-01'), payments: [] },
-      { id: 'inv-2', totalAmount: 200, status: 'PAID', dueDate: new Date('2099-01-01'), payments: [{ amount: 200, status: 'COMPLETED' }] },
+      {
+        id: 'inv-1',
+        totalAmount: 100,
+        status: 'PENDING',
+        dueDate: new Date('2020-01-01'),
+        payments: [],
+      },
+      {
+        id: 'inv-2',
+        totalAmount: 200,
+        status: 'PAID',
+        dueDate: new Date('2099-01-01'),
+        payments: [{ amount: 200, status: 'COMPLETED' }],
+      },
     ];
     mocks.findMany.mockResolvedValue(mockInvoices);
 
@@ -111,10 +123,18 @@ describe('ReceivablesController', () => {
   });
 
   it('recordPayment registers a payment and updates invoice status', async () => {
-    const mockInv = { id: 'inv-1', totalAmount: 100, status: 'PENDING', payments: [], orderId: 'ord-1' };
-    mocks.findFirstOrThrow
-      .mockResolvedValueOnce(mockInv)
-      .mockResolvedValueOnce({ ...mockInv, status: 'PAID', payments: [{ id: 'pay-1', amount: 100, status: 'COMPLETED' }] });
+    const mockInv = {
+      id: 'inv-1',
+      totalAmount: 100,
+      status: 'PENDING',
+      payments: [],
+      orderId: 'ord-1',
+    };
+    mocks.findFirstOrThrow.mockResolvedValueOnce(mockInv).mockResolvedValueOnce({
+      ...mockInv,
+      status: 'PAID',
+      payments: [{ id: 'pay-1', amount: 100, status: 'COMPLETED' }],
+    });
 
     const req = { params: { invoiceId: 'inv-1' }, body: { amount: 100, method: 'PIX' } } as any;
     const res = { json: vi.fn() } as any;
@@ -144,6 +164,8 @@ describe('ReceivablesController', () => {
 
     await ReceivablesController.reversePayment(req, res);
     expect(mocks.paymentDelete).toHaveBeenCalledWith({ where: { id: 'pay-1' } });
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'PENDING', payments: [] }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'PENDING', payments: [] }),
+    );
   });
 });

@@ -83,22 +83,106 @@ const productImagesById = {
   3: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=900&q=80',
   4: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=900&q=80',
   5: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?auto=format&fit=crop&w=900&q=80',
-  6: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
-  7: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?auto=format&fit=crop&w=900&q=80',
-  8: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  6: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?auto=format&fit=crop&w=900&q=80',
+  7: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80',
+  8: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=900&q=80',
+  9: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=900&q=80',
+  10: 'https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=900&q=80',
+  11: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
+  12: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?auto=format&fit=crop&w=900&q=80',
+  13: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
+  14: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=80',
+  15: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80',
+  16: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
+  17: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=900&q=80',
+  18: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  19: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  20: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  21: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  22: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  23: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
+  24: 'https://andinacocacola.vtexassets.com/arquivos/ids/159382-800-auto?aspect=true&height=auto&v=639163193134500000&width=800',
 };
 
 export const products = [
   { id: 1, name: 'Pizza Margherita', category: 'pizzas-tradicionais', price: 39.9, image: '🍕' },
   { id: 2, name: 'Pizza Calabresa', category: 'pizzas-tradicionais', price: 42.9, image: '🍕' },
-  { id: 3, name: 'Pizza Quatro Queijos', category: 'pizzas-tradicionais', price: 46.9, image: '🍕' },
+  {
+    id: 3,
+    name: 'Pizza Quatro Queijos',
+    category: 'pizzas-tradicionais',
+    price: 46.9,
+    image: '🍕',
+  },
   { id: 4, name: 'Pizza Portuguesa', category: 'pizzas-tradicionais', price: 49.9, image: '🍕' },
-  { id: 5, name: 'Pizza Frango com Catupiry', category: 'pizzas-tradicionais', price: 52.9, image: '🍕' },
-  { id: 6, name: 'Pizza Brigadeiro com Morango', category: 'pizzas-doces', price: 45.9, image: '🍫' },
-  { id: 7, name: 'Pizza Romeu e Julieta', category: 'pizzas-doces', price: 44.9, image: '🍫' },
-  { id: 8, name: 'Coca-Cola lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
-  { id: 9, name: 'Guaraná Antarctica lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
-  { id: 10, name: 'Coca-Cola Garrafa 2L', category: 'refrigerantes', price: 14, image: '🥤' },
+  {
+    id: 5,
+    name: 'Pizza Frango com Catupiry',
+    category: 'pizzas-tradicionais',
+    price: 52.9,
+    image: '🍕',
+  },
+  { id: 6, name: 'Pizza Mussarela', category: 'pizzas-tradicionais', price: 40.9, image: '🍕' },
+  { id: 7, name: 'Pizza Napolitana', category: 'pizzas-tradicionais', price: 44.9, image: '🍕' },
+  { id: 8, name: 'Pizza Toscana', category: 'pizzas-tradicionais', price: 47.9, image: '🍕' },
+  { id: 9, name: 'Pizza Bacon', category: 'pizzas-tradicionais', price: 49.9, image: '🍕' },
+  {
+    id: 10,
+    name: 'Pizza Milho com Catupiry',
+    category: 'pizzas-tradicionais',
+    price: 46.9,
+    image: '🍕',
+  },
+  {
+    id: 11,
+    name: 'Pizza Brigadeiro com Morango',
+    category: 'pizzas-doces',
+    price: 45.9,
+    image: '🍫',
+  },
+  {
+    id: 12,
+    name: 'Pizza Banana com Canela e Leite Condensado',
+    category: 'pizzas-doces',
+    price: 42.9,
+    image: '🍫',
+  },
+  { id: 13, name: 'Pizza Romeu e Julieta', category: 'pizzas-doces', price: 44.9, image: '🍫' },
+  {
+    id: 14,
+    name: 'Pizza Chocolate com Confete',
+    category: 'pizzas-doces',
+    price: 43.9,
+    image: '🍫',
+  },
+  { id: 15, name: 'Pizza Prestígio', category: 'pizzas-doces', price: 46.9, image: '🍫' },
+  {
+    id: 16,
+    name: 'Pizza Doce de Leite com Banana',
+    category: 'pizzas-doces',
+    price: 45.9,
+    image: '🍫',
+  },
+  {
+    id: 17,
+    name: 'Pizza Chocolate Branco com Morango',
+    category: 'pizzas-doces',
+    price: 47.9,
+    image: '🍫',
+  },
+  { id: 18, name: 'Coca-Cola lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  {
+    id: 19,
+    name: 'Guaraná Antarctica lata 350ml',
+    category: 'refrigerantes',
+    price: 7,
+    image: '🥤',
+  },
+  { id: 20, name: 'Coca-Cola Garrafa 2L', category: 'refrigerantes', price: 14, image: '🥤' },
+  { id: 21, name: 'Fanta Laranja lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  { id: 22, name: 'Fanta Uva lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  { id: 23, name: 'Sprite lata 350ml', category: 'refrigerantes', price: 7, image: '🥤' },
+  { id: 24, name: 'Pepsi Garrafa 2L', category: 'refrigerantes', price: 13, image: '🥤' },
 ].map((product) => ({
   ...product,
   imageUrl: productImagesById[product.id] ?? productImagesByCategory[product.category],
@@ -130,7 +214,7 @@ export function getProductsByCategory(categoryId) {
 export function formatPhoneBR(phone) {
   if (!phone) return '';
   const cleaned = String(phone).replace(/\D/g, '');
-  
+
   // Se comecar com 55 e tiver 12 ou 13 digitos (codigo do pais + DDD + numero)
   if (cleaned.length >= 12 && cleaned.startsWith('55')) {
     const brPhone = cleaned.substring(2);
@@ -140,13 +224,13 @@ export function formatPhoneBR(phone) {
       return `(${brPhone.substring(0, 2)}) ${brPhone.substring(2, 6)}-${brPhone.substring(6)}`;
     }
   }
-  
+
   if (cleaned.length === 11) {
     return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
   } else if (cleaned.length === 10) {
     return `(${cleaned.substring(0, 2)}) ${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
   }
-  
+
   return phone;
 }
 

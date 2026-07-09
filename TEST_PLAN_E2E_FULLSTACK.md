@@ -6,22 +6,22 @@ Auditar o sistema de pizzaria ponta a ponta com foco em frente de loja, carrinho
 
 ## Modulos testados
 
-| Modulo | Fluxos criticos | Automacao planejada |
-| --- | --- | --- |
-| Frente de loja | resolver loja, carregar configuracoes, categorias e produtos | `backend-src/routes/api-smoke.spec.ts`, `scripts/smoke-test.sh` |
-| Carrinho | adicionar, alterar quantidade, remover, subtotal sem NaN | E2E browser pendente; logica de total coberta em `tests/e2e/customer-admin-flows.spec.ts` |
-| Checkout | entrega, retirada, cupom, fidelidade, pedido criado | `checkoutTotals` e contratos API; E2E browser pendente |
-| Pedidos | criar, listar, detalhe, atualizar status | state machine em `tests/e2e/customer-admin-flows.spec.ts`; KDS specs existentes |
-| Admin | login, dashboard, menus, telas sem branco | E2E browser pendente |
-| PDV | checkout balcao, pedido em Pedidos Live | state machine e testes KDS existentes; API real pendente |
-| Pedidos Live/KDS | fila, iniciar preparo, pronto, despacho | `backend-src/routes/kds.routes.spec.ts` |
-| Produtos/categorias | listar, criar, editar, desativar | contratos publicos em `api-smoke`; CRUD admin real pendente |
-| Configuracoes | loja aberta/fechada, taxas, identidade | contrato publico em `api-smoke`; PUT admin real pendente |
-| Estoque/fichas | ingredientes, receitas, baixa | specs existentes de inventory/manufacturing/waste |
-| Orcamentos | CRUD e status | API real pendente |
-| Contas a receber | baixa parcial/total | API real pendente |
-| Equipe/acessos | usuarios, roles, protecao OWNER | API real pendente |
-| Docker/infra | frontend, API, resolve-store, sem 502 | `scripts/smoke-test.sh`; validacao Docker manual pendente |
+| Modulo              | Fluxos criticos                                              | Automacao planejada                                                                       |
+| ------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Frente de loja      | resolver loja, carregar configuracoes, categorias e produtos | `backend-src/routes/api-smoke.spec.ts`, `scripts/smoke-test.sh`                           |
+| Carrinho            | adicionar, alterar quantidade, remover, subtotal sem NaN     | E2E browser pendente; logica de total coberta em `tests/e2e/customer-admin-flows.spec.ts` |
+| Checkout            | entrega, retirada, cupom, fidelidade, pedido criado          | `checkoutTotals` e contratos API; E2E browser pendente                                    |
+| Pedidos             | criar, listar, detalhe, atualizar status                     | state machine em `tests/e2e/customer-admin-flows.spec.ts`; KDS specs existentes           |
+| Admin               | login, dashboard, menus, telas sem branco                    | E2E browser pendente                                                                      |
+| PDV                 | checkout balcao, pedido em Pedidos Live                      | state machine e testes KDS existentes; API real pendente                                  |
+| Pedidos Live/KDS    | fila, iniciar preparo, pronto, despacho                      | `backend-src/routes/kds.routes.spec.ts`                                                   |
+| Produtos/categorias | listar, criar, editar, desativar                             | contratos publicos em `api-smoke`; CRUD admin real pendente                               |
+| Configuracoes       | loja aberta/fechada, taxas, identidade                       | contrato publico em `api-smoke`; PUT admin real pendente                                  |
+| Estoque/fichas      | ingredientes, receitas, baixa                                | specs existentes de inventory/manufacturing/waste                                         |
+| Orcamentos          | CRUD e status                                                | API real pendente                                                                         |
+| Contas a receber    | baixa parcial/total                                          | API real pendente                                                                         |
+| Equipe/acessos      | usuarios, roles, protecao OWNER                              | API real pendente                                                                         |
+| Docker/infra        | frontend, API, resolve-store, sem 502                        | `scripts/smoke-test.sh`; validacao Docker manual pendente                                 |
 
 ## Endpoints criticos
 

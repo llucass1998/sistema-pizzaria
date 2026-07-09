@@ -73,7 +73,8 @@ function serializeOrder(order: any, filterStation?: string | null) {
   });
 
   const activeItems = allSerializedItems.filter((i: any) => i.kdsStatus !== 'CANCELED');
-  const allItemsReady = activeItems.length > 0 && activeItems.every((item: any) => item.kdsStatus === 'READY');
+  const allItemsReady =
+    activeItems.length > 0 && activeItems.every((item: any) => item.kdsStatus === 'READY');
   const readyForExpedition =
     order.fulfillmentType === FulfillmentType.PICKUP
       ? order.status === OrderStatus.READY
@@ -119,7 +120,9 @@ kdsRouter.get(
   '/queue',
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
-    const filterStationRaw = req.query.station ? normalizeText(String(req.query.station))?.toUpperCase() : null;
+    const filterStationRaw = req.query.station
+      ? normalizeText(String(req.query.station))?.toUpperCase()
+      : null;
     const stationParam = isValidStation(filterStationRaw) ? filterStationRaw : null;
 
     const orders = await basePrisma.order.findMany({

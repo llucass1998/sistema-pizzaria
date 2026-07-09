@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BaseModal } from '../ui/BaseModal.jsx';
 import { DollarSign } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 function formatMoney(value) {
@@ -23,14 +23,14 @@ export function OpenShiftModal({ isOpen, onOpen, onClose, adminData }) {
   useEffect(() => {
     if (isOpen) {
       fetch(`${API_BASE_URL}/admin/pos/shift/registers`, {
-        headers: { 'Authorization': `Bearer ${adminData?.token}` }
+        headers: { Authorization: `Bearer ${adminData?.token}` },
       })
-      .then(res => res.json())
-      .then(data => {
-        setRegisters(data);
-        if (data.length > 0) setSelectedRegister(data[0].id);
-      })
-      .catch(() => setError('Erro ao buscar caixas.'));
+        .then((res) => res.json())
+        .then((data) => {
+          setRegisters(data);
+          if (data.length > 0) setSelectedRegister(data[0].id);
+        })
+        .catch(() => setError('Erro ao buscar caixas.'));
     }
   }, [isOpen, adminData]);
 
@@ -43,9 +43,9 @@ export function OpenShiftModal({ isOpen, onOpen, onClose, adminData }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminData?.token}`
+          Authorization: `Bearer ${adminData?.token}`,
         },
-        body: JSON.stringify({ cashRegisterId: selectedRegister, openingCash })
+        body: JSON.stringify({ cashRegisterId: selectedRegister, openingCash }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erro ao abrir caixa');
@@ -68,7 +68,9 @@ export function OpenShiftModal({ isOpen, onOpen, onClose, adminData }) {
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white">Caixa Fechado</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Abra o caixa para iniciar as vendas</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Abra o caixa para iniciar as vendas
+            </p>
           </div>
         </div>
 
@@ -80,20 +82,26 @@ export function OpenShiftModal({ isOpen, onOpen, onClose, adminData }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Caixa Operacional</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Caixa Operacional
+            </label>
             <select
               value={selectedRegister}
               onChange={(e) => setSelectedRegister(e.target.value)}
               className="w-full rounded-lg border border-slate-300 p-2.5 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:ring-2 focus:ring-red-500"
             >
               <option value="">Selecione...</option>
-              {registers.map(reg => (
-                <option key={reg.id} value={reg.id}>{reg.name}</option>
+              {registers.map((reg) => (
+                <option key={reg.id} value={reg.id}>
+                  {reg.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Troco Inicial (R$)</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Troco Inicial (R$)
+            </label>
             <input
               type="number"
               step="0.01"
@@ -175,9 +183,9 @@ export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onCl
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminData?.token}`
+          Authorization: `Bearer ${adminData?.token}`,
         },
-        body: JSON.stringify({ shiftId: currentShift.id, closingCash })
+        body: JSON.stringify({ shiftId: currentShift.id, closingCash }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erro ao fechar caixa');
@@ -239,7 +247,9 @@ export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onCl
                   </div>
                 ))}
                 {Object.keys(summary.salesByMethod || {}).length === 0 && (
-                  <p className="col-span-2 text-sm font-bold text-slate-500">Sem vendas no caixa.</p>
+                  <p className="col-span-2 text-sm font-bold text-slate-500">
+                    Sem vendas no caixa.
+                  </p>
                 )}
               </div>
             </div>
@@ -273,7 +283,14 @@ export function CloseShiftModal({ isOpen, onClose, currentShift, adminData, onCl
   );
 }
 
-export function CashTransactionModal({ isOpen, onClose, currentShift, adminData, onTransaction, initialType = 'SANGRIA' }) {
+export function CashTransactionModal({
+  isOpen,
+  onClose,
+  currentShift,
+  adminData,
+  onTransaction,
+  initialType = 'SANGRIA',
+}) {
   const [type, setType] = useState(initialType);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -298,9 +315,9 @@ export function CashTransactionModal({ isOpen, onClose, currentShift, adminData,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminData?.token}`
+          Authorization: `Bearer ${adminData?.token}`,
         },
-        body: JSON.stringify({ shiftId: currentShift.id, type, amount, description })
+        body: JSON.stringify({ shiftId: currentShift.id, type, amount, description }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erro na transação');
@@ -323,15 +340,29 @@ export function CashTransactionModal({ isOpen, onClose, currentShift, adminData,
             {error}
           </div>
         )}
-        
+
         <div className="grid grid-cols-2 gap-3">
-          <label className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all ${type === 'SANGRIA' ? 'border-red-600 bg-red-50 text-red-700 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
-            <input type="radio" className="sr-only" checked={type === 'SANGRIA'} onChange={() => setType('SANGRIA')} />
+          <label
+            className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all ${type === 'SANGRIA' ? 'border-red-600 bg-red-50 text-red-700 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-700'}`}
+          >
+            <input
+              type="radio"
+              className="sr-only"
+              checked={type === 'SANGRIA'}
+              onChange={() => setType('SANGRIA')}
+            />
             <span className="block font-black">Sangria</span>
             <span className="text-xs text-slate-500">Retirada do caixa</span>
           </label>
-          <label className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all ${type === 'SUPRIMENTO' ? 'border-green-600 bg-green-50 text-green-700 dark:bg-green-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
-            <input type="radio" className="sr-only" checked={type === 'SUPRIMENTO'} onChange={() => setType('SUPRIMENTO')} />
+          <label
+            className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all ${type === 'SUPRIMENTO' ? 'border-green-600 bg-green-50 text-green-700 dark:bg-green-900/20' : 'border-slate-200 dark:border-slate-700'}`}
+          >
+            <input
+              type="radio"
+              className="sr-only"
+              checked={type === 'SUPRIMENTO'}
+              onChange={() => setType('SUPRIMENTO')}
+            />
             <span className="block font-black">Suprimento</span>
             <span className="text-xs text-slate-500">Reforço no caixa</span>
           </label>

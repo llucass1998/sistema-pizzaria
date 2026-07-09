@@ -15,13 +15,11 @@ vi.mock('../core/context/TenantContext.js', () => ({
 }));
 
 vi.mock('../middlewares/requireRole.js', () => ({
-  requireRole:
-    (_roles: string[]) =>
-    (req: any, _res: any, next: () => void) => {
-      req.adminId = 'admin-driver';
-      req.adminRole = req.header('x-test-role') || 'DRIVER';
-      next();
-    },
+  requireRole: (_roles: string[]) => (req: any, _res: any, next: () => void) => {
+    req.adminId = 'admin-driver';
+    req.adminRole = req.header('x-test-role') || 'DRIVER';
+    next();
+  },
 }));
 
 vi.mock('../lib/prisma.js', () => ({
@@ -88,6 +86,19 @@ describe('dispatch driver permissions', () => {
         }),
       }),
     );
+  });
+
+  it('rejects delivery completion when driver role has no active linked profile', async () => {
+    mocks.driverFindFirst.mockResolvedValue(null);
+
+    const response = await request(createApp())
+      .patch('/api/admin/dispatch/orders/order-1/status')
+      .set('x-test-role', 'DRIVER')
+      .send({ status: 'DELIVERED' });
+
+    expect(response.status).toBe(403);
+    expect(mocks.orderFindFirst).not.toHaveBeenCalled();
+    expect(mocks.orderUpdateMany).not.toHaveBeenCalled();
   });
 
   it('allows the linked driver to mark an assigned delivery as delivered', async () => {

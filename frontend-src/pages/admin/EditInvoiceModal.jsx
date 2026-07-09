@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BaseModal } from '../../components/ui/BaseModal.jsx';
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function EditInvoiceModal({ isOpen, onClose, onSuccess, invoice }) {
   const [formData, setFormData] = useState({
@@ -35,7 +37,7 @@ export function EditInvoiceModal({ isOpen, onClose, onSuccess, invoice }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           dueDate: formData.dueDate ? formData.dueDate : null,
@@ -71,7 +73,11 @@ export function EditInvoiceModal({ isOpen, onClose, onSuccess, invoice }) {
 
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-950">
           <p className="text-slate-500 dark:text-slate-400">
-            Fatura: <strong className="text-slate-800 dark:text-slate-200">{invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #{invoice.orderId?.slice(0, 6)}</strong>
+            Fatura:{' '}
+            <strong className="text-slate-800 dark:text-slate-200">
+              {invoice.order?.customer?.name || 'Cliente Avulso'} - Pedido #
+              {invoice.orderId?.slice(0, 6)}
+            </strong>
           </p>
         </div>
 

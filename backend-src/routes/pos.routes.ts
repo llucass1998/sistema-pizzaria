@@ -76,7 +76,9 @@ async function findShiftWithSummary(tenantId: string, shiftId?: string) {
         },
       });
 
-  return shift ? { ...shift, summary: await ShiftAuditService.getShiftSummary(tenantId, shift.id) } : null;
+  return shift
+    ? { ...shift, summary: await ShiftAuditService.getShiftSummary(tenantId, shift.id) }
+    : null;
 }
 
 posRouter.get(
@@ -228,7 +230,10 @@ posRouter.post(
       },
     });
 
-    res.json({ ...updatedShift, summary: await ShiftAuditService.getShiftSummary(tenantId, shiftId) });
+    res.json({
+      ...updatedShift,
+      summary: await ShiftAuditService.getShiftSummary(tenantId, shiftId),
+    });
   }),
 );
 
@@ -251,7 +256,9 @@ posRouter.post(
       return;
     }
 
-    const shift = await prisma.shift.findFirst({ where: { id: shiftId, tenantId, status: 'OPEN' } });
+    const shift = await prisma.shift.findFirst({
+      where: { id: shiftId, tenantId, status: 'OPEN' },
+    });
     if (!shift) {
       res.status(400).json({ message: 'Caixa nao encontrado ou fechado.' });
       return;
@@ -388,7 +395,11 @@ posRouter.post(
           .filter(Boolean)
           .join(', ');
 
-        const station = resolveKdsStation(product as any, (product as any).menuCategory, product.name);
+        const station = resolveKdsStation(
+          product as any,
+          (product as any).menuCategory,
+          product.name,
+        );
         const prepTime = resolvePrepTimeMinutes(
           station,
           (product as any).prepTimeMinutes,

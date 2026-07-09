@@ -73,7 +73,9 @@ inventoryRouter.get(
 
     // purchaseSuggestion: lista detalhada de itens que precisam de reposição
     const purchaseSuggestionItems = serialized
-      .filter((item) => item.status === 'OUT' || item.status === 'CRITICAL' || item.status === 'LOW')
+      .filter(
+        (item) => item.status === 'OUT' || item.status === 'CRITICAL' || item.status === 'LOW',
+      )
       .map((item) => ({
         ingredientId: item.id,
         ingredientName: item.name,
@@ -144,7 +146,8 @@ inventoryRouter.get(
     if (search) {
       const lower = search.toLowerCase();
       ingredients = ingredients.filter(
-        (item) => item.name.toLowerCase().includes(lower) || (item as any).barcode?.toLowerCase() === lower
+        (item) =>
+          item.name.toLowerCase().includes(lower) || (item as any).barcode?.toLowerCase() === lower,
       );
     }
 

@@ -107,4 +107,3 @@ Resultado:
 - Investigar e limpar o aviso `P2025` do seed para reduzir ruido operacional.
 - Avaliar code splitting/lazy loading para reduzir o aviso de chunk grande do Vite.
 - Se desejar, publicar as alteracoes no GitHub em um commit/PR separado por fase ou em um pacote unico consolidado.
-

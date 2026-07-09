@@ -1,8 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Plus, Search, Filter, Eye, Edit2, XCircle, AlertCircle, RefreshCw, CheckCircle2, Clock, Truck, DollarSign } from 'lucide-react';
+import {
+  ShoppingBag,
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit2,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  Truck,
+  DollarSign,
+} from 'lucide-react';
 import { formatCurrencySafe } from '../../data/menuData.js';
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export default function PurchasesPage() {
   const [orders, setOrders] = useState([]);
@@ -23,7 +39,7 @@ export default function PurchasesPage() {
     supplierId: '',
     expectedDate: '',
     notes: '',
-    items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }]
+    items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }],
   });
 
   const adminDataStr = window.localStorage.getItem('pizzaria-admin');
@@ -39,7 +55,8 @@ export default function PurchasesPage() {
           <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4 animate-pulse" />
           <h2 className="text-2xl font-black text-slate-950 mb-2">Acesso Restrito</h2>
           <p className="text-slate-600 font-bold max-w-md mx-auto">
-            O seu perfil (<span className="text-red-600 font-black">{userRole}</span>) não possui permissões para acessar a gestão de Compras e Pedidos.
+            O seu perfil (<span className="text-red-600 font-black">{userRole}</span>) não possui
+            permissões para acessar a gestão de Compras e Pedidos.
           </p>
         </div>
       </div>
@@ -47,8 +64,8 @@ export default function PurchasesPage() {
   }
 
   const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   };
 
   async function loadData() {
@@ -58,7 +75,7 @@ export default function PurchasesPage() {
       const [ordRes, supRes, ingRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/purchases/orders`, { headers }),
         fetch(`${API_BASE_URL}/admin/suppliers?active=true`, { headers }),
-        fetch(`${API_BASE_URL}/admin/inventory/ingredients`, { headers })
+        fetch(`${API_BASE_URL}/admin/inventory/ingredients`, { headers }),
       ]);
 
       if (ordRes.ok) {
@@ -91,36 +108,44 @@ export default function PurchasesPage() {
 
   // Filtros
   const filteredOrders = orders.filter((o) => {
-    const matchesSearch = search.trim() === '' || 
+    const matchesSearch =
+      search.trim() === '' ||
       o.supplier?.name?.toLowerCase().includes(search.toLowerCase()) ||
       o.id?.toLowerCase().includes(search.toLowerCase()) ||
       o.notes?.toLowerCase().includes(search.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // Cálculos de Resumo
-  const totalAmount = orders.reduce((sum, o) => o.status !== 'CANCELED' ? sum + Number(o.totalAmount || 0) : sum, 0);
-  const pendingCount = orders.filter(o => o.status === 'PENDING' || o.status === 'APPROVED' || o.status === 'PARTIALLY_RECEIVED').length;
-  const completedCount = orders.filter(o => o.status === 'RECEIVED' || o.status === 'PAID').length;
+  const totalAmount = orders.reduce(
+    (sum, o) => (o.status !== 'CANCELED' ? sum + Number(o.totalAmount || 0) : sum),
+    0,
+  );
+  const pendingCount = orders.filter(
+    (o) => o.status === 'PENDING' || o.status === 'APPROVED' || o.status === 'PARTIALLY_RECEIVED',
+  ).length;
+  const completedCount = orders.filter(
+    (o) => o.status === 'RECEIVED' || o.status === 'PAID',
+  ).length;
 
   const handleAddItem = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { ingredientId: '', quantity: 1, unitPrice: 0 }]
+      items: [...prev.items, { ingredientId: '', quantity: 1, unitPrice: 0 }],
     }));
   };
 
   const handleRemoveItem = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      items: prev.items.filter((_, i) => i !== index)
+      items: prev.items.filter((_, i) => i !== index),
     }));
   };
 
   const handleItemChange = (index, field, value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newItems = [...prev.items];
       newItems[index] = { ...newItems[index], [field]: value };
       return { ...prev, items: newItems };
@@ -128,31 +153,39 @@ export default function PurchasesPage() {
   };
 
   const calculateTotal = () => {
-    return formData.items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0)), 0);
+    return formData.items.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.supplierId) return alert('Selecione um fornecedor.');
-    if (formData.items.length === 0 || !formData.items[0].ingredientId) return alert('Adicione pelo menos um insumo.');
+    if (formData.items.length === 0 || !formData.items[0].ingredientId)
+      return alert('Adicione pelo menos um insumo.');
 
     try {
       setSubmitting(true);
       const payload = {
         supplierId: formData.supplierId,
-        expectedDate: formData.expectedDate ? new Date(formData.expectedDate).toISOString() : undefined,
+        expectedDate: formData.expectedDate
+          ? new Date(formData.expectedDate).toISOString()
+          : undefined,
         notes: formData.notes,
-        items: formData.items.filter(i => i.ingredientId).map(i => ({
-          ingredientId: i.ingredientId,
-          quantity: Number(i.quantity),
-          unitPrice: Number(i.unitPrice)
-        }))
+        items: formData.items
+          .filter((i) => i.ingredientId)
+          .map((i) => ({
+            ingredientId: i.ingredientId,
+            quantity: Number(i.quantity),
+            unitPrice: Number(i.unitPrice),
+          })),
       };
 
       const res = await fetch(`${API_BASE_URL}/admin/purchases/orders`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -161,7 +194,12 @@ export default function PurchasesPage() {
       }
 
       setIsModalOpen(false);
-      setFormData({ supplierId: '', expectedDate: '', notes: '', items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }] });
+      setFormData({
+        supplierId: '',
+        expectedDate: '',
+        notes: '',
+        items: [{ ingredientId: '', quantity: 1, unitPrice: 0 }],
+      });
       loadData();
     } catch (err) {
       alert(err.message);
@@ -175,7 +213,7 @@ export default function PurchasesPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/admin/purchases/orders/${orderId}/cancel`, {
         method: 'PATCH',
-        headers
+        headers,
       });
       if (res.ok) {
         loadData();
@@ -192,16 +230,36 @@ export default function PurchasesPage() {
     switch (status) {
       case 'PAID':
       case 'RECEIVED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle2 className="w-3.5 h-3.5" /> Concluído</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Concluído
+          </span>
+        );
       case 'APPROVED':
       case 'PARTIALLY_RECEIVED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200"><Truck className="w-3.5 h-3.5" /> Em Trânsito</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <Truck className="w-3.5 h-3.5" /> Em Trânsito
+          </span>
+        );
       case 'PENDING':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"><Clock className="w-3.5 h-3.5" /> Pendente</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock className="w-3.5 h-3.5" /> Pendente
+          </span>
+        );
       case 'CANCELED':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200"><XCircle className="w-3.5 h-3.5" /> Cancelado</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+            <XCircle className="w-3.5 h-3.5" /> Cancelado
+          </span>
+        );
       default:
-        return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">{status || 'N/A'}</span>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            {status || 'N/A'}
+          </span>
+        );
     }
   };
 
@@ -215,7 +273,8 @@ export default function PurchasesPage() {
             Compras & Pedidos
           </h1>
           <p className="text-slate-600 text-sm font-semibold mt-1">
-            Gerencie pedidos de compra (POs), cotações com fornecedores e recebimento de mercadorias.
+            Gerencie pedidos de compra (POs), cotações com fornecedores e recebimento de
+            mercadorias.
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -241,7 +300,9 @@ export default function PurchasesPage() {
         <div className="bg-white border border-slate-200 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-indigo-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total de Pedidos</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Total de Pedidos
+              </p>
               <h3 className="text-3xl font-black text-slate-950 mt-1">{orders.length}</h3>
             </div>
             <div className="p-3 bg-indigo-50 rounded-xl text-indigo-700 border border-indigo-200 group-hover:scale-110 transition-transform">
@@ -253,8 +314,12 @@ export default function PurchasesPage() {
         <div className="bg-white border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-emerald-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Volume Comprado</p>
-              <h3 className="text-2xl font-black text-emerald-700 mt-1">{formatCurrencySafe(totalAmount)}</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Volume Comprado
+              </p>
+              <h3 className="text-2xl font-black text-emerald-700 mt-1">
+                {formatCurrencySafe(totalAmount)}
+              </h3>
             </div>
             <div className="p-3 bg-emerald-100 rounded-xl text-emerald-700 border border-emerald-200 group-hover:scale-110 transition-transform">
               <DollarSign className="w-6 h-6" />
@@ -265,7 +330,9 @@ export default function PurchasesPage() {
         <div className="bg-white border border-amber-200 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-amber-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Em Andamento</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Em Andamento
+              </p>
               <h3 className="text-3xl font-black text-amber-700 mt-1">{pendingCount}</h3>
             </div>
             <div className="p-3 bg-amber-100 rounded-xl text-amber-700 border border-amber-200 group-hover:scale-110 transition-transform">
@@ -277,7 +344,9 @@ export default function PurchasesPage() {
         <div className="bg-white border border-blue-200 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-5 rounded-2xl relative overflow-hidden shadow-sm group hover:border-blue-300 transition-all">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">Concluídos / Pagos</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                Concluídos / Pagos
+              </p>
               <h3 className="text-3xl font-black text-blue-700 mt-1">{completedCount}</h3>
             </div>
             <div className="p-3 bg-blue-100 rounded-xl text-blue-700 border border-blue-200 group-hover:scale-110 transition-transform">
@@ -327,7 +396,12 @@ export default function PurchasesPage() {
           <div className="p-8 text-center text-red-700 bg-red-50 m-4 rounded-xl border border-red-200 flex flex-col items-center gap-2 font-bold">
             <AlertCircle className="w-8 h-8 text-red-600" />
             <span>{error}</span>
-            <button onClick={loadData} className="mt-2 text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200">Tentar Novamente</button>
+            <button
+              onClick={loadData}
+              className="mt-2 text-xs bg-red-100 text-red-800 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200"
+            >
+              Tentar Novamente
+            </button>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center justify-center">
@@ -336,7 +410,8 @@ export default function PurchasesPage() {
             </div>
             <h3 className="text-lg font-bold text-slate-950 mb-1">Nenhum pedido encontrado</h3>
             <p className="text-slate-600 font-semibold text-sm max-w-md mb-6">
-              Não encontramos nenhuma ordem de compra correspondente aos seus filtros ou ainda não há cadastros.
+              Não encontramos nenhuma ordem de compra correspondente aos seus filtros ou ainda não
+              há cadastros.
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
@@ -364,39 +439,54 @@ export default function PurchasesPage() {
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="p-4">
-                      <div className="font-bold text-slate-950 font-mono">#{order.id?.slice(0, 8)}</div>
+                      <div className="font-bold text-slate-950 font-mono">
+                        #{order.id?.slice(0, 8)}
+                      </div>
                       <div className="text-xs font-semibold text-slate-600">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString('pt-BR')
+                          : 'N/A'}
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="font-bold text-slate-800">{order.supplier?.name || 'Fornecedor Desconhecido'}</div>
+                      <div className="font-bold text-slate-800">
+                        {order.supplier?.name || 'Fornecedor Desconhecido'}
+                      </div>
                       {order.supplier?.cnpj && (
-                        <div className="text-xs font-semibold text-slate-600 font-mono">{order.supplier.cnpj}</div>
+                        <div className="text-xs font-semibold text-slate-600 font-mono">
+                          {order.supplier.cnpj}
+                        </div>
                       )}
                     </td>
                     <td className="p-4">
                       <div className="font-bold text-slate-800">
-                        {order.items?.length || 0} {order.items?.length === 1 ? 'insumo' : 'insumos'}
+                        {order.items?.length || 0}{' '}
+                        {order.items?.length === 1 ? 'insumo' : 'insumos'}
                       </div>
                       <div className="text-xs font-semibold text-slate-600 truncate max-w-xs">
-                        {order.items?.slice(0, 2).map(i => i.ingredient?.name).join(', ')}
+                        {order.items
+                          ?.slice(0, 2)
+                          .map((i) => i.ingredient?.name)
+                          .join(', ')}
                         {order.items?.length > 2 ? '...' : ''}
                       </div>
                     </td>
                     <td className="p-4 font-semibold text-slate-700 text-xs">
-                      {order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('pt-BR') : 'Não informada'}
+                      {order.expectedDate
+                        ? new Date(order.expectedDate).toLocaleDateString('pt-BR')
+                        : 'Não informada'}
                     </td>
                     <td className="p-4 text-right font-bold text-slate-950 font-mono">
                       {formatCurrencySafe(order.totalAmount)}
                     </td>
-                    <td className="p-4 text-center">
-                      {getStatusBadge(order.status)}
-                    </td>
+                    <td className="p-4 text-center">{getStatusBadge(order.status)}</td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => { setSelectedOrder(order); setIsViewModalOpen(true); }}
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setIsViewModalOpen(true);
+                          }}
                           title="Visualizar detalhes"
                           className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-300"
                         >
@@ -451,8 +541,10 @@ export default function PurchasesPage() {
                     className="w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-600 transition-all"
                   >
                     <option value="">Selecione um fornecedor...</option>
-                    {suppliers.map(sup => (
-                      <option key={sup.id} value={sup.id}>{sup.name} {sup.cnpj ? `(${sup.cnpj})` : ''}</option>
+                    {suppliers.map((sup) => (
+                      <option key={sup.id} value={sup.id}>
+                        {sup.name} {sup.cnpj ? `(${sup.cnpj})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -487,7 +579,10 @@ export default function PurchasesPage() {
 
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                   {formData.items.map((item, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div
+                      key={index}
+                      className="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200"
+                    >
                       <select
                         value={item.ingredientId}
                         onChange={(e) => handleItemChange(index, 'ingredientId', e.target.value)}
@@ -495,8 +590,10 @@ export default function PurchasesPage() {
                         className="flex-1 w-full bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-600"
                       >
                         <option value="">Selecione o insumo...</option>
-                        {ingredients.map(ing => (
-                          <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit || 'UN'})</option>
+                        {ingredients.map((ing) => (
+                          <option key={ing.id} value={ing.id}>
+                            {ing.name} ({ing.unit || 'UN'})
+                          </option>
                         ))}
                       </select>
 
@@ -538,7 +635,9 @@ export default function PurchasesPage() {
 
                 <div className="flex justify-end items-center mt-3 pt-3 border-t border-slate-200 text-sm">
                   <span className="text-slate-600 mr-2 font-bold">Total Estimado:</span>
-                  <span className="text-lg font-black text-emerald-700 font-mono">{formatCurrencySafe(calculateTotal())}</span>
+                  <span className="text-lg font-black text-emerald-700 font-mono">
+                    {formatCurrencySafe(calculateTotal())}
+                  </span>
                 </div>
               </div>
 
@@ -586,34 +685,54 @@ export default function PurchasesPage() {
                   Pedido #{selectedOrder.id?.slice(0, 8)}
                 </h3>
                 <span className="text-xs font-semibold text-slate-600">
-                  Emitido em: {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                  Emitido em:{' '}
+                  {selectedOrder.createdAt
+                    ? new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 {getStatusBadge(selectedOrder.status)}
-                <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg">✕</button>
+                <button
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+                >
+                  ✕
+                </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
               <div>
                 <span className="text-xs font-bold text-slate-600 block uppercase">Fornecedor</span>
-                <span className="text-slate-950 font-bold">{selectedOrder.supplier?.name || 'N/A'}</span>
+                <span className="text-slate-950 font-bold">
+                  {selectedOrder.supplier?.name || 'N/A'}
+                </span>
               </div>
               <div>
                 <span className="text-xs font-bold text-slate-600 block uppercase">Previsão</span>
-                <span className="text-slate-950 font-bold">{selectedOrder.expectedDate ? new Date(selectedOrder.expectedDate).toLocaleDateString('pt-BR') : 'Não definida'}</span>
+                <span className="text-slate-950 font-bold">
+                  {selectedOrder.expectedDate
+                    ? new Date(selectedOrder.expectedDate).toLocaleDateString('pt-BR')
+                    : 'Não definida'}
+                </span>
               </div>
               {selectedOrder.notes && (
                 <div className="col-span-2 pt-2 border-t border-slate-200">
-                  <span className="text-xs font-bold text-slate-600 block uppercase">Observações</span>
-                  <span className="text-slate-800 italic text-xs font-semibold">{selectedOrder.notes}</span>
+                  <span className="text-xs font-bold text-slate-600 block uppercase">
+                    Observações
+                  </span>
+                  <span className="text-slate-800 italic text-xs font-semibold">
+                    {selectedOrder.notes}
+                  </span>
                 </div>
               )}
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Insumos Solicitados</h4>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+                Insumos Solicitados
+              </h4>
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold">
@@ -627,10 +746,21 @@ export default function PurchasesPage() {
                   <tbody className="divide-y divide-slate-200">
                     {selectedOrder.items?.map((item, idx) => (
                       <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-800">{item.ingredient?.name || 'Insumo'} ({item.ingredient?.unit || 'UN'})</td>
-                        <td className="p-3 text-right font-mono font-semibold text-slate-700">{Number(item.quantity || 0)}</td>
-                        <td className="p-3 text-right font-mono font-semibold text-slate-700">{formatCurrencySafe(item.unitPrice || item.unitCost)}</td>
-                        <td className="p-3 text-right font-mono font-bold text-slate-950">{formatCurrencySafe(Number(item.quantity || 0) * Number(item.unitPrice || item.unitCost || 0))}</td>
+                        <td className="p-3 font-bold text-slate-800">
+                          {item.ingredient?.name || 'Insumo'} ({item.ingredient?.unit || 'UN'})
+                        </td>
+                        <td className="p-3 text-right font-mono font-semibold text-slate-700">
+                          {Number(item.quantity || 0)}
+                        </td>
+                        <td className="p-3 text-right font-mono font-semibold text-slate-700">
+                          {formatCurrencySafe(item.unitPrice || item.unitCost)}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-950">
+                          {formatCurrencySafe(
+                            Number(item.quantity || 0) *
+                              Number(item.unitPrice || item.unitCost || 0),
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -640,11 +770,16 @@ export default function PurchasesPage() {
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-200 font-semibold">
               <div className="text-xs text-slate-600 font-bold">
-                Total de Itens: <strong className="text-slate-950">{selectedOrder.items?.length || 0}</strong>
+                Total de Itens:{' '}
+                <strong className="text-slate-950">{selectedOrder.items?.length || 0}</strong>
               </div>
               <div className="text-right">
-                <span className="text-xs text-slate-600 uppercase mr-2 font-bold">Total Geral:</span>
-                <span className="text-xl font-black text-emerald-700 font-mono">{formatCurrencySafe(selectedOrder.totalAmount)}</span>
+                <span className="text-xs text-slate-600 uppercase mr-2 font-bold">
+                  Total Geral:
+                </span>
+                <span className="text-xl font-black text-emerald-700 font-mono">
+                  {formatCurrencySafe(selectedOrder.totalAmount)}
+                </span>
               </div>
             </div>
           </div>

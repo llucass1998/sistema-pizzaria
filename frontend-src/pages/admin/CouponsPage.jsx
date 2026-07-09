@@ -4,8 +4,8 @@ import { Panel, ListRow, RowActions } from '../../components/admin/AdminUI.jsx';
 import { useToast } from '../../components/ui/ToastProvider.jsx';
 import { CouponModal } from '../../components/admin/CouponModal.jsx';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
   : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api');
 
 export function CouponsPage() {
@@ -24,11 +24,11 @@ export function CouponsPage() {
         const adminDataStr = window.localStorage.getItem('pizzaria-admin');
         if (!adminDataStr) return;
         const { token } = JSON.parse(adminDataStr);
-        
-        const response = await fetch(`${API_BASE_URL}/admin/coupons`, { 
-          headers: { 'Authorization': `Bearer ${token}` } 
+
+        const response = await fetch(`${API_BASE_URL}/admin/coupons`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         if (response.ok && isMounted) {
           const data = await response.json();
           setCoupons(data ?? []);
@@ -41,7 +41,9 @@ export function CouponsPage() {
       }
     }
     loadData();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function saveCoupon(data) {
@@ -59,14 +61,17 @@ export function CouponsPage() {
         usageLimit: data.usageLimit ? Number(data.usageLimit) : null,
       };
 
-      const response = await fetch(`${API_BASE_URL}${isEditing ? `/admin/coupons/${data.id}` : '/admin/coupons'}`, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `${API_BASE_URL}${isEditing ? `/admin/coupons/${data.id}` : '/admin/coupons'}`,
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (!response.ok) throw new Error('Erro ao salvar cupom');
       const saved = await response.json();
@@ -106,14 +111,14 @@ export function CouponsPage() {
     try {
       const adminDataStr = window.localStorage.getItem('pizzaria-admin');
       const { token } = JSON.parse(adminDataStr);
-      
+
       const response = await fetch(`${API_BASE_URL}/admin/coupons/${coupon.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (!response.ok) throw new Error('Erro ao apagar cupom');
-      
+
       setCoupons((current) =>
         current.map((item) => (item.id === coupon.id ? { ...item, isActive: false } : item)),
       );
@@ -153,7 +158,10 @@ export function CouponsPage() {
         </div>
         <button
           type="button"
-          onClick={() => { setCouponForm(null); setIsCouponModalOpen(true); }}
+          onClick={() => {
+            setCouponForm(null);
+            setIsCouponModalOpen(true);
+          }}
           className="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
         >
           <Ticket size={16} />

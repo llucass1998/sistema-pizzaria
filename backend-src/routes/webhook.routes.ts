@@ -19,6 +19,12 @@ webhookRoutes.post('/ifood', async (req, res) => {
     const signature = req.headers['x-webhook-secret'] || req.query.secret;
     const expectedSecret = process.env.IFOOD_WEBHOOK_SECRET;
 
+    if (!expectedSecret && process.env.NODE_ENV === 'production') {
+      logger.error('[iFood Webhook] IFOOD_WEBHOOK_SECRET ausente em producao.');
+      res.status(503).json({ error: 'Webhook secret not configured' });
+      return;
+    }
+
     if (expectedSecret && signature !== expectedSecret) {
       logger.warn('[iFood Webhook] Assinatura/Secret invalido.');
       res.status(401).json({ error: 'Unauthorized' });
@@ -27,24 +33,8 @@ webhookRoutes.post('/ifood', async (req, res) => {
 
     const events = Array.isArray(req.body) ? req.body : [req.body];
 
-    if (events.length === 0 || !events[0].merchantId) {
+    if (events.length === 0 || events.some((event) => !event?.merchantId)) {
       res.status(400).json({ error: 'Invalid payload' });
-      return;
-    }
-
-    const merchantId = events[0].merchantId;
-
-    const credential = await basePrisma.integrationCredential.findFirst({
-      where: {
-        provider: IntegrationProvider.IFOOD,
-        merchantId,
-        isActive: true,
-      },
-    });
-
-    if (!credential) {
-      logger.warn(`[iFood Webhook] Credencial ativa nao encontrada para merchantId: ${merchantId}`);
-      res.status(200).send('OK');
       return;
     }
 
@@ -52,9 +42,26 @@ webhookRoutes.post('/ifood', async (req, res) => {
     res.status(202).send('Accepted');
 
     for (const event of events) {
+      const merchantId = event.merchantId;
+
       try {
+        const credential = await basePrisma.integrationCredential.findFirst({
+          where: {
+            provider: IntegrationProvider.IFOOD,
+            merchantId,
+            isActive: true,
+          },
+        });
+
+        if (!credential) {
+          logger.warn(
+            `[iFood Webhook] Credencial ativa nao encontrada para merchantId: ${merchantId}`,
+          );
+          continue;
+        }
+
         await tenantContext.run({ tenantId: credential.tenantId }, async () => {
-          await IfoodService.processEvent(credential, event);
+          await IfoodService.processEvent(credential, event, 'WEBHOOK');
         });
       } catch (err) {
         logger.error(`[iFood Webhook] Erro ao processar evento no webhook:`, err);

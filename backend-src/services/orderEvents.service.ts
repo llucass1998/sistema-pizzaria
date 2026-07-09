@@ -7,7 +7,8 @@ type OrderEventClient = {
   heartbeat: NodeJS.Timeout;
 };
 
-type OrderEventPayload = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+type OrderEventPayload =
+  Record<string, unknown> | Array<unknown> | string | number | boolean | null;
 
 const clientsByTenant = new Map<string, Map<string, OrderEventClient>>();
 

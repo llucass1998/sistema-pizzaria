@@ -18,7 +18,17 @@ export interface CreatePayableInput {
   tenantId: string;
   supplierId?: string | null;
   description: string;
-  category: 'SUPPLIER' | 'RENT' | 'ENERGY' | 'WATER' | 'INTERNET' | 'SALARY' | 'MARKETING' | 'TAX' | 'MAINTENANCE' | 'OTHER';
+  category:
+    | 'SUPPLIER'
+    | 'RENT'
+    | 'ENERGY'
+    | 'WATER'
+    | 'INTERNET'
+    | 'SALARY'
+    | 'MARKETING'
+    | 'TAX'
+    | 'MAINTENANCE'
+    | 'OTHER';
   amount: number;
   dueDate: Date | string;
   recurrenceType?: 'NONE' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
@@ -105,7 +115,11 @@ export class PayablesService {
   /**
    * Lista contas a pagar com filtros e suporte a pesquisa.
    */
-  static async getPayables(tenantId: string, filters: PayablesFilter = {}, db: Db | any = basePrisma) {
+  static async getPayables(
+    tenantId: string,
+    filters: PayablesFilter = {},
+    db: Db | any = basePrisma,
+  ) {
     await this.checkAndMarkOverdue(tenantId, db);
 
     const where: any = { tenantId };
@@ -138,10 +152,7 @@ export class PayablesService {
           orderBy: { paidAt: 'desc' },
         },
       },
-      orderBy: [
-        { dueDate: 'asc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
@@ -206,7 +217,7 @@ export class PayablesService {
       if (paymentDec.greaterThan(currentRemaining)) {
         throw businessError(
           `O valor do pagamento (R$ ${input.amount.toFixed(2)}) é maior que o saldo devedor (R$ ${Number(currentRemaining).toFixed(2)}).`,
-          422
+          422,
         );
       }
 

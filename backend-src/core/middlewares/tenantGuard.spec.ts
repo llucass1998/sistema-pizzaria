@@ -29,7 +29,11 @@ describe('tenantGuard', () => {
     vi.clearAllMocks();
   });
 
-  it('keeps x-tenant-id as the highest priority source', async () => {
+  it('keeps a valid x-tenant-id as the highest priority source', async () => {
+    mocks.queryRawUnsafe
+      .mockResolvedValueOnce([{ column_name: 'isActive' }])
+      .mockResolvedValueOnce([{ id: 'tenant-from-header' }]);
+
     const response = await request(createApp())
       .get('/tenant')
       .set('x-tenant-id', 'tenant-from-header')
@@ -37,7 +41,24 @@ describe('tenantGuard', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ tenantId: 'tenant-from-header' });
-    expect(mocks.queryRawUnsafe).not.toHaveBeenCalled();
+    expect(mocks.queryRawUnsafe).toHaveBeenLastCalledWith(
+      expect.stringContaining('WHERE id = $1'),
+      'tenant-from-header',
+    );
+  });
+
+  it('rejects an invalid x-tenant-id instead of falling back to another tenant', async () => {
+    mocks.queryRawUnsafe
+      .mockResolvedValueOnce([{ column_name: 'isActive' }])
+      .mockResolvedValueOnce([]);
+
+    const response = await request(createApp())
+      .get('/tenant')
+      .set('x-tenant-id', 'tenant-from-header')
+      .set('Host', 'pizzarialucas.istigestao.com.br');
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toContain('tenant invalido');
   });
 
   it('resolves the tenant from the production domain host when the header is absent', async () => {

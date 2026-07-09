@@ -1,11 +1,14 @@
 import { prisma } from '../../lib/prisma.js';
 import { logger } from '../../utils/logger.js';
-import { IntegrationProvider, type IntegrationCredential } from '../../../generated/prisma/index.js';
+import {
+  IntegrationProvider,
+  type IntegrationCredential,
+} from '../../../generated/prisma/index.js';
 
 export class IfoodMerchantService {
   static async getStatus(credential: IntegrationCredential) {
     if (!credential.merchantId) throw new Error('Merchant ID nao configurado.');
-    
+
     // API Real: GET /merchant/v1.0/merchants/{id}/status
     // Mockando para homologacao
     return {
@@ -32,7 +35,7 @@ export class IfoodMerchantService {
         eventType: 'MERCHANT_STATUS',
         status: 'PROCESSED',
         payload: { action: 'PAUSE', reason, adminId } as any,
-      } as any
+      } as any,
     });
 
     return { success: true, status: 'UNAVAILABLE', reason };
@@ -54,7 +57,7 @@ export class IfoodMerchantService {
         eventType: 'MERCHANT_STATUS',
         status: 'PROCESSED',
         payload: { action: 'RESUME', adminId } as any,
-      } as any
+      } as any,
     });
 
     return { success: true, status: 'AVAILABLE' };

@@ -1,0 +1,13 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache bash curl openssl postgresql-client
+
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+ENV PATH=/app/node_modules/.bin:$PATH
+ENV NODE_ENV=development
+
+CMD ["bash"]

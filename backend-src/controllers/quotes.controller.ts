@@ -20,17 +20,39 @@ const createQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1, 'Adicione pelo menos um item ao orcamento.'),
   notes: z.string().optional(),
   status: z
-    .enum(['DRAFT', 'SENT', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELED', 'CANCELLED', 'EXPIRED', 'PENDING'])
+    .enum([
+      'DRAFT',
+      'SENT',
+      'APPROVED',
+      'REJECTED',
+      'CONVERTED',
+      'CANCELED',
+      'CANCELLED',
+      'EXPIRED',
+      'PENDING',
+    ])
     .optional(),
 });
 
 const quoteStatusSchema = z.object({
-  status: z.enum(['DRAFT', 'SENT', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELED', 'CANCELLED', 'EXPIRED', 'PENDING']),
+  status: z.enum([
+    'DRAFT',
+    'SENT',
+    'APPROVED',
+    'REJECTED',
+    'CONVERTED',
+    'CANCELED',
+    'CANCELLED',
+    'EXPIRED',
+    'PENDING',
+  ]),
 });
 
-const updateQuoteSchema = createQuoteSchema.partial().refine((payload) => Object.keys(payload).length > 0, {
-  message: 'Informe ao menos um campo para atualizar.',
-});
+const updateQuoteSchema = createQuoteSchema
+  .partial()
+  .refine((payload) => Object.keys(payload).length > 0, {
+    message: 'Informe ao menos um campo para atualizar.',
+  });
 
 function canonicalQuoteStatus(status: string | null | undefined) {
   if (status === 'CANCELLED') return 'CANCELED';
@@ -62,7 +84,7 @@ export const QuotesController = {
     const tenantId = getTenantId();
     const quotes = await prisma.quote.findMany({
       where: { tenantId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
     res.json(quotes.map(serializeQuote));
   },
@@ -101,7 +123,7 @@ export const QuotesController = {
         totalAmount: payload.totalAmount,
         items: payload.items,
         notes: payload.notes,
-      }
+      },
     });
 
     res.status(201).json(serializeQuote(quote));
@@ -115,7 +137,7 @@ export const QuotesController = {
 
     const result = await prisma.quote.updateMany({
       where: { id, tenantId },
-      data: { status }
+      data: { status },
     });
 
     if (result.count === 0) {
@@ -188,7 +210,8 @@ export const QuotesController = {
 
     if (canonicalQuoteStatus(quote.status) === 'CONVERTED') {
       res.status(422).json({
-        message: 'Orcamentos convertidos nao podem ser excluidos. Cancele ou mantenha o historico financeiro.',
+        message:
+          'Orcamentos convertidos nao podem ser excluidos. Cancele ou mantenha o historico financeiro.',
       });
       return;
     }
@@ -198,5 +221,5 @@ export const QuotesController = {
     });
 
     res.status(204).send();
-  }
+  },
 };

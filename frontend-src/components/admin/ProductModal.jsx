@@ -15,7 +15,11 @@ const productSchema = z.object({
   imageUrl: z.string().optional(),
   isAvailable: z.boolean().default(true),
   kdsStation: z.string().optional().nullable(),
-  prepTimeMinutes: z.number().or(z.string().transform((val) => val ? Number(val) : null)).optional().nullable(),
+  prepTimeMinutes: z
+    .number()
+    .or(z.string().transform((val) => (val ? Number(val) : null)))
+    .optional()
+    .nullable(),
   variants: z
     .array(
       z.object({
@@ -202,9 +206,9 @@ export function ProductModal({ isOpen, onClose, initialData, categories, onSave,
   const selectedCategoryConfig = categories?.find((category) => category.slug === selectedCategory);
   const allowsSizes = Boolean(
     selectedCategoryConfig?.allowSizes ||
-      ['pizzas', 'pizzas-especiais', 'pizzas-tradicionais', 'pizzas-doces'].includes(
-        selectedCategory,
-      ),
+    ['pizzas', 'pizzas-especiais', 'pizzas-tradicionais', 'pizzas-doces'].includes(
+      selectedCategory,
+    ),
   );
 
   const [imageFile, setImageFile] = useState(null);

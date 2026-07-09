@@ -1,8 +1,8 @@
 /**
  * Script de correção: Garante que admin@riopizzas.com tenha role OWNER.
- * 
+ *
  * Executa: node fix_admin_owner.js
- * 
+ *
  * O que faz:
  * 1. Localiza TODAS as contas admin@riopizzas.com no banco
  * 2. Define role = 'OWNER' em cada uma delas
@@ -73,7 +73,7 @@ async function main() {
     });
 
     // 2. Atualizar role para OWNER em todas as contas
-    const needsUpdate = before.filter(a => a.role !== TARGET_ROLE);
+    const needsUpdate = before.filter((a) => a.role !== TARGET_ROLE);
     if (needsUpdate.length === 0) {
       console.log(`✅ Todas as contas já têm role ${TARGET_ROLE}. Nenhuma correção necessária.\n`);
       return;
@@ -106,11 +106,13 @@ async function main() {
       console.log(`  ${i + 1}. ${status} [${a.role}] ${a.email} — Tenant: ${a.tenant?.name}`);
     });
 
-    const allCorrect = after.every(a => a.role === TARGET_ROLE);
+    const allCorrect = after.every((a) => a.role === TARGET_ROLE);
     if (allCorrect) {
       console.log(`\n🎉 Correção concluída! admin@riopizzas.com tem acesso TOTAL ao sistema.\n`);
     } else {
-      console.log(`\n❌ ATENÇÃO: Algumas contas ainda não têm role OWNER. Verifique manualmente.\n`);
+      console.log(
+        `\n❌ ATENÇÃO: Algumas contas ainda não têm role OWNER. Verifique manualmente.\n`,
+      );
       process.exit(1);
     }
   } finally {
@@ -118,7 +120,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Erro:', err.message);
   process.exit(1);
 });

@@ -146,9 +146,10 @@ model Tenant {
   wasteRecords        WasteRecord[]
 
   // Delivery
-  deliveryZones       DeliveryZone[]
-  deliveryRadiusRules DeliveryRadiusRule[]
-  drivers             Driver[]
+  deliveryZones        DeliveryZone[]
+  deliveryRadiusRules  DeliveryRadiusRule[]
+  drivers              Driver[]
+  driverDeliveryEvents DriverDeliveryEvent[]
 
   // Fiscal
   fiscalSettings  FiscalSettings?
@@ -335,44 +336,45 @@ model Admin {
 }
 
 model Order {
-  id                     String               @id @default(uuid())
+  id                     String                @id @default(uuid())
   tenantId               String
-  tenant                 Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant                 Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customerId             String
-  customer               Customer             @relation(fields: [customerId], references: [id])
+  customer               Customer              @relation(fields: [customerId], references: [id])
   fulfillmentType        String
-  origin                 OrderOrigin          @default(SITE_PROPRIO)
+  origin                 OrderOrigin           @default(SITE_PROPRIO)
   externalId             String?
   externalMerchantId     String?
-  status                 String               @default("PENDING")
+  status                 String                @default("PENDING")
   paymentMethod          String?
-  paymentStatus          String               @default("PENDING")
-  paymentMode            String               @default("FULL")
+  paymentStatus          String                @default("PENDING")
+  paymentMode            String                @default("FULL")
   depositPercent         Decimal?
-  depositAmount          Decimal              @default(0)
-  remainingAmount        Decimal              @default(0)
-  amountPaid             Decimal              @default(0)
-  amountDue              Decimal              @default(0)
-  remainingPaymentStatus String               @default("NOT_APPLICABLE")
+  depositAmount          Decimal               @default(0)
+  remainingAmount        Decimal               @default(0)
+  amountPaid             Decimal               @default(0)
+  amountDue              Decimal               @default(0)
+  remainingPaymentStatus String                @default("NOT_APPLICABLE")
   remainingPaidAt        DateTime?
   paidAt                 DateTime?
   paymentProvider        String?
   paymentExternalId      String?
   paymentUrl             String?
   driverId               String?
-  driver                 Driver?              @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  driver                 Driver?               @relation(fields: [driverId], references: [id], onDelete: SetNull)
   street                 String?
   number                 String?
   neighborhood           String?
   complement             String?
-  deliveryFee            Decimal              @default(0)
+  deliveryFee            Decimal               @default(0)
   subtotal               Decimal
   total                  Decimal
   notes                  String?
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   items                  OrderItem[]
   statusEvents           OrderStatusEvent[]
+  driverDeliveryEvents   DriverDeliveryEvent[]
   paymentTransactions    PaymentTransaction[]
   invoice                Invoice?
   fiscalDocument         FiscalDocument?
@@ -761,9 +763,31 @@ model Driver {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders Order[]
+  orders         Order[]
+  deliveryEvents DriverDeliveryEvent[]
 
   @@unique([tenantId, phone])
+}
+
+model DriverDeliveryEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driverId  String?
+  driver    Driver?  @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  actorId   String?
+  type      String
+  status    String?
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, orderId, createdAt])
+  @@index([tenantId, driverId, createdAt])
+  @@index([tenantId, type, createdAt])
+  @@index([actorId])
 }
 
 model DeliveryZone {

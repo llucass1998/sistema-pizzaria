@@ -1,0 +1,116 @@
+services:
+  db-dev:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pizzaria
+    ports:
+      - "55433:5432"
+    volumes:
+      - pizzaria_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pizzaria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sgbi
+    profiles:
+      - dev
+
+  waha-dev:
+    image: devlikeapro/waha
+    restart: unless-stopped
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: WEBJS
+    networks:
+      - sgbi
+    profiles:
+      - dev
+
+  tools:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: pizzaria-dev-tools:latest
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db-dev:5432/pizzaria?schema=public
+      NODE_ENV: development
+      RUN_SAFE_STARTUP_SQL: "false"
+      RUN_DB_PUSH_ON_STARTUP: "false"
+      RUN_SEED_ON_STARTUP: "false"
+      RUN_RESET_ADMIN_ON_STARTUP: "false"
+    volumes:
+      - .:/app
+      - pizzaria_dev_node_modules:/app/node_modules
+    depends_on:
+      db-dev:
+        condition: service_healthy
+    networks:
+      - sgbi
+    profiles:
+      - dev
+
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: pizzaria-dev-tools:latest
+    working_dir: /app
+    command: npm run api
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db-dev:5432/pizzaria?schema=public
+      PORT: 3000
+      NODE_ENV: development
+      WAHA_URL: http://waha-dev:3000/api
+      RUN_SAFE_STARTUP_SQL: "false"
+      RUN_DB_PUSH_ON_STARTUP: "false"
+      RUN_SEED_ON_STARTUP: "false"
+      RUN_RESET_ADMIN_ON_STARTUP: "false"
+    ports:
+      - "53000:3000"
+    volumes:
+      - .:/app
+      - pizzaria_dev_node_modules:/app/node_modules
+      - pizzaria_dev_uploads:/app/public/uploads
+    depends_on:
+      db-dev:
+        condition: service_healthy
+    networks:
+      - sgbi
+    profiles:
+      - dev
+
+  web-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: pizzaria-dev-tools:latest
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: /api
+      VITE_DEV_API_TARGET: http://api-dev:3000
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - pizzaria_dev_node_modules:/app/node_modules
+    depends_on:
+      - api-dev
+    networks:
+      - sgbi
+    profiles:
+      - dev
+
+volumes:
+  pizzaria_dev_node_modules:
+    name: pizzaria_dev_node_modules
+  pizzaria_dev_pgdata:
+    name: pizzaria_dev_pgdata
+  pizzaria_dev_uploads:
+    name: pizzaria_dev_uploads

@@ -15,7 +15,13 @@ function makeMockDb() {
         return payables.find((p) => p.id === where.id && p.tenantId === where.tenantId) || null;
       }),
       create: vi.fn(async ({ data }: any) => {
-        const item = { id: PAYABLE_ID, ...data, createdAt: new Date(), updatedAt: new Date(), payments: [] };
+        const item = {
+          id: PAYABLE_ID,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          payments: [],
+        };
         payables.push(item);
         return item;
       }),
@@ -72,7 +78,7 @@ describe('PayablesService', () => {
           amount: 1500,
           dueDate: '2026-07-10',
         },
-        db
+        db,
       );
 
       expect(result.id).toBe(PAYABLE_ID);
@@ -92,8 +98,8 @@ describe('PayablesService', () => {
             amount: -10,
             dueDate: '2026-07-10',
           },
-          db
-        )
+          db,
+        ),
       ).rejects.toThrow('O valor da despesa deve ser maior que zero.');
     });
 
@@ -107,8 +113,8 @@ describe('PayablesService', () => {
             amount: 100,
             dueDate: '2026-07-10',
           },
-          db
-        )
+          db,
+        ),
       ).rejects.toThrow('A descrição da despesa é obrigatória.');
     });
   });
@@ -134,7 +140,7 @@ describe('PayablesService', () => {
           amount: 500,
           paymentMethod: 'PIX',
         },
-        db
+        db,
       );
 
       expect(result.paidAmount).toEqual(new Prisma.Decimal(500));
@@ -150,7 +156,7 @@ describe('PayablesService', () => {
           amount: 2000,
           paymentMethod: 'TRANSFER',
         },
-        db
+        db,
       );
 
       expect(result.paidAmount).toEqual(new Prisma.Decimal(2000));
@@ -167,8 +173,8 @@ describe('PayablesService', () => {
             amount: 2500,
             paymentMethod: 'PIX',
           },
-          db
-        )
+          db,
+        ),
       ).rejects.toThrow(/é maior que o saldo devedor/);
     });
 
@@ -182,8 +188,8 @@ describe('PayablesService', () => {
             amount: 100,
             paymentMethod: 'PIX',
           },
-          db
-        )
+          db,
+        ),
       ).rejects.toThrow('Não é possível realizar pagamentos em uma despesa cancelada.');
     });
   });
@@ -208,7 +214,7 @@ describe('PayablesService', () => {
       });
 
       await expect(PayablesService.cancelPayable(TENANT, PAYABLE_ID, db)).rejects.toThrow(
-        'Não é possível cancelar uma despesa já quitada.'
+        'Não é possível cancelar uma despesa já quitada.',
       );
     });
   });

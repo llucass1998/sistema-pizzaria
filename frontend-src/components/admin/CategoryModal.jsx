@@ -18,7 +18,11 @@ const categorySchema = z.object({
   allowHalfAndHalf: z.boolean().default(false),
   halfAndHalfGroup: z.string().optional(),
   kdsStation: z.string().optional().nullable(),
-  prepTimeMinutes: z.number().or(z.string().transform((val) => val ? Number(val) : null)).optional().nullable(),
+  prepTimeMinutes: z
+    .number()
+    .or(z.string().transform((val) => (val ? Number(val) : null)))
+    .optional()
+    .nullable(),
 });
 
 export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }) {
@@ -200,7 +204,11 @@ export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }
                   Exibe tamanhos no produto e exige tamanho no cardapio.
                 </span>
               </span>
-              <input type="checkbox" {...register('allowSizes')} className="h-5 w-5 accent-red-600" />
+              <input
+                type="checkbox"
+                {...register('allowSizes')}
+                className="h-5 w-5 accent-red-600"
+              />
             </label>
 
             <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-950">
@@ -212,7 +220,11 @@ export function CategoryModal({ isOpen, onClose, initialData, onSave, isSaving }
                   Combina produtos do mesmo grupo e cobra o maior preco.
                 </span>
               </span>
-              <input type="checkbox" {...register('allowHalfAndHalf')} className="h-5 w-5 accent-red-600" />
+              <input
+                type="checkbox"
+                {...register('allowHalfAndHalf')}
+                className="h-5 w-5 accent-red-600"
+              />
             </label>
 
             <div>

@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/prisma.js';
 import { logger } from '../../utils/logger.js';
-import { IntegrationProvider, type IntegrationCredential } from '../../../generated/prisma/index.js';
+import {
+  IntegrationProvider,
+  type IntegrationCredential,
+} from '../../../generated/prisma/index.js';
 
 export class IfoodCatalogService {
   static async getCatalogPreview(tenantId: string) {
@@ -34,7 +37,11 @@ export class IfoodCatalogService {
       }
 
       if (Number(product.price) <= 0 && (!product.variants || product.variants.length === 0)) {
-        invalidItems.push({ id: product.id, name: product.name, reason: 'Produto sem preco base ou variacoes' });
+        invalidItems.push({
+          id: product.id,
+          name: product.name,
+          reason: 'Produto sem preco base ou variacoes',
+        });
         continue;
       }
 
@@ -51,18 +58,20 @@ export class IfoodCatalogService {
         categoryId: product.categoryId,
         categoryName: product.menuCategory?.name || 'Geral',
         shifts: [],
-        optionGroups: product.optionGroups?.map((opt: any) => ({
-          id: opt.id,
-          name: opt.name,
-          minQuantity: opt.minChoices,
-          maxQuantity: opt.maxChoices,
-          options: opt.options?.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: Number(item.price || 0),
-            status: 'AVAILABLE',
+        optionGroups:
+          product.optionGroups?.map((opt: any) => ({
+            id: opt.id,
+            name: opt.name,
+            minQuantity: opt.minChoices,
+            maxQuantity: opt.maxChoices,
+            options:
+              opt.options?.map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                price: Number(item.price || 0),
+                status: 'AVAILABLE',
+              })) || [],
           })) || [],
-        })) || [],
       };
 
       validItems.push(ifoodItem);
@@ -85,12 +94,14 @@ export class IfoodCatalogService {
       throw new Error('Nenhum produto valido para sincronizar.');
     }
 
-    logger.info(`[iFood Catalog] Sincronizando ${preview.totalValidItems} itens para a loja ${credential.merchantId}`);
+    logger.info(
+      `[iFood Catalog] Sincronizando ${preview.totalValidItems} itens para a loja ${credential.merchantId}`,
+    );
 
     // Em uma integracao real, aqui fariamos os POSTs para a API do iFood
     // Ex: POST /catalog/v1.0/merchants/{merchantId}/catalogs
     // Mockando para homologacao
-    
+
     await prisma.integrationEventLog.create({
       data: {
         tenantId: credential.tenantId,
@@ -102,7 +113,7 @@ export class IfoodCatalogService {
           validItems: preview.totalValidItems,
           invalidItems: preview.totalInvalidItems,
         } as any,
-      } as any
+      } as any,
     });
 
     return {

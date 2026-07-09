@@ -9,7 +9,8 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 
-export const healthRoutes = Router();
+export const publicHealthRoutes = Router();
+export const detailedHealthRoutes = Router();
 
 type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
 
@@ -62,7 +63,7 @@ function computeOverallStatus(components: Record<string, ComponentHealth>): Heal
 // ─── GET /health ───────────────────────────────────────────────────────────────
 // Verificacao rapida de saude — ideal para load balancers e uptime monitors.
 // Retorna 200 se saudavel, 503 se critico.
-healthRoutes.get('/health', async (_req, res) => {
+publicHealthRoutes.get('/health', async (_req, res) => {
   const db = await checkDatabase();
   const overall = computeOverallStatus({ database: db });
 
@@ -80,7 +81,7 @@ healthRoutes.get('/health', async (_req, res) => {
 
 // ─── GET /health/detailed ─────────────────────────────────────────────────────
 // Diagnostico completo com contagens do banco. Requer admin.
-healthRoutes.get('/health/detailed', requireAdmin, async (_req, res) => {
+detailedHealthRoutes.get('/health/detailed', requireAdmin, async (_req, res) => {
   const db = await checkDatabase();
 
   let counts: Record<string, number> = {};

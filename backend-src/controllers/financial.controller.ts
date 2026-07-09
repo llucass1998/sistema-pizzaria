@@ -21,7 +21,12 @@ export const FinancialController = {
     const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
     const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
 
-    const summary = await FinancialAnalyticsService.getFinancialSummary(tenantId, period, startDate, endDate);
+    const summary = await FinancialAnalyticsService.getFinancialSummary(
+      tenantId,
+      period,
+      startDate,
+      endDate,
+    );
     res.json(summary);
   },
 
@@ -34,7 +39,12 @@ export const FinancialController = {
     const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
     const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
 
-    const cashFlow = await FinancialAnalyticsService.getCashFlow(tenantId, period, startDate, endDate);
+    const cashFlow = await FinancialAnalyticsService.getCashFlow(
+      tenantId,
+      period,
+      startDate,
+      endDate,
+    );
     res.json(cashFlow);
   },
 
@@ -60,7 +70,12 @@ export const FinancialController = {
     const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
     const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
 
-    const reconciliation = await FinancialAnalyticsService.getReconciliation(tenantId, period, startDate, endDate);
+    const reconciliation = await FinancialAnalyticsService.getReconciliation(
+      tenantId,
+      period,
+      startDate,
+      endDate,
+    );
     res.json(reconciliation);
   },
 
@@ -74,7 +89,13 @@ export const FinancialController = {
     const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
     const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
 
-    const report = await FinancialAnalyticsService.getFinancialReports(tenantId, type, period, startDate, endDate);
+    const report = await FinancialAnalyticsService.getFinancialReports(
+      tenantId,
+      type,
+      period,
+      startDate,
+      endDate,
+    );
     res.json(report);
   },
 

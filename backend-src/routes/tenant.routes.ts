@@ -18,20 +18,19 @@ tenantRoutes.get(
     if (slug) {
       tenant = await prisma.tenant.findFirst({
         where: { slug: String(slug), isActive: true },
-        include: { storeSettings: true }
+        include: { storeSettings: true },
       });
     } else if (host) {
-      const parsedHost = String(host).replace(/^https?:\/\//, '').split(':')[0]; // remove http e porta
-      
+      const parsedHost = String(host)
+        .replace(/^https?:\/\//, '')
+        .split(':')[0]; // remove http e porta
+
       tenant = await prisma.tenant.findFirst({
         where: {
           isActive: true,
-          OR: [
-            { customDomain: parsedHost },
-            { subdomain: parsedHost.split('.')[0] }
-          ]
+          OR: [{ customDomain: parsedHost }, { subdomain: parsedHost.split('.')[0] }],
         },
-        include: { storeSettings: true }
+        include: { storeSettings: true },
       });
     }
 
@@ -40,12 +39,12 @@ tenantRoutes.get(
       // Em uma aplicação SaaS real estrita, retornaríamos 404.
       tenant = await prisma.tenant.findFirst({
         where: { isActive: true },
-        include: { storeSettings: true }
+        include: { storeSettings: true },
       });
 
       if (!tenant) {
-         res.status(404).json({ message: 'Nenhuma loja encontrada.' });
-         return;
+        res.status(404).json({ message: 'Nenhuma loja encontrada.' });
+        return;
       }
     }
 
@@ -75,5 +74,5 @@ tenantRoutes.get(
       allowPayRestOnDelivery: settings?.allowPayRestOnDelivery ?? true,
       depositLabel: settings?.depositLabel ?? 'Pague 50% agora e o restante na entrega.',
     });
-  })
+  }),
 );

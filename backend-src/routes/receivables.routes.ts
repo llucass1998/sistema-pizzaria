@@ -9,6 +9,12 @@ receivablesRouter.use(requireRole(['OWNER', 'ADMIN', 'MANAGER']));
 
 receivablesRouter.get('/invoices', asyncHandler(ReceivablesController.getInvoices));
 receivablesRouter.get('/invoices/summary', asyncHandler(ReceivablesController.getSummary));
-receivablesRouter.post('/invoices/:invoiceId/payments', asyncHandler(ReceivablesController.recordPayment));
+receivablesRouter.post(
+  '/invoices/:invoiceId/payments',
+  asyncHandler(ReceivablesController.recordPayment),
+);
 receivablesRouter.put('/invoices/:id', asyncHandler(ReceivablesController.updateInvoice));
-receivablesRouter.delete('/invoices/:invoiceId/payments/:paymentId', asyncHandler(ReceivablesController.reversePayment));
+receivablesRouter.delete(
+  '/invoices/:invoiceId/payments/:paymentId',
+  asyncHandler(ReceivablesController.reversePayment),
+);

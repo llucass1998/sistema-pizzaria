@@ -19,29 +19,33 @@ function normalizeHexColor(value: unknown, fallback = DEFAULT_NAVBAR_COLOR) {
 
 const hexColorSchema = z.preprocess(
   (value) => normalizeHexColor(value),
-  z
-    .string()
-    .regex(HEX_COLOR_REGEX, 'Cor da navbar invalida. Use uma cor hexadecimal valida.'),
+  z.string().regex(HEX_COLOR_REGEX, 'Cor da navbar invalida. Use uma cor hexadecimal valida.'),
 );
 
-const optionalAssetUrlSchema = z.preprocess((value) => {
-  if (value === undefined) {
-    return undefined;
-  }
+const optionalAssetUrlSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
 
-  const text = String(value ?? '').trim();
-  return text || null;
-}, z.string().max(500).nullable().optional().refine((value) => {
-  if (!value) {
-    return true;
-  }
+    const text = String(value ?? '').trim();
+    return text || null;
+  },
+  z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .refine((value) => {
+      if (!value) {
+        return true;
+      }
 
-  return (
-    value.startsWith('/uploads/') ||
-    value.startsWith('https://') ||
-    value.startsWith('http://')
-  );
-}, 'Informe uma URL de imagem valida.'));
+      return (
+        value.startsWith('/uploads/') || value.startsWith('https://') || value.startsWith('http://')
+      );
+    }, 'Informe uma URL de imagem valida.'),
+);
 
 export const updateDeliveryFeeSchema = z.object({
   deliveryFee: z.coerce.number().min(0, 'A taxa de entrega não pode ser negativa.'),
@@ -145,12 +149,18 @@ export const SettingsController = {
             : currentSettings.openGraphImageUrl,
         navbarColor: payload.navbarColor ?? currentSettings.navbarColor ?? DEFAULT_NAVBAR_COLOR,
         brandColor: payload.brandColor ?? currentSettings.brandColor ?? DEFAULT_NAVBAR_COLOR,
-        ...(payload.deliveryFeeMode !== undefined ? { deliveryFeeMode: payload.deliveryFeeMode } : {}),
+        ...(payload.deliveryFeeMode !== undefined
+          ? { deliveryFeeMode: payload.deliveryFeeMode }
+          : {}),
         ...(payload.deliveryFee !== undefined ? { deliveryFee: payload.deliveryFee } : {}),
         ...(payload.serviceFee !== undefined ? { serviceFee: payload.serviceFee } : {}),
-        ...(payload.featuredProductId !== undefined ? { featuredProductId: payload.featuredProductId } : {}),
+        ...(payload.featuredProductId !== undefined
+          ? { featuredProductId: payload.featuredProductId }
+          : {}),
         ...(payload.isMaintenance !== undefined ? { isMaintenance: payload.isMaintenance } : {}),
-        ...(payload.maintenanceMessage !== undefined ? { maintenanceMessage: payload.maintenanceMessage } : {}),
+        ...(payload.maintenanceMessage !== undefined
+          ? { maintenanceMessage: payload.maintenanceMessage }
+          : {}),
       },
       create: {
         tenantId,
@@ -193,17 +203,27 @@ export const SettingsController = {
         deliveryFeeMode: payload.deliveryFeeMode ?? currentSettings.deliveryFeeMode ?? 'FIXED',
         deliveryFee: payload.deliveryFee ?? currentSettings.deliveryFee,
         serviceFee: payload.serviceFee ?? currentSettings.serviceFee,
-        featuredProductId: payload.featuredProductId !== undefined ? payload.featuredProductId : currentSettings.featuredProductId,
+        featuredProductId:
+          payload.featuredProductId !== undefined
+            ? payload.featuredProductId
+            : currentSettings.featuredProductId,
         isMaintenance: payload.isMaintenance ?? currentSettings.isMaintenance ?? false,
-        maintenanceMessage: payload.maintenanceMessage !== undefined ? payload.maintenanceMessage : currentSettings.maintenanceMessage,
+        maintenanceMessage:
+          payload.maintenanceMessage !== undefined
+            ? payload.maintenanceMessage
+            : currentSettings.maintenanceMessage,
       } as any,
     });
 
     const fsPayload: Record<string, any> = {};
-    if (payload.notifyNewOrderWhatsApp !== undefined) fsPayload['notifyNewOrderWhatsApp'] = payload.notifyNewOrderWhatsApp;
-    if (payload.notifyLowStockWhatsApp !== undefined) fsPayload['notifyLowStockWhatsApp'] = payload.notifyLowStockWhatsApp;
-    if (payload.notifyDeliveryDoneWhatsApp !== undefined) fsPayload['notifyDeliveryDoneWhatsApp'] = payload.notifyDeliveryDoneWhatsApp;
-    if (payload.notificationWhatsAppNumber !== undefined) fsPayload['notificationWhatsAppNumber'] = payload.notificationWhatsAppNumber;
+    if (payload.notifyNewOrderWhatsApp !== undefined)
+      fsPayload['notifyNewOrderWhatsApp'] = payload.notifyNewOrderWhatsApp;
+    if (payload.notifyLowStockWhatsApp !== undefined)
+      fsPayload['notifyLowStockWhatsApp'] = payload.notifyLowStockWhatsApp;
+    if (payload.notifyDeliveryDoneWhatsApp !== undefined)
+      fsPayload['notifyDeliveryDoneWhatsApp'] = payload.notifyDeliveryDoneWhatsApp;
+    if (payload.notificationWhatsAppNumber !== undefined)
+      fsPayload['notificationWhatsAppNumber'] = payload.notificationWhatsAppNumber;
 
     const fsSettings = await updateTenantFsSettings(tenantId, fsPayload);
 

@@ -20,6 +20,30 @@ const updateSettingsSchema = z.object({
   tokenSefaz: z.string().optional().nullable(),
 });
 
+function fiscalSettingsDto(settings: {
+  id: string;
+  tenantId: string;
+  environment: string;
+  certificateUrl: string | null;
+  certificatePassword: string | null;
+  tokenSefaz: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: settings.id,
+    tenantId: settings.tenantId,
+    environment: settings.environment,
+    certificateUrl: settings.certificateUrl ?? '',
+    certificatePassword: settings.certificatePassword ? '********' : '',
+    tokenSefaz: settings.tokenSefaz ? '********' : '',
+    hasCertificatePassword: Boolean(settings.certificatePassword),
+    hasTokenSefaz: Boolean(settings.tokenSefaz),
+    createdAt: settings.createdAt,
+    updatedAt: settings.updatedAt,
+  };
+}
+
 fiscalRoutes.get(
   '/',
   asyncHandler(async (_req, res) => {
@@ -60,8 +84,8 @@ fiscalRoutes.get(
       });
     }
 
-    res.json(settings);
-  })
+    res.json(fiscalSettingsDto(settings));
+  }),
 );
 
 /**
@@ -74,25 +98,30 @@ fiscalRoutes.patch(
     const tenantId = getTenantId();
     const payload = updateSettingsSchema.parse(req.body);
 
+    const certificatePassword = payload.certificatePassword?.trim();
+    const tokenSefaz = payload.tokenSefaz?.trim();
+    const keepCertificatePassword = !certificatePassword || certificatePassword === '********';
+    const keepTokenSefaz = !tokenSefaz || tokenSefaz === '********';
+
     const updated = await prisma.fiscalSettings.upsert({
       where: { tenantId },
       create: {
         tenantId,
         environment: payload.environment ?? 'HOMOLOGACAO',
         certificateUrl: payload.certificateUrl,
-        certificatePassword: payload.certificatePassword,
-        tokenSefaz: payload.tokenSefaz,
+        certificatePassword: keepCertificatePassword ? null : certificatePassword,
+        tokenSefaz: keepTokenSefaz ? null : tokenSefaz,
       },
       update: {
         ...(payload.environment ? { environment: payload.environment } : {}),
         ...(payload.certificateUrl !== undefined ? { certificateUrl: payload.certificateUrl } : {}),
-        ...(payload.certificatePassword !== undefined ? { certificatePassword: payload.certificatePassword } : {}),
-        ...(payload.tokenSefaz !== undefined ? { tokenSefaz: payload.tokenSefaz } : {}),
+        ...(!keepCertificatePassword ? { certificatePassword } : {}),
+        ...(!keepTokenSefaz ? { tokenSefaz } : {}),
       },
     });
 
-    res.json(updated);
-  })
+    res.json(fiscalSettingsDto(updated));
+  }),
 );
 
 /**
@@ -130,9 +159,9 @@ fiscalRoutes.get(
       docs.map((d) => ({
         ...d,
         orderTotal: d.order ? Number(d.order.total) : 0,
-      }))
+      })),
     );
-  })
+  }),
 );
 
 /**
@@ -150,5 +179,5 @@ fiscalRoutes.post(
       message: 'Fiscal demonstrativo registrado. Nenhuma NFC-e real foi emitida.',
       document: doc,
     });
-  })
+  }),
 );

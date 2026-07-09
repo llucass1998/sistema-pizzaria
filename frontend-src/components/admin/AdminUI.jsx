@@ -42,7 +42,15 @@ export function PanelHeader({ title, description, Icon = BarChart3 }) {
   );
 }
 
-export function Field({ label, value, onChange, type = 'text', placeholder = '', className = '', readOnly = false }) {
+export function Field({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder = '',
+  className = '',
+  readOnly = false,
+}) {
   return (
     <label className={`block ${className}`}>
       <span className="mb-1 block text-xs font-black uppercase text-slate-500 dark:text-slate-400">
@@ -139,7 +147,8 @@ export function StatusBadge({ status }) {
       OUT_FOR_DELIVERY: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       CANCELED: 'bg-rose-50 text-rose-700 border-rose-200',
-    }[status] ?? 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800';
+    }[status] ??
+    'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800';
 
   return (
     <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-black ${tone}`}>

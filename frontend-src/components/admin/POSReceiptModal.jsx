@@ -66,7 +66,10 @@ export function POSReceiptModal({ isOpen, onClose, orderData }) {
             <div className="text-center mb-3 border-b-2 border-black pb-2 border-dashed">
               <h1 className="text-base font-black uppercase mb-1">{storeName}</h1>
               <p className="font-bold text-sm">
-                Pedido #{String(order?.id || 'BALCAO').slice(0, 8).toUpperCase()}
+                Pedido #
+                {String(order?.id || 'BALCAO')
+                  .slice(0, 8)
+                  .toUpperCase()}
               </p>
               <p className="text-[10px] mt-0.5">{date}</p>
             </div>
@@ -88,7 +91,9 @@ export function POSReceiptModal({ isOpen, onClose, orderData }) {
 
             {/* Itens */}
             <div className="mb-3 border-b-2 border-black pb-2 border-dashed">
-              <p className="font-bold uppercase text-center text-[10px] mb-1.5">--- Itens do Pedido ---</p>
+              <p className="font-bold uppercase text-center text-[10px] mb-1.5">
+                --- Itens do Pedido ---
+              </p>
               <table className="w-full text-left border-collapse text-[11px]">
                 <thead>
                   <tr className="border-b border-black">
@@ -99,7 +104,10 @@ export function POSReceiptModal({ isOpen, onClose, orderData }) {
                 </thead>
                 <tbody>
                   {itemsList.map((item, idx) => (
-                    <tr key={item.id || item.cartId || idx} className="border-b border-black/10 align-top">
+                    <tr
+                      key={item.id || item.cartId || idx}
+                      className="border-b border-black/10 align-top"
+                    >
                       <td className="py-1 font-bold">{item.quantity}x</td>
                       <td className="py-1 pr-1">
                         <span className="font-bold uppercase block">

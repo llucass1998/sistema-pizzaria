@@ -127,10 +127,7 @@ manufacturingRouter.patch(
   '/orders/:id/start',
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
-    const result = await ManufacturingService.startOrder(
-      String(req.params['id']),
-      tenantId,
-    );
+    const result = await ManufacturingService.startOrder(String(req.params['id']), tenantId);
     res.json(result);
   }),
 );
@@ -146,10 +143,7 @@ manufacturingRouter.patch(
   '/orders/:id/complete',
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
-    const result = await ManufacturingService.completeOrder(
-      String(req.params['id']),
-      tenantId,
-    );
+    const result = await ManufacturingService.completeOrder(String(req.params['id']), tenantId);
     res.json(result);
   }),
 );
@@ -162,10 +156,7 @@ manufacturingRouter.patch(
   '/orders/:id/cancel',
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
-    const result = await ManufacturingService.cancelOrder(
-      String(req.params['id']),
-      tenantId,
-    );
+    const result = await ManufacturingService.cancelOrder(String(req.params['id']), tenantId);
     res.json(result);
   }),
 );

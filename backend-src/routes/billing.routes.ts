@@ -5,7 +5,10 @@ import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { requireRole } from '../middlewares/requireRole.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { getTenantId } from '../core/context/TenantContext.js';
-import { getOrderPaymentStatus, getPrimaryPaymentMethod } from '../services/orderFinancial.service.js';
+import {
+  getOrderPaymentStatus,
+  getPrimaryPaymentMethod,
+} from '../services/orderFinancial.service.js';
 
 export const billingRoutes = Router();
 
@@ -55,8 +58,8 @@ billingRoutes.get(
     const paidOrders = billableOrders.filter((order) =>
       isPaidFinancialStatus(getOrderPaymentStatus(order)),
     );
-    const pendingOrders = billableOrders.filter((order) =>
-      !isPaidFinancialStatus(getOrderPaymentStatus(order)),
+    const pendingOrders = billableOrders.filter(
+      (order) => !isPaidFinancialStatus(getOrderPaymentStatus(order)),
     );
     const totalBilled = billableOrders.reduce((sum, order) => sum + Number(order.total), 0);
     const todayRevenue = paidOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);

@@ -69,7 +69,9 @@ function StatCard({ title, value, subtitle, icon: Icon, colorClass, trend }) {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
           <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
         </div>
-        <div className={`p-3 rounded-xl bg-opacity-10 dark:bg-opacity-20 ${colorClass.replace('text-', 'bg-')} ${colorClass}`}>
+        <div
+          className={`p-3 rounded-xl bg-opacity-10 dark:bg-opacity-20 ${colorClass.replace('text-', 'bg-')} ${colorClass}`}
+        >
           <Icon size={24} />
         </div>
       </div>
@@ -150,9 +152,9 @@ export default function ReportsPage() {
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.map(sanitizeCsvValue).join(','),
-      ...data.map((obj) => headers.map(k => sanitizeCsvValue(obj[k])).join(','))
+      ...data.map((obj) => headers.map((k) => sanitizeCsvValue(obj[k])).join(',')),
     ].join('\n');
-    const csv = "\uFEFF" + csvContent;
+    const csv = '\uFEFF' + csvContent;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -164,9 +166,18 @@ export default function ReportsPage() {
   };
 
   const exportAllCsv = async () => {
-    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
     const now = new Date();
-    const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+    const dateStr =
+      now.getFullYear() +
+      '-' +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(now.getDate()).padStart(2, '0') +
+      '-' +
+      String(now.getHours()).padStart(2, '0') +
+      '-' +
+      String(now.getMinutes()).padStart(2, '0');
 
     const exportData = (filename, data, fallbackHeaders) => {
       let headers = fallbackHeaders;
@@ -175,12 +186,12 @@ export default function ReportsPage() {
         headers = Object.keys(data[0]);
         rows = data;
       }
-      
+
       const csvContent = [
         headers.map(sanitizeCsvValue).join(','),
-        ...rows.map((obj) => headers.map(k => sanitizeCsvValue(obj[k])).join(','))
+        ...rows.map((obj) => headers.map((k) => sanitizeCsvValue(obj[k])).join(',')),
       ].join('\n');
-      const csv = "\uFEFF" + csvContent;
+      const csv = '\uFEFF' + csvContent;
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -193,34 +204,69 @@ export default function ReportsPage() {
 
     let resumoData = [];
     if (summary) {
-      resumoData = [{
-        revenueRealized: summary.revenueRealized,
-        totalSold: summary.totalSold,
-        totalReceived: summary.totalReceived,
-        depositReceived: summary.depositReceived,
-        remainingReceived: summary.remainingReceived,
-        pendingBalance: summary.pendingBalance,
-        partiallyPaidOrders: summary.partiallyPaidOrders,
-        paidOrders: summary.paidOrders,
-        completedOrders: summary.completedOrders,
-        averageTicket: summary.averageTicket,
-        revenuePending: summary.revenuePending,
-        pendingOrders: summary.pendingOrders,
-        canceledAmount: summary.canceledAmount,
-        cancellationRate: summary.cancellationRate,
-        canceledOrdersCount: summary.canceledOrdersCount
-      }];
+      resumoData = [
+        {
+          revenueRealized: summary.revenueRealized,
+          totalSold: summary.totalSold,
+          totalReceived: summary.totalReceived,
+          depositReceived: summary.depositReceived,
+          remainingReceived: summary.remainingReceived,
+          pendingBalance: summary.pendingBalance,
+          partiallyPaidOrders: summary.partiallyPaidOrders,
+          paidOrders: summary.paidOrders,
+          completedOrders: summary.completedOrders,
+          averageTicket: summary.averageTicket,
+          revenuePending: summary.revenuePending,
+          pendingOrders: summary.pendingOrders,
+          canceledAmount: summary.canceledAmount,
+          cancellationRate: summary.cancellationRate,
+          canceledOrdersCount: summary.canceledOrdersCount,
+        },
+      ];
     }
-    exportData(`relatorio-resumo-${dateStr}`, resumoData, ['revenueRealized', 'totalSold', 'totalReceived', 'depositReceived', 'remainingReceived', 'pendingBalance', 'partiallyPaidOrders', 'paidOrders', 'completedOrders', 'averageTicket', 'revenuePending', 'pendingOrders', 'canceledAmount', 'cancellationRate', 'canceledOrdersCount']);
+    exportData(`relatorio-resumo-${dateStr}`, resumoData, [
+      'revenueRealized',
+      'totalSold',
+      'totalReceived',
+      'depositReceived',
+      'remainingReceived',
+      'pendingBalance',
+      'partiallyPaidOrders',
+      'paidOrders',
+      'completedOrders',
+      'averageTicket',
+      'revenuePending',
+      'pendingOrders',
+      'canceledAmount',
+      'cancellationRate',
+      'canceledOrdersCount',
+    ]);
     await delay(200);
 
-    exportData(`relatorio-curva-abc-${dateStr}`, abcData, ['productId', 'productName', 'quantitySold', 'grossRevenue', 'abcClass', 'percentageOfRevenue']);
+    exportData(`relatorio-curva-abc-${dateStr}`, abcData, [
+      'productId',
+      'productName',
+      'quantitySold',
+      'grossRevenue',
+      'abcClass',
+      'percentageOfRevenue',
+    ]);
     await delay(200);
 
-    exportData(`relatorio-mix-pagamentos-${dateStr}`, payments, ['label', 'totalAmount', 'ordersCount']);
+    exportData(`relatorio-mix-pagamentos-${dateStr}`, payments, [
+      'label',
+      'totalAmount',
+      'ordersCount',
+    ]);
     await delay(200);
 
-    exportData(`relatorio-entregadores-${dateStr}`, driverRank, ['driverId', 'driverName', 'deliveriesCompleted', 'deliveryFees', 'revenueDelivered']);
+    exportData(`relatorio-entregadores-${dateStr}`, driverRank, [
+      'driverId',
+      'driverName',
+      'deliveriesCompleted',
+      'deliveryFees',
+      'revenueDelivered',
+    ]);
   };
 
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
@@ -253,7 +299,7 @@ export default function ReportsPage() {
           <button
             onClick={exportAllCsv}
             disabled={!summary}
-            title={!summary ? "Carregue os dados antes de exportar." : "📥 Exportar Tudo (CSV)"}
+            title={!summary ? 'Carregue os dados antes de exportar.' : '📥 Exportar Tudo (CSV)'}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
           >
             📥 Exportar Tudo (CSV)
@@ -436,13 +482,19 @@ export default function ReportsPage() {
                       </Pie>
                       <RechartsTooltip
                         formatter={(value) => formatCurrency(value)}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        contentStyle={{
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        }}
                       />
                       <Legend verticalAlign="bottom" height={36} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-slate-400">Sem dados</div>
+                  <div className="h-full flex items-center justify-center text-slate-400">
+                    Sem dados
+                  </div>
                 )}
               </div>
             </div>
@@ -464,8 +516,17 @@ export default function ReportsPage() {
               <div className="flex-1 min-h-[300px]">
                 {abcData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={abcData.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.2} />
+                    <BarChart
+                      data={abcData.slice(0, 10)}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                        stroke="#334155"
+                        opacity={0.2}
+                      />
                       <XAxis type="number" tickFormatter={(val) => `R$${val / 1000}k`} />
                       <YAxis
                         type="category"
@@ -478,21 +539,33 @@ export default function ReportsPage() {
                           formatCurrency(value),
                           `Classe ${props.payload.abcClass} - ${props.payload.percentageOfRevenue}%`,
                         ]}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        contentStyle={{
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        }}
                         cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
                       />
                       <Bar dataKey="grossRevenue" fill="#ef4444" radius={[0, 4, 4, 0]}>
                         {abcData.slice(0, 10).map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={entry.abcClass === 'A' ? '#10b981' : entry.abcClass === 'B' ? '#3b82f6' : '#94a3b8'}
+                            fill={
+                              entry.abcClass === 'A'
+                                ? '#10b981'
+                                : entry.abcClass === 'B'
+                                  ? '#3b82f6'
+                                  : '#94a3b8'
+                            }
                           />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-slate-400">Sem dados de produtos</div>
+                  <div className="h-full flex items-center justify-center text-slate-400">
+                    Sem dados de produtos
+                  </div>
                 )}
               </div>
               <p className="text-xs text-center mt-2 text-slate-500">
@@ -521,12 +594,13 @@ export default function ReportsPage() {
                     </div>
                     {heatmapMatrix.map((dayRow, dIndex) => (
                       <div key={`day-${dIndex}`} className="flex items-center mb-1">
-                        <div className="w-12 text-xs font-bold text-slate-500 dark:text-slate-400">{daysOfWeek[dIndex]}</div>
+                        <div className="w-12 text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {daysOfWeek[dIndex]}
+                        </div>
                         {dayRow.map((cell) => {
                           const intensity = cell.intensity; // 0 a 1
-                          const bgColor = intensity === 0 
-                            ? 'bg-slate-50 dark:bg-slate-800/50' 
-                            : `bg-red-500`;
+                          const bgColor =
+                            intensity === 0 ? 'bg-slate-50 dark:bg-slate-800/50' : `bg-red-500`;
                           return (
                             <div
                               key={`cell-${cell.hour}`}
@@ -540,7 +614,9 @@ export default function ReportsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-slate-400">Heatmap sem dados para o período</div>
+                  <div className="p-8 text-center text-slate-400">
+                    Heatmap sem dados para o período
+                  </div>
                 )}
               </div>
             </div>
@@ -601,51 +677,49 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Cancelamentos Detalhados */}
           {cancellations && cancellations.recentCancellations?.length > 0 && (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-               <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <h3 className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
                   <TrendingDown size={18} /> Últimos Cancelamentos & Perdas
                 </h3>
               </div>
               <div className="overflow-x-auto max-h-[300px]">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs uppercase bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 sticky top-0">
-                      <tr>
-                        <th className="px-6 py-3">Data</th>
-                        <th className="px-6 py-3">Motivo / Notas</th>
-                        <th className="px-6 py-3">Tipo</th>
-                        <th className="px-6 py-3">Pagamento</th>
-                        <th className="px-6 py-3 text-right">Valor Perdido</th>
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 sticky top-0">
+                    <tr>
+                      <th className="px-6 py-3">Data</th>
+                      <th className="px-6 py-3">Motivo / Notas</th>
+                      <th className="px-6 py-3">Tipo</th>
+                      <th className="px-6 py-3">Pagamento</th>
+                      <th className="px-6 py-3 text-right">Valor Perdido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cancellations.recentCancellations.map((canc) => (
+                      <tr
+                        key={canc.id}
+                        className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      >
+                        <td className="px-6 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          {new Date(canc.createdAt).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-3 text-slate-800 dark:text-slate-200">
+                          {canc.notes}
+                        </td>
+                        <td className="px-6 py-3 text-slate-500">
+                          {canc.fulfillmentType === 'DELIVERY' ? 'Entrega' : 'Retirada'}
+                        </td>
+                        <td className="px-6 py-3 text-slate-500">{canc.paymentMethod}</td>
+                        <td className="px-6 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                          {formatCurrency(canc.total)}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {cancellations.recentCancellations.map((canc) => (
-                        <tr
-                          key={canc.id}
-                          className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        >
-                          <td className="px-6 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                            {new Date(canc.createdAt).toLocaleString('pt-BR')}
-                          </td>
-                          <td className="px-6 py-3 text-slate-800 dark:text-slate-200">
-                            {canc.notes}
-                          </td>
-                          <td className="px-6 py-3 text-slate-500">
-                            {canc.fulfillmentType === 'DELIVERY' ? 'Entrega' : 'Retirada'}
-                          </td>
-                          <td className="px-6 py-3 text-slate-500">
-                            {canc.paymentMethod}
-                          </td>
-                          <td className="px-6 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
-                            {formatCurrency(canc.total)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

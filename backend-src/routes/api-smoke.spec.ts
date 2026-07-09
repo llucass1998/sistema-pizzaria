@@ -56,7 +56,7 @@ const { productRoutes } = await import('./product.routes.js');
 function createApp() {
   const app = express();
   app.use(express.json());
-  app.use('/api', tenantRoutes, statusRoutes, settingsRoutes, productRoutes);
+  app.use('/api', statusRoutes, tenantRoutes, settingsRoutes, productRoutes);
   return app;
 }
 
@@ -125,11 +125,14 @@ describe('API smoke contracts', () => {
     mocks.productFindMany.mockResolvedValue([product]);
   });
 
-  it('responds to /api/status without touching production data', async () => {
+  it('responds to /api/status without tenant or authentication', async () => {
+    mocks.tenantFindFirst.mockRejectedValue(new Error('tenant lookup should not run'));
+
     const response = await request(createApp()).get('/api/status');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true, service: 'pizzaria-api' });
+    expect(mocks.tenantFindFirst).not.toHaveBeenCalled();
   });
 
   it('resolves a public store by host and returns visual/open flags', async () => {
