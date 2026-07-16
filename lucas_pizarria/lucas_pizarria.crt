@@ -1,0 +1,94 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 224 (0xe0)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=BR, ST=DF, L=Bras\xC3\xADlia, O=Marcosoft Redes e Inform\xC3\xA1tica/emailAddress=ivan.marcosoft@gmail.com
+        Validity
+            Not Before: Jun 26 21:25:18 2026 GMT
+            Not After : Jun 23 21:25:18 2036 GMT
+        Subject: C=BR, ST=DF, L=Brasilia, O=Marcosoft Redes e Informatica, OU=Office, CN=lucas_pizarria/emailAddress=ivan.marcosoft@gmail.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:ed:53:e0:45:94:9c:5c:8c:cc:a5:16:0a:b1:8e:
+                    c1:13:d8:5c:8a:5d:40:ca:38:e0:f1:b7:18:bd:7d:
+                    0a:3d:be:48:99:26:9c:3f:58:09:51:29:e7:7c:1f:
+                    04:7c:48:46:1e:7c:c4:9e:e1:95:49:b6:4c:77:9e:
+                    bb:dd:b1:24:58:ba:04:2e:f0:5a:00:66:db:53:0d:
+                    73:00:4b:fe:1f:24:1f:81:57:44:af:33:66:da:32:
+                    e3:0a:8b:73:da:06:07:b8:f2:ad:5f:16:c4:b1:94:
+                    7d:31:6b:17:62:f0:b5:d5:44:53:a4:f0:e1:c7:99:
+                    40:bb:ef:3f:87:97:ff:50:d9:3a:bc:92:55:89:fe:
+                    d9:70:ee:f7:70:2d:97:9b:f2:98:91:1f:cf:5a:a2:
+                    32:85:5a:01:db:df:77:30:a3:19:f5:3d:c0:3f:40:
+                    9c:e2:85:df:d9:0f:d3:40:f7:72:81:9e:5c:f0:94:
+                    c8:86:ea:a6:cf:2b:e2:ef:ba:36:35:00:4e:ce:59:
+                    41:ea:88:a5:a8:18:4f:3b:52:2e:17:0b:42:56:97:
+                    53:96:23:ac:2c:38:5a:28:07:b1:a5:c8:4a:2f:fe:
+                    9b:ad:89:41:b3:b6:a9:05:6e:7d:9d:06:a2:9f:9c:
+                    98:b3:1f:62:2d:9b:b5:a5:2c:77:21:40:20:32:49:
+                    1d:21
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Comment: 
+                Easy-RSA Generated Certificate
+            X509v3 Subject Key Identifier: 
+                0E:9F:37:3D:44:26:EB:57:4C:EE:91:67:B2:E5:2E:0D:EE:E6:CC:C9
+            X509v3 Authority Key Identifier: 
+                keyid:09:18:81:83:26:9C:0D:60:47:2A:E7:4E:AF:ED:48:01:A1:36:84:7A
+                DirName:/C=BR/ST=DF/L=Bras\xC3\xADlia/O=Marcosoft Redes e Inform\xC3\xA1tica/emailAddress=ivan.marcosoft@gmail.com
+                serial:21:59:83:22:5A:F5:D3:B9:74:EE:84:4A:CD:F6:4B:59:E8:56:F2:57
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            X509v3 Key Usage: 
+                Digital Signature
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        29:e3:eb:c4:1c:c3:70:e9:88:db:95:59:d3:86:e4:78:27:cb:
+        bc:67:60:b1:f1:37:92:f3:e2:35:24:d6:1b:90:a6:f4:28:a9:
+        29:36:dc:b6:c9:de:8c:88:e6:a5:3c:57:df:cc:4a:52:c2:cc:
+        c9:5c:e9:e8:60:a2:2c:c1:51:e2:89:c8:3f:92:46:17:2c:5f:
+        58:1e:4e:9b:bf:0f:3f:71:0a:72:7d:8e:8f:93:f5:5b:48:b0:
+        64:ef:f4:b8:af:8a:a4:6c:a4:ae:ec:2a:a1:a6:03:03:7c:7d:
+        eb:e2:ae:8f:68:fc:69:2d:4f:de:41:f2:bb:d5:5c:72:5a:8c:
+        57:30:00:a5:e3:65:33:00:57:9a:7c:11:1c:7b:8c:e7:fc:dd:
+        0d:4f:a1:8f:32:28:c6:ce:00:94:90:86:26:bc:c1:60:56:2a:
+        f6:9a:d6:18:5e:3a:38:4d:97:72:77:62:53:26:f2:72:55:6a:
+        59:77:ab:91:50:71:11:a8:c3:09:02:c5:cb:6d:75:35:fc:f8:
+        92:1a:ca:6f:00:92:72:e8:6b:19:0c:22:a4:dc:85:a7:7a:b4:
+        19:75:5e:42:3b:27:ef:a9:19:b9:e2:a0:e7:f0:75:a2:4b:ec:
+        a5:c3:63:b5:99:f1:4d:e8:85:33:82:de:a8:51:7f:21:62:3d:
+        84:f6:73:cc
+-----BEGIN CERTIFICATE-----
+MIIE6jCCA9KgAwIBAgICAOAwDQYJKoZIhvcNAQELBQAwgYAxCzAJBgNVBAYTAkJS
+MQswCQYDVQQIEwJERjESMBAGA1UEBxQJQnJhc8OtbGlhMScwJQYDVQQKFB5NYXJj
+b3NvZnQgUmVkZXMgZSBJbmZvcm3DoXRpY2ExJzAlBgkqhkiG9w0BCQEWGGl2YW4u
+bWFyY29zb2Z0QGdtYWlsLmNvbTAeFw0yNjA2MjYyMTI1MThaFw0zNjA2MjMyMTI1
+MThaMIGoMQswCQYDVQQGEwJCUjELMAkGA1UECAwCREYxETAPBgNVBAcMCEJyYXNp
+bGlhMSYwJAYDVQQKDB1NYXJjb3NvZnQgUmVkZXMgZSBJbmZvcm1hdGljYTEPMA0G
+A1UECwwGT2ZmaWNlMRcwFQYDVQQDDA5sdWNhc19waXphcnJpYTEnMCUGCSqGSIb3
+DQEJARYYaXZhbi5tYXJjb3NvZnRAZ21haWwuY29tMIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEA7VPgRZScXIzMpRYKsY7BE9hcil1Ayjjg8bcYvX0KPb5I
+mSacP1gJUSnnfB8EfEhGHnzEnuGVSbZMd5673bEkWLoELvBaAGbbUw1zAEv+HyQf
+gVdErzNm2jLjCotz2gYHuPKtXxbEsZR9MWsXYvC11URTpPDhx5lAu+8/h5f/UNk6
+vJJVif7ZcO73cC2Xm/KYkR/PWqIyhVoB2993MKMZ9T3AP0Cc4oXf2Q/TQPdygZ5c
+8JTIhuqmzyvi77o2NQBOzllB6oilqBhPO1IuFwtCVpdTliOsLDhaKAexpchKL/6b
+rYlBs7apBW59nQain5yYsx9iLZu1pSx3IUAgMkkdIQIDAQABo4IBQjCCAT4wCQYD
+VR0TBAIwADAtBglghkgBhvhCAQ0EIBYeRWFzeS1SU0EgR2VuZXJhdGVkIENlcnRp
+ZmljYXRlMB0GA1UdDgQWBBQOnzc9RCbrV0zukWey5S4N7ubMyTCBwAYDVR0jBIG4
+MIG1gBQJGIGDJpwNYEcq506v7UgBoTaEeqGBhqSBgzCBgDELMAkGA1UEBhMCQlIx
+CzAJBgNVBAgTAkRGMRIwEAYDVQQHFAlCcmFzw61saWExJzAlBgNVBAoUHk1hcmNv
+c29mdCBSZWRlcyBlIEluZm9ybcOhdGljYTEnMCUGCSqGSIb3DQEJARYYaXZhbi5t
+YXJjb3NvZnRAZ21haWwuY29tghQhWYMiWvXTuXTuhErN9ktZ6FbyVzATBgNVHSUE
+DDAKBggrBgEFBQcDAjALBgNVHQ8EBAMCB4AwDQYJKoZIhvcNAQELBQADggEBACnj
+68Qcw3DpiNuVWdOG5Hgny7xnYLHxN5Lz4jUk1huQpvQoqSk23LbJ3oyI5qU8V9/M
+SlLCzMlc6ehgoizBUeKJyD+SRhcsX1geTpu/Dz9xCnJ9jo+T9VtIsGTv9LiviqRs
+pK7sKqGmAwN8feviro9o/GktT95B8rvVXHJajFcwAKXjZTMAV5p8ERx7jOf83Q1P
+oY8yKMbOAJSQhia8wWBWKvaa1hheOjhNl3J3YlMm8nJVall3q5FQcRGowwkCxctt
+dTX8+JIaym8AknLoaxkMIqTchad6tBl1XkI7J++pGbnioOfwdaJL7KXDY7WZ8U3o
+hTOC3qhRfyFiPYT2c8w=
+-----END CERTIFICATE-----

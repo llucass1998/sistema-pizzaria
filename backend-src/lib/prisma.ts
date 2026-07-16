@@ -12,25 +12,28 @@ const adapter = new PrismaPg(pool);
 
 export const basePrisma = new PrismaClient({ adapter });
 
+// Modelos filhos sem coluna tenantId propria. Eles devem ser isolados pela
+// relacao pai nas queries de dominio (por exemplo, group.tenantId).
+export const MODELS_WITHOUT_DIRECT_TENANT_ID = new Set([
+  'Tenant',
+  'OrderItem',
+  'Recipe',
+  'Payment',
+  'InboundInvoiceItem',
+  'IntegrationEventLog',
+  'ProductOptionItem',
+  'PurchaseRequestItem',
+  'PurchaseOrderItem',
+  'PurchaseReceiptLine',
+]);
+
 // Arquitetura Enterprise: TenantRepository Pattern interceptado no Client Base
 export const prisma = basePrisma.$extends({
   query: {
     $allModels: {
       async $allOperations({ model, operation, args, query }) {
         // Modelos que nao possuem tenantId e devem passar direto
-        const EXCLUDED_MODELS = [
-          'Tenant',
-          'OrderItem',
-          'Recipe',
-          'Payment',
-          'InboundInvoiceItem',
-          'IntegrationEventLog',
-          // P1: modelos filhos de compras sem tenantId proprio
-          'PurchaseRequestItem',
-          'PurchaseOrderItem',
-          'PurchaseReceiptLine',
-        ];
-        if (EXCLUDED_MODELS.includes(model)) {
+        if (MODELS_WITHOUT_DIRECT_TENANT_ID.has(model)) {
           return query(args);
         }
 

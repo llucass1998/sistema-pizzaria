@@ -1,0 +1,9 @@
+[Unit]
+Description=Verifica e recupera o tunel OpenVPN da Pizzaria
+After=network-online.target openvpn@client.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pizzaria-vpn-watchdog
+

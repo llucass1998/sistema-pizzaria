@@ -11,7 +11,13 @@ async function requireSaasSuperAdmin(req: Request, res: Response, next: NextFunc
   const token = req.cookies?.token || req.header('authorization')?.replace('Bearer ', '');
   const payload = verifyToken(token);
 
-  if (!payload || payload.role !== 'SUPER_ADMIN') {
+  if (
+    !payload ||
+    payload.type !== 'STAFF' ||
+    !payload.userId ||
+    payload.customerId ||
+    payload.role !== 'SUPER_ADMIN'
+  ) {
     res.status(payload ? 403 : 401).json({ message: 'Acesso restrito ao SUPER_ADMIN.' });
     return;
   }

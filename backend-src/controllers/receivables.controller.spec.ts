@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   paymentCreate: vi.fn(),
   paymentDelete: vi.fn(),
   orderUpdateMany: vi.fn(),
+  queryRaw: vi.fn(),
 }));
 
 vi.mock('../core/context/TenantContext.js', () => ({
@@ -35,6 +36,7 @@ vi.mock('../lib/prisma.js', () => ({
     },
     $transaction: async (cb: any) => {
       return cb({
+        $queryRaw: (...args: any[]) => mocks.queryRaw(...args),
         invoice: {
           findFirstOrThrow: (...args: any[]) => mocks.findFirstOrThrow(...args),
           update: (...args: any[]) => mocks.update(...args),

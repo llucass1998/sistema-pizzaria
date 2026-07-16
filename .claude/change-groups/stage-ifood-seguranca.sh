@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+git add -- \
+  'backend-src/integrations/ifood/ifood.service.spec.ts' \
+  'backend-src/integrations/ifood/ifood.service.ts' \
+  'backend-src/routes/integration.routes.ts' \
+  'backend-src/routes/webhook.routes.ts' \
+  'backend-src/utils/auth.ts' \
+  'frontend-src/pages/admin/IntegrationsPage.jsx'

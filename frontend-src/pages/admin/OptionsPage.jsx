@@ -54,8 +54,8 @@ export function OptionsPage() {
         const headers = { Authorization: `Bearer ${token}` };
 
         const [addonsRes, crustsRes, ingRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/adicionais`, { headers }),
-          fetch(`${API_BASE_URL}/bordas`, { headers }),
+          fetch(`${API_BASE_URL}/admin/adicionais`, { headers }),
+          fetch(`${API_BASE_URL}/admin/bordas`, { headers }),
           fetch(`${API_BASE_URL}/admin/inventory/ingredients`, { headers }),
         ]);
 

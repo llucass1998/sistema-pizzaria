@@ -74,3 +74,6 @@ Observação: `npm run test:e2e` não encontrou arquivos em `tests/e2e/**/*.spec
 - [x] Curls publicos retornaram 200 para `/`, `/api/status`, resolve-store, configuracoes, products e categorias.
 
 Pendencia: `npx eslint .` ainda falha por artefatos historicos fora do fonte (`.chrome-test`, `generated`, `out.js`, `temp.js`) e por `backend-src/check.js`; os arquivos tocados nesta correcao nao apresentaram erro de lint relevante.
+# Atualização de segurança RBAC — 15/07/2026
+
+Foi concluída a separação estrita entre sessões de cliente (`CUSTOMER`) e equipe (`STAFF`). A suíte completa passou com 169 testes, o E2E passou, os containers foram reconstruídos e recriados, e o smoke público/local terminou sem 502. Detalhes e matriz de autorização: `RELATORIO_CORRECAO_LOGIN_CLIENTE_ADMIN_RBAC.md`.

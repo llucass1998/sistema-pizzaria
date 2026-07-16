@@ -45,6 +45,7 @@ function makeTx(po: any, ingredients: any[]) {
   let currentPOStatus = po.status;
 
   const tx: any = {
+    $queryRaw: vi.fn(async () => []),
     purchaseOrder: {
       findFirst: vi.fn(async ({ where }: any) => {
         if (where.id !== po.id || where.tenantId !== TENANT) return null;
@@ -119,6 +120,7 @@ describe('PurchasingService.receivePartialPO', () => {
     );
 
     expect(result.poStatus).toBe('RECEIVED');
+    expect(tx.$queryRaw).toHaveBeenCalledOnce();
     expect(tx.purchaseReceipt.create).toHaveBeenCalledOnce();
     expect(tx.purchaseOrder.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'RECEIVED' }) }),
@@ -272,6 +274,7 @@ describe('PurchasingService.convertRFQtoPO', () => {
     );
 
     expect(po.status).toBe('APPROVED');
+    expect(tx.$queryRaw).toHaveBeenCalledOnce();
     expect(tx.purchaseRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'CONVERTED' }) }),
     );

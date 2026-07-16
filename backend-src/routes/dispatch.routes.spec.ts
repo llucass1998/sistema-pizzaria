@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   orderFindFirst: vi.fn(),
   orderUpdateMany: vi.fn(),
   orderStatusEventCreate: vi.fn(),
+  queryRaw: vi.fn(),
 }));
 
 vi.mock('../core/context/TenantContext.js', () => ({
@@ -43,6 +44,7 @@ vi.mock('../lib/prisma.js', () => ({
     },
     $transaction: async (callback: any) =>
       callback({
+        $queryRaw: (...args: any[]) => mocks.queryRaw(...args),
         order: {
           updateMany: mocks.orderUpdateMany,
           findFirst: mocks.orderFindFirst,
@@ -102,6 +104,7 @@ describe('dispatch driver permissions', () => {
   });
 
   it('allows the linked driver to mark an assigned delivery as delivered', async () => {
+    mocks.queryRaw.mockResolvedValue([]);
     mocks.orderFindFirst
       .mockResolvedValueOnce({ id: 'order-1' })
       .mockResolvedValueOnce({ id: 'order-1', status: 'DELIVERED' });
@@ -115,6 +118,16 @@ describe('dispatch driver permissions', () => {
     expect(response.status).toBe(200);
     expect(mocks.orderFindFirst).toHaveBeenNthCalledWith(
       1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-dispatch',
+          driverId: 'driver-1',
+          status: 'OUT_FOR_DELIVERY',
+        }),
+      }),
+    );
+    expect(mocks.queryRaw).toHaveBeenCalled();
+    expect(mocks.orderUpdateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           tenantId: 'tenant-dispatch',

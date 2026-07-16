@@ -123,7 +123,7 @@ export function InventoryPage() {
         setManufacturingOrders(Array.isArray(mfgResult) ? mfgResult : []);
       }
 
-      const prodRes = await fetch(`${API_BASE_URL}/produtos`, { headers });
+      const prodRes = await fetch(`${API_BASE_URL}/admin/produtos`, { headers });
       if (prodRes.ok) {
         const prodResult = await prodRes.json();
         setProducts(Array.isArray(prodResult) ? prodResult : []);

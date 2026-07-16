@@ -3,6 +3,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  allowRole: true,
   shiftFindFirst: vi.fn(),
   shiftFindMany: vi.fn(),
   shiftCreate: vi.fn(),
@@ -10,6 +11,16 @@ const mocks = vi.hoisted(() => ({
   transactionCreate: vi.fn(),
   registerFindMany: vi.fn(),
   registerCreate: vi.fn(),
+  baseTransaction: vi.fn(),
+  productFindMany: vi.fn(),
+  variantFindMany: vi.fn(),
+  optionFindMany: vi.fn(),
+  optionItemFindMany: vi.fn(),
+  customerUpsert: vi.fn(),
+  orderCreate: vi.fn(),
+  invoiceCreate: vi.fn(),
+  eventCreate: vi.fn(),
+  deductStock: vi.fn(),
   summaryMock: null as any,
   reportMock: null as any,
 }));
@@ -21,6 +32,17 @@ vi.mock('../core/context/TenantContext.js', () => ({
 vi.mock('../middlewares/requireAdmin.js', () => ({
   requireAdmin: (req: any, _res: any, next: any) => {
     req.adminId = 'admin-1';
+    req.adminRole = 'CASHIER';
+    next();
+  },
+}));
+
+vi.mock('../middlewares/requireRole.js', () => ({
+  requireRole: () => (_req: any, res: any, next: any) => {
+    if (!mocks.allowRole) {
+      res.status(403).json({ message: 'Acesso negado para o seu perfil.' });
+      return;
+    }
     next();
   },
 }));
@@ -36,6 +58,12 @@ vi.mock('../services/shiftAudit.service.js', () => ({
       }
     }),
     getAuditReport: vi.fn(async () => mocks.reportMock),
+  },
+}));
+
+vi.mock('../services/inventory.service.js', () => ({
+  InventoryService: {
+    deductStockForOrderOrThrow: mocks.deductStock,
   },
 }));
 
@@ -55,7 +83,9 @@ vi.mock('../lib/prisma.js', () => ({
       create: mocks.registerCreate,
     },
   },
-  basePrisma: {},
+  basePrisma: {
+    $transaction: mocks.baseTransaction,
+  },
 }));
 
 import { posRouter } from './pos.routes.js';
@@ -75,7 +105,9 @@ describe('POS Routes — Turnos e Auditoria de Caixa', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.allowRole = true;
     app = createTestApp();
+    mocks.deductStock.mockResolvedValue({ deducted: true });
     mocks.summaryMock = {
       id: 'shift-1',
       cashRegisterName: 'Caixa 1',
@@ -93,9 +125,31 @@ describe('POS Routes — Turnos e Auditoria de Caixa', () => {
       kpis: { totalShifts: 1, closedShifts: 0, totalSales: 200, netDifference: 0 },
       shifts: [mocks.summaryMock],
     };
+    const tx = {
+      product: { findMany: mocks.productFindMany },
+      productVariant: { findMany: mocks.variantFindMany },
+      productOption: { findMany: mocks.optionFindMany },
+      productOptionItem: { findMany: mocks.optionItemFindMany },
+      customer: { upsert: mocks.customerUpsert },
+      order: { create: mocks.orderCreate },
+      invoice: { create: mocks.invoiceCreate },
+      shift: { findFirst: mocks.shiftFindFirst },
+      cashTransaction: { create: mocks.transactionCreate },
+      orderStatusEvent: { create: mocks.eventCreate },
+    };
+    mocks.baseTransaction.mockImplementation(async (callback) => callback(tx));
   });
 
   describe('GET /pos/shift/current', () => {
+    it('bloqueia perfis administrativos fora do caixa', async () => {
+      mocks.allowRole = false;
+
+      const res = await request(app).get('/pos/shift/current');
+
+      expect(res.status).toBe(403);
+      expect(mocks.shiftFindFirst).not.toHaveBeenCalled();
+    });
+
     it('deve retornar o turno aberto atual com resumo auditado', async () => {
       mocks.shiftFindFirst.mockResolvedValueOnce({
         id: 'shift-1',
@@ -185,6 +239,98 @@ describe('POS Routes — Turnos e Auditoria de Caixa', () => {
       expect(res.body.kpis).toBeDefined();
       expect(res.body.kpis.totalSales).toBe(200);
       expect(res.body.shifts).toHaveLength(1);
+    });
+  });
+
+  describe('POST /pos/orders', () => {
+    it('aceita adicional de grupo de produto no pedido do POS', async () => {
+      mocks.productFindMany.mockResolvedValueOnce([
+        {
+          id: 'product-1',
+          name: 'Pizza Teste',
+          price: '30.00',
+          imageUrl: null,
+          menuCategory: { kdsStation: 'OVEN', prepTimeMinutes: 15 },
+        },
+      ]);
+      mocks.variantFindMany.mockResolvedValueOnce([]);
+      mocks.optionFindMany.mockResolvedValueOnce([]);
+      mocks.optionItemFindMany.mockResolvedValueOnce([
+        { id: 'option-item-1', name: 'Borda Catupiry', price: '8.00' },
+      ]);
+      mocks.customerUpsert.mockResolvedValueOnce({ id: 'customer-pos' });
+      mocks.orderCreate.mockImplementationOnce(async ({ data }) => ({
+        id: 'order-pos',
+        ...data,
+        customer: { id: 'customer-pos' },
+        items: [],
+      }));
+      mocks.invoiceCreate.mockResolvedValueOnce({ id: 'invoice-pos', payments: [] });
+      mocks.shiftFindFirst.mockResolvedValueOnce(null);
+
+      const res = await request(app)
+        .post('/pos/orders')
+        .send({
+          paymentMethod: 'CASH',
+          items: [{ productId: 'product-1', quantity: 1, optionIds: ['option-item-1'] }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(mocks.optionItemFindMany).toHaveBeenCalledWith({
+        where: { group: { tenantId: 'tenant-1' }, id: { in: ['option-item-1'] }, isAvailable: true },
+      });
+      expect(mocks.orderCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            subtotal: '38.00',
+            total: '38.00',
+            items: {
+              create: [
+                expect.objectContaining({
+                  optionsTotal: '8.00',
+                  unitPrice: '38.00',
+                  total: '38.00',
+                }),
+              ],
+            },
+          }),
+        }),
+      );
+      expect(mocks.deductStock).toHaveBeenCalledWith('order-pos', 'tenant-1', expect.any(Object));
+    });
+
+    it('bloqueia venda do POS quando a baixa de estoque falha', async () => {
+      mocks.productFindMany.mockResolvedValueOnce([
+        {
+          id: 'product-1',
+          name: 'Pizza Teste',
+          price: '30.00',
+          imageUrl: null,
+          menuCategory: { kdsStation: 'OVEN', prepTimeMinutes: 15 },
+        },
+      ]);
+      mocks.variantFindMany.mockResolvedValueOnce([]);
+      mocks.optionFindMany.mockResolvedValueOnce([]);
+      mocks.optionItemFindMany.mockResolvedValueOnce([]);
+      mocks.customerUpsert.mockResolvedValueOnce({ id: 'customer-pos' });
+      mocks.orderCreate.mockImplementationOnce(async ({ data }) => ({
+        id: 'order-pos-stock',
+        ...data,
+        customer: { id: 'customer-pos' },
+        items: [],
+      }));
+      mocks.deductStock.mockRejectedValueOnce(
+        Object.assign(new Error('Estoque insuficiente de Mussarela.'), { statusCode: 409 }),
+      );
+
+      const res = await request(app)
+        .post('/pos/orders')
+        .send({ paymentMethod: 'CASH', items: [{ productId: 'product-1', quantity: 1 }] });
+
+      expect(res.status).toBe(409);
+      expect(mocks.deductStock).toHaveBeenCalledWith('order-pos-stock', 'tenant-1', expect.any(Object));
+      expect(mocks.invoiceCreate).not.toHaveBeenCalled();
+      expect(mocks.transactionCreate).not.toHaveBeenCalled();
     });
   });
 });

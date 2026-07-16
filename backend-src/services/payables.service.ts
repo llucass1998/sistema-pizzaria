@@ -194,6 +194,8 @@ export class PayablesService {
     const paidAtObj = input.paidAt ? new Date(input.paidAt) : new Date();
 
     return db.$transaction(async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "AccountPayable" WHERE id = ${input.accountPayableId} AND "tenantId" = ${input.tenantId} FOR UPDATE`;
+
       const payable = await tx.accountPayable.findFirst({
         where: { id: input.accountPayableId, tenantId: input.tenantId },
       });

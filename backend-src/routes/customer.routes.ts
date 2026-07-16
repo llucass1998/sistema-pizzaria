@@ -144,10 +144,18 @@ customerRoutes.post(
       select: customerSelect,
     });
 
-    const token = createToken({ id: customer.id, email: customer.email, role: 'CUSTOMER' });
+    const token = createToken({
+      id: customer.id,
+      sub: customer.id,
+      customerId: customer.id,
+      email: customer.email,
+      role: 'CUSTOMER',
+      type: 'CUSTOMER',
+      tenantId,
+    });
     setAuthCookie(res, token);
 
-    res.status(201).json({ ...customer, token, role: 'CUSTOMER' });
+    res.status(201).json({ ...customer, token, role: 'CUSTOMER', type: 'CUSTOMER' });
   }),
 );
 
@@ -173,33 +181,8 @@ customerRoutes.post(
 
     // Fluxo com senha: autenticacao completa.
     if (password) {
-      // 1. Tentar logar como Admin primeiro
-      const admin = await prisma.admin.findFirst({
-        where: { tenantId, email },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          passwordHash: true,
-        },
-      });
-
-      if (admin && (await verifyPassword(password, admin.passwordHash))) {
-        const { passwordHash: _hash, ...safeAdmin } = admin;
-        const token = createToken({
-          id: safeAdmin.id,
-          email: safeAdmin.email,
-          role: safeAdmin.role,
-        });
-        setAuthCookie(res, token);
-        res.status(200).json({ admin: safeAdmin, token, role: safeAdmin.role });
-        return;
-      }
-
-      // 2. Se nao for admin, tentar logar como Customer
+      // O login publico autentica exclusivamente clientes. Administradores
+      // devem usar POST /api/admin/login.
       const customer = await prisma.customer.findFirst({
         where: { tenantId, email },
         select: { ...customerSelect, passwordHash: true },
@@ -213,11 +196,15 @@ customerRoutes.post(
       const { passwordHash: _hash, ...safeCustomer } = customer;
       const token = createToken({
         id: safeCustomer.id,
+        sub: safeCustomer.id,
+        customerId: safeCustomer.id,
         email: safeCustomer.email,
         role: 'CUSTOMER',
+        type: 'CUSTOMER',
+        tenantId,
       });
       setAuthCookie(res, token);
-      res.status(200).json({ ...safeCustomer, token, role: 'CUSTOMER' });
+      res.status(200).json({ ...safeCustomer, token, role: 'CUSTOMER', type: 'CUSTOMER' });
       return;
     }
 
@@ -244,10 +231,18 @@ customerRoutes.post(
         select: customerSelect,
       });
 
-      const token = createToken({ id: customer.id, email: customer.email, role: 'CUSTOMER' });
+      const token = createToken({
+        id: customer.id,
+        sub: customer.id,
+        customerId: customer.id,
+        email: customer.email,
+        role: 'CUSTOMER',
+        type: 'CUSTOMER',
+        tenantId,
+      });
       setAuthCookie(res, token);
 
-      res.status(200).json({ ...customer, token, role: 'CUSTOMER' });
+      res.status(200).json({ ...customer, token, role: 'CUSTOMER', type: 'CUSTOMER' });
       return;
     }
 

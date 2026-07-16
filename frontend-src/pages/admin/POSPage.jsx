@@ -79,10 +79,10 @@ export function POSPage() {
         setIsShiftLoading(false);
 
         const [catRes, prodRes, addsRes, crusRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/categorias?includeInactive=true`, { headers }),
-          fetch(`${API_BASE_URL}/produtos`, { headers }),
-          fetch(`${API_BASE_URL}/adicionais`, { headers }),
-          fetch(`${API_BASE_URL}/bordas`, { headers }),
+          fetch(`${API_BASE_URL}/admin/categorias`, { headers }),
+          fetch(`${API_BASE_URL}/admin/produtos`, { headers }),
+          fetch(`${API_BASE_URL}/admin/adicionais`, { headers }),
+          fetch(`${API_BASE_URL}/admin/bordas`, { headers }),
         ]);
 
         if (!catRes.ok || !prodRes.ok) throw new Error('Erro ao carregar cardápio');

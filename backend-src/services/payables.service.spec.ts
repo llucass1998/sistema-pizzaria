@@ -10,6 +10,7 @@ function makeMockDb() {
   const payments: any[] = [];
 
   const mockTx = {
+    $queryRaw: vi.fn(async () => []),
     accountPayable: {
       findFirst: vi.fn(async ({ where }: any) => {
         return payables.find((p) => p.id === where.id && p.tenantId === where.tenantId) || null;

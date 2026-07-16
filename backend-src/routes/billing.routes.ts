@@ -6,6 +6,7 @@ import { requireRole } from '../middlewares/requireRole.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import {
+  getAmountPaidFromOrder,
   getOrderPaymentStatus,
   getPrimaryPaymentMethod,
 } from '../services/orderFinancial.service.js';
@@ -25,14 +26,12 @@ function isPaidFinancialStatus(status: string) {
 
 function getPaidAmount(order: {
   status?: string | null;
-  total: unknown;
+  total?: unknown;
+  amountPaid?: unknown;
   paymentStatus?: string | null;
-  invoice: { status?: string | null; payments: Array<{ amount: unknown }> } | null;
+  invoice: { status?: string | null; payments: Array<{ amount: unknown; status?: string | null }> } | null;
 }) {
-  const total = Number(order.total) || 0;
-  const paidFromInvoice =
-    order.invoice?.payments?.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0) ?? 0;
-  return getOrderPaymentStatus(order) === 'PAID' && paidFromInvoice === 0 ? total : paidFromInvoice;
+  return getAmountPaidFromOrder(order);
 }
 
 billingRoutes.get(
@@ -62,7 +61,7 @@ billingRoutes.get(
       (order) => !isPaidFinancialStatus(getOrderPaymentStatus(order)),
     );
     const totalBilled = billableOrders.reduce((sum, order) => sum + Number(order.total), 0);
-    const todayRevenue = paidOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
+    const todayRevenue = billableOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
     const pendingAmount = pendingOrders.reduce(
       (sum, order) => sum + Math.max(0, Number(order.total) - getPaidAmount(order)),
       0,
@@ -70,8 +69,10 @@ billingRoutes.get(
     const averageTicket = billableOrders.length > 0 ? totalBilled / billableOrders.length : 0;
 
     const paymentMix = billableOrders.reduce<Record<string, number>>((acc, order) => {
+      const paidAmount = getPaidAmount(order);
+      if (paidAmount <= 0) return acc;
       const method = getPrimaryPaymentMethod(order);
-      acc[method] = (acc[method] ?? 0) + (getPaidAmount(order) || Number(order.total));
+      acc[method] = (acc[method] ?? 0) + paidAmount;
       return acc;
     }, {});
 

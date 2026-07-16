@@ -61,8 +61,8 @@ export function ProductsPage() {
         const { token } = JSON.parse(adminDataStr);
 
         const [prodRes, catRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/produtos`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/categorias?includeInactive=true`, {
+          fetch(`${API_BASE_URL}/admin/produtos`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/admin/categorias`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

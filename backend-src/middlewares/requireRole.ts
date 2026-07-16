@@ -18,10 +18,17 @@ export function requireRole(allowedRoles: string[]) {
         return;
       }
 
-      const role = (req as any).adminRole || decoded.role;
+      if (decoded.type !== 'STAFF' || !(req as any).adminId || !(req as any).adminRole) {
+        res.status(403).json({ message: 'Acesso restrito a administradores e funcionarios.' });
+        return;
+      }
 
-      (req as any).adminId = (req as any).adminId || decoded.id;
-      (req as any).adminRole = role;
+      const role = (req as any).adminRole;
+
+      if (decoded.userId !== (req as any).adminId || decoded.role !== role) {
+        res.status(403).json({ message: 'Perfil administrativo inconsistente.' });
+        return;
+      }
 
       if (role !== 'SUPER_ADMIN' && !allowedRoles.includes(role)) {
         res.status(403).json({ message: 'Acesso negado para o seu perfil.' });

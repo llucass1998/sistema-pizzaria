@@ -3,16 +3,19 @@ import { Router } from 'express';
 import { basePrisma, prisma } from '../lib/prisma.js';
 import { getTenantId } from '../core/context/TenantContext.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
+import { requireRole } from '../middlewares/requireRole.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { normalizeText, parseMoney } from '../utils/normalize.js';
 import { FINANCIAL_STATUS, normalizePaymentMethod } from '../services/orderFinancial.service.js';
 import { emitOrderEvent } from '../services/orderEvents.service.js';
 import { ShiftAuditService } from '../services/shiftAudit.service.js';
+import { InventoryService } from '../services/inventory.service.js';
 import { resolveKdsStation, resolvePrepTimeMinutes } from '../utils/kdsHelpers.js';
 
 const posRouter = Router();
 
 posRouter.use(requireAdmin);
+posRouter.use(requireRole(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']));
 
 function parseCurrency(value: unknown, fallback = 0) {
   const parsed = parseMoney(value);
@@ -319,7 +322,7 @@ posRouter.post(
         ...new Set(validItems.map((item) => item.variantId).filter(Boolean)),
       ] as string[];
       const optionIds = [...new Set(validItems.flatMap((item) => item.optionIds))];
-      const [products, variants, options] = await Promise.all([
+      const [products, variants, globalOptions, productOptions] = await Promise.all([
         tx.product.findMany({
           where: { tenantId, id: { in: productIds }, isAvailable: true },
           include: { menuCategory: true },
@@ -334,7 +337,13 @@ posRouter.post(
               where: { tenantId, id: { in: optionIds }, isAvailable: true },
             })
           : Promise.resolve([]),
+        optionIds.length > 0
+          ? tx.productOptionItem.findMany({
+              where: { group: { tenantId }, id: { in: optionIds }, isAvailable: true },
+            })
+          : Promise.resolve([]),
       ]);
+      const options = [...globalOptions, ...productOptions];
       const productsById = new Map(products.map((product) => [product.id, product]));
       const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
       const optionsById = new Map(options.map((option) => [option.id, option]));
@@ -417,7 +426,7 @@ posRouter.post(
               ? JSON.stringify(
                   selectedOptions.map((option) => ({
                     id: option?.id,
-                    type: option?.type,
+                    type: option && 'type' in option ? option.type : 'PRODUCT_OPTION_ITEM',
                     name: option?.name,
                     price: Number(option?.price ?? 0),
                   })),
@@ -454,6 +463,8 @@ posRouter.post(
           items: { include: { product: true } },
         },
       });
+
+      await InventoryService.deductStockForOrderOrThrow(order.id, tenantId, tx);
 
       const invoice = await tx.invoice.create({
         data: {

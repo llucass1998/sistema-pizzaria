@@ -122,7 +122,38 @@ describe('FinancialAnalyticsService — Sprint 3', () => {
     expect(summary.cmv.productsWithoutCost[0].name).toBe('Refrigerante 2L');
   });
 
-  it('3. Deve separar fluxo realizado vs previsto e não somar CashTransaction como receita duplicada em getCashFlow', async () => {
+  it('3. Deve tratar pagamento parcial como entrada realizada apenas pelo valor pago', async () => {
+    const tenantId = 'tenant-partial';
+
+    vi.mocked(basePrisma.order.findMany).mockResolvedValueOnce([
+      {
+        id: 'ord-partial',
+        total: 100,
+        amountPaid: 50,
+        amountDue: 50,
+        status: 'DELIVERED',
+        paymentStatus: 'PARTIALLY_PAID',
+        paymentMethod: 'PIX',
+        createdAt: new Date(),
+        orderItems: [],
+      },
+    ] as any);
+
+    vi.mocked(basePrisma.accountPayable.findMany).mockResolvedValue([]);
+    vi.mocked(basePrisma.payablePayment.findMany).mockResolvedValue([]);
+    vi.mocked(basePrisma.shift.findMany).mockResolvedValue([]);
+    vi.mocked(basePrisma.order.findMany).mockResolvedValueOnce([]);
+    vi.mocked(basePrisma.payablePayment.findMany).mockResolvedValueOnce([]);
+
+    const summary = await FinancialAnalyticsService.getFinancialSummary(tenantId, 'TODAY');
+
+    expect(summary.kpis.grossRevenue).toBe(50);
+    expect(summary.kpis.totalReceived).toBe(50);
+    expect(summary.kpis.totalReceivable).toBe(50);
+    expect(summary.paymentMethods.PIX).toBe(50);
+  });
+
+  it('4. Deve separar fluxo realizado vs previsto e não somar CashTransaction como receita duplicada em getCashFlow', async () => {
     const tenantId = 'tenant-789';
 
     vi.mocked(basePrisma.order.findMany).mockResolvedValueOnce([

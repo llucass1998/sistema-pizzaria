@@ -957,6 +957,8 @@ orderRoutes.post(
 
     const updatedOrder = await basePrisma
       .$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} AND "tenantId" = ${tenantId} FOR UPDATE`;
+
         const order = await tx.order.findFirst({
           where: { id: orderId, tenantId },
           include: { invoice: { include: { payments: true } } },
@@ -985,22 +987,8 @@ orderRoutes.post(
           });
         }
 
-        const idempotencyKey = buildPaymentIdempotencyKey(order.id, 'REMAINING_PAYMENT');
-        const existingRemaining = await tx.paymentTransaction.findFirst({
-          where: {
-            tenantId,
-            orderId: order.id,
-            type: 'REMAINING_PAYMENT',
-            status: FINANCIAL_STATUS.PAID,
-          },
-        });
-        if (existingRemaining) {
-          throw Object.assign(new Error('Pagamento do restante ja foi registrado.'), {
-            statusCode: 409,
-          });
-        }
-
         const paidAt = new Date();
+        const idempotencyKey = `${buildPaymentIdempotencyKey(order.id, 'REMAINING_PAYMENT')}:${paidAt.getTime()}`;
         const amountPaidCents = moneyToCents((order as any).amountPaid ?? 0) + paymentAmountCents;
         const nextDueCents = Math.max(0, amountDueCents - paymentAmountCents);
         const nextPaymentStatus =
@@ -1011,7 +999,7 @@ orderRoutes.post(
             tenantId,
             orderId: order.id,
             provider: 'MANUAL',
-            externalId: `${idempotencyKey}:${Date.now()}`,
+            externalId: idempotencyKey,
             type: 'REMAINING_PAYMENT',
             amount: centsToMoney(paymentAmountCents).toFixed(2),
             status: FINANCIAL_STATUS.PAID,
@@ -1354,6 +1342,7 @@ orderRoutes.get(
 orderRoutes.post(
   '/admin/pos/checkout',
   requireAdmin,
+  requireRole(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER']),
   asyncHandler(async (req, res) => {
     const tenantId = getTenantId();
 

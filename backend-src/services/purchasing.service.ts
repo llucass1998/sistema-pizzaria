@@ -71,6 +71,8 @@ export class PurchasingService {
     }
 
     const execute = async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "PurchaseOrder" WHERE id = ${input.purchaseOrderId} AND "tenantId" = ${input.tenantId} FOR UPDATE`;
+
       // ── 1. Carregar PO com itens e recibos anteriores ───────────────────────
       const po = await tx.purchaseOrder.findFirst({
         where: { id: input.purchaseOrderId, tenantId: input.tenantId },
@@ -217,6 +219,8 @@ export class PurchasingService {
     }
 
     const execute = async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "PurchaseRequest" WHERE id = ${input.purchaseRequestId} AND "tenantId" = ${input.tenantId} FOR UPDATE`;
+
       const rfq = await tx.purchaseRequest.findFirst({
         where: { id: input.purchaseRequestId, tenantId: input.tenantId },
       });

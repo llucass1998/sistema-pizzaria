@@ -23,7 +23,9 @@ export function RecipesPage() {
       const adminData = JSON.parse(window.localStorage.getItem('pizzaria-admin'));
 
       const [prodRes, ingRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/produtos`), // Produto é público
+        fetch(`${API_BASE_URL}/admin/produtos`, {
+          headers: { Authorization: `Bearer ${adminData.token}` },
+        }),
         fetch(`${API_BASE_URL}/admin/inventory/ingredients`, {
           headers: { Authorization: `Bearer ${adminData.token}` },
         }),

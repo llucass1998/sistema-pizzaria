@@ -114,9 +114,20 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  const parsedAdminData = JSON.parse(adminDataString);
+  let parsedAdminData;
+  try {
+    parsedAdminData = JSON.parse(adminDataString);
+  } catch {
+    window.localStorage.removeItem('pizzaria-admin');
+    return <Navigate to="/admin/login" replace />;
+  }
   const admin = parsedAdminData.admin || {};
-  const role = parsedAdminData.role || admin.role || 'ADMIN';
+  const role = parsedAdminData.role || admin.role;
+
+  if (parsedAdminData.type !== 'STAFF' || !parsedAdminData.token || !admin.id || !role) {
+    window.localStorage.removeItem('pizzaria-admin');
+    return <Navigate to="/admin/login" replace />;
+  }
 
   const operationItems = useMemo(() => {
     return [
@@ -266,6 +277,8 @@ export function AdminLayout({ isDarkMode = false, onToggleTheme = () => {} }) {
 
   function handleLogout() {
     window.localStorage.removeItem('pizzaria-admin');
+    window.localStorage.removeItem('pizzaria-admin-token');
+    window.localStorage.removeItem('pizzaria-customer');
     window.location.hash = '/';
   }
 

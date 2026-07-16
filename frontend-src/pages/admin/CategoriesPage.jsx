@@ -42,7 +42,7 @@ export function CategoriesPage() {
         if (!adminDataStr) return;
         const { token } = JSON.parse(adminDataStr);
 
-        const response = await fetch(`${API_BASE_URL}/categorias?includeInactive=true`, {
+        const response = await fetch(`${API_BASE_URL}/admin/categorias`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

@@ -37,12 +37,22 @@ function sendAdminSession(
     updatedAt: Date;
   },
 ) {
-  const token = createToken({ id: admin.id, email: admin.email, role: admin.role });
+  const tenantId = getTenantId();
+  const token = createToken({
+    id: admin.id,
+    sub: admin.id,
+    userId: admin.id,
+    email: admin.email,
+    role: admin.role,
+    type: 'STAFF',
+    tenantId,
+  });
   setAuthCookie(res, token);
   res.json({
     admin,
     token,
     role: admin.role,
+    type: 'STAFF',
   });
 }
 
@@ -139,6 +149,10 @@ adminRoutes.post(
 );
 
 adminRoutes.use(couponRoutes);
+
+adminRoutes.get('/admin/session', requireAdmin, (req, res) => {
+  res.json({ admin: (req as any).admin, role: (req as any).adminRole, type: 'STAFF' });
+});
 
 adminRoutes.get(
   ['/admin/dashboard', '/admin/dashboard/summary'],

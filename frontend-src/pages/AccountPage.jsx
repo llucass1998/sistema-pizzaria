@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ArrowLeft,
   LogOut,
@@ -65,7 +65,14 @@ function safeText(value, fallback = 'Não informado') {
   return value && String(value).trim() ? String(value).trim() : fallback;
 }
 
-export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLogout, customer }) {
+export default function AccountPage({
+  apiBaseUrl,
+  isLoggedIn,
+  onLoginClick,
+  onLogout,
+  onSessionExpired,
+  customer,
+}) {
   const resolvedApiUrl = apiBaseUrl ?? API_BASE_URL;
 
   // Dados do perfil
@@ -95,11 +102,31 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
   const [ordersTotalPages, setOrdersTotalPages] = useState(1);
   const [ordersTotal, setOrdersTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
+  const sessionExpiredRef = useRef(false);
 
   const authHeaders = useCallback(() => {
     const token = customer?.token;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [customer?.token]);
+
+  const handleProtectedResponse = useCallback(
+    (response) => {
+      if (![401, 403].includes(response.status)) return false;
+
+      setProfile(null);
+      setOrders([]);
+      setOrdersTotal(0);
+      setProfileError('');
+      setOrdersError('');
+
+      if (!sessionExpiredRef.current) {
+        sessionExpiredRef.current = true;
+        onSessionExpired?.();
+      }
+      return true;
+    },
+    [onSessionExpired],
+  );
 
   const fetchProfile = useCallback(async () => {
     if (!customer?.token) return;
@@ -107,9 +134,10 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
     setProfileError('');
     try {
       const res = await fetch(`${resolvedApiUrl}/account/me`, { headers: authHeaders() });
+      if (handleProtectedResponse(res)) return;
       if (!res.ok) {
-        if (res.status === 401) throw new Error('Sessão expirada. Faça login novamente.');
-        throw new Error('Não foi possível carregar seus dados.');
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Não foi possível carregar seus dados. Tente novamente.');
       }
       const data = await res.json();
       setProfile(data);
@@ -118,7 +146,7 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
     } finally {
       setIsLoadingProfile(false);
     }
-  }, [customer?.token, resolvedApiUrl, authHeaders]);
+  }, [customer?.token, resolvedApiUrl, authHeaders, handleProtectedResponse]);
 
   const fetchOrders = useCallback(
     async (page = 1, status = '') => {
@@ -131,7 +159,13 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
         const res = await fetch(`${resolvedApiUrl}/account/orders?${qs}`, {
           headers: authHeaders(),
         });
-        if (!res.ok) throw new Error('Não foi possível carregar seus pedidos.');
+        if (handleProtectedResponse(res)) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(
+            data.message || 'Não foi possível carregar seus pedidos. Tente novamente.',
+          );
+        }
         const data = await res.json();
         setOrders(data.orders ?? []);
         setOrdersTotalPages(data.totalPages ?? 1);
@@ -143,10 +177,11 @@ export default function AccountPage({ apiBaseUrl, isLoggedIn, onLoginClick, onLo
         setIsLoadingOrders(false);
       }
     },
-    [customer?.token, resolvedApiUrl, authHeaders],
+    [customer?.token, resolvedApiUrl, authHeaders, handleProtectedResponse],
   );
 
   useEffect(() => {
+    sessionExpiredRef.current = false;
     if (isLoggedIn && customer?.token) {
       fetchProfile();
       fetchOrders(1, statusFilter);

@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_U
 
 export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
   const [email, setEmail] = useState('admin@riopizzas.com');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -28,12 +28,19 @@ export function LoginPage({ isDarkMode = false, onToggleTheme = () => {} }) {
         throw new Error(data.message ?? 'Email ou senha invalidos.');
       }
 
+      if (data.type !== 'STAFF' || !data.admin?.id || !data.token || !data.role) {
+        throw new Error('Esta conta nao possui acesso administrativo.');
+      }
+
+      window.localStorage.removeItem('pizzaria-customer');
+      window.localStorage.removeItem('pizzaria-admin-token');
       window.localStorage.setItem(
         'pizzaria-admin',
         JSON.stringify({
           admin: data.admin,
           token: data.token,
           role: data.role,
+          type: data.type,
         }),
       );
 

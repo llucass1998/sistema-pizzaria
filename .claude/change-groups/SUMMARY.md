@@ -1,0 +1,6 @@
+docker-dev: 13 arquivo(s)
+motoboy: 15 arquivo(s)
+ifood-seguranca: 6 arquivo(s)
+relatorios: 46 arquivo(s)
+formatacao-ampla: 152 arquivo(s)
+artefatos-nao-incluir: 3 arquivo(s)

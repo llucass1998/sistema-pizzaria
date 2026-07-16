@@ -4,6 +4,8 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  adminFindFirst: vi.fn(),
+  customerFindFirst: vi.fn(),
   customerFindUnique: vi.fn(),
   getStoreSettings: vi.fn(),
   productFindMany: vi.fn(),
@@ -14,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   orderCreate: vi.fn(),
   invoiceCreate: vi.fn(),
   transaction: vi.fn(),
+  baseTransaction: vi.fn(),
 }));
 
 vi.mock('../core/context/TenantContext.js', () => ({
@@ -21,9 +24,15 @@ vi.mock('../core/context/TenantContext.js', () => ({
 }));
 
 vi.mock('../lib/prisma.js', () => ({
-  basePrisma: {},
+  basePrisma: {
+    $transaction: mocks.baseTransaction,
+  },
   prisma: {
+    admin: {
+      findFirst: mocks.adminFindFirst,
+    },
     customer: {
+      findFirst: mocks.customerFindFirst,
       findUnique: mocks.customerFindUnique,
     },
     product: {
@@ -101,8 +110,24 @@ function createApp() {
 function createCustomerToken() {
   return createToken({
     id: 'customer-1',
+    sub: 'customer-1',
+    customerId: 'customer-1',
     email: 'cliente@teste.com',
     role: 'CUSTOMER',
+    type: 'CUSTOMER',
+    tenantId: 'tenant-checkout',
+  });
+}
+
+function createAdminToken() {
+  return createToken({
+    id: 'admin-1',
+    sub: 'admin-1',
+    userId: 'admin-1',
+    email: 'admin@teste.com',
+    role: 'CASHIER',
+    type: 'STAFF',
+    tenantId: 'tenant-checkout',
   });
 }
 
@@ -123,13 +148,34 @@ function checkoutPayload(overrides: Record<string, unknown> = {}) {
 describe('checkout order creation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.customerFindUnique.mockResolvedValue({
+    const customer = {
       id: 'customer-1',
       tenantId: 'tenant-checkout',
       name: 'Cliente Teste',
       email: 'cliente@teste.com',
       phone: '21999999999',
+    };
+    mocks.adminFindFirst.mockResolvedValue({
+      id: 'admin-1',
+      email: 'admin@teste.com',
+      role: 'CASHIER',
     });
+    mocks.customerFindFirst.mockResolvedValue({ id: customer.id });
+    mocks.customerFindUnique.mockResolvedValue(customer);
+  });
+
+  it('blocks customer tokens from another tenant before creating an order', async () => {
+    mocks.customerFindFirst.mockResolvedValue(null);
+
+    const response = await request(createApp())
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${createCustomerToken()}`)
+      .send(checkoutPayload({ fulfillmentType: 'PICKUP', paymentMethod: 'PIX' }));
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Sessao de cliente invalida para esta loja.');
+    expect(mocks.getStoreSettings).not.toHaveBeenCalled();
+    expect(mocks.orderCreate).not.toHaveBeenCalled();
   });
 
   it('blocks order creation when the store is closed', async () => {
@@ -244,5 +290,106 @@ describe('checkout order creation', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Ainda não entregamos neste bairro.');
     expect(mocks.orderCreate).not.toHaveBeenCalled();
+  });
+
+  it('scopes product option items through their tenant-owned group', async () => {
+    mocks.getStoreSettings.mockResolvedValue({
+      isOpen: true,
+      deliveryFeeMode: 'FIXED',
+      deliveryFee: '0.00',
+      serviceFee: '2.00',
+    });
+    mocks.productFindMany.mockResolvedValue([
+      {
+        id: 'product-1',
+        name: 'Pizza Teste',
+        price: '30.00',
+        category: 'pizzas',
+        menuCategory: { allowSizes: false, allowHalfAndHalf: false, slug: 'pizzas' },
+        variants: [],
+      },
+    ]);
+    mocks.productOptionFindMany.mockResolvedValue([]);
+    mocks.productOptionItemFindMany.mockResolvedValue([]);
+
+    await request(createApp())
+      .post('/api/pedidos')
+      .set('Authorization', `Bearer ${createCustomerToken()}`)
+      .send(checkoutPayload({ items: [{ productId: 'product-1', optionIds: ['option-1'] }] }));
+
+    expect(mocks.productOptionItemFindMany).toHaveBeenCalledWith({
+      where: {
+        group: { tenantId: 'tenant-checkout' },
+        id: { in: ['option-1'] },
+        isAvailable: true,
+      },
+    });
+  });
+
+  it('allows partial remaining-balance payments while the order still has amountDue', async () => {
+    const order = {
+      id: 'order-partial-rest',
+      tenantId: 'tenant-checkout',
+      total: '100.00',
+      amountPaid: '50.00',
+      amountDue: '50.00',
+      paymentStatus: 'PARTIALLY_PAID',
+      paidAt: null,
+      invoice: {
+        id: 'invoice-1',
+        payments: [{ id: 'payment-deposit', amount: '50.00', status: 'COMPLETED' }],
+      },
+    };
+    const updatedOrder = {
+      ...order,
+      amountPaid: '75.00',
+      amountDue: '25.00',
+      paymentStatus: 'PARTIALLY_PAID',
+      invoice: {
+        ...order.invoice,
+        payments: [
+          ...order.invoice.payments,
+          { id: 'payment-rest-1', amount: '25.00', status: 'COMPLETED' },
+        ],
+      },
+    };
+    const tx = {
+      $queryRaw: vi.fn(async () => []),
+      order: {
+        findFirst: vi.fn().mockResolvedValueOnce(order).mockResolvedValueOnce(updatedOrder),
+        update: vi.fn(),
+      },
+      paymentTransaction: { create: vi.fn() },
+      invoice: { update: vi.fn() },
+      payment: { create: vi.fn() },
+      shift: { findFirst: vi.fn().mockResolvedValue(null) },
+      cashTransaction: { create: vi.fn() },
+    };
+    mocks.baseTransaction.mockImplementation(async (callback) => callback(tx));
+
+    const response = await request(createApp())
+      .post('/api/admin/orders/order-partial-rest/pay-remaining')
+      .set('Authorization', `Bearer ${createAdminToken()}`)
+      .send({ method: 'PIX', amount: 25 });
+
+    expect(response.status).toBe(200);
+    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(tx.paymentTransaction.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'REMAINING_PAYMENT',
+        amount: '25.00',
+        status: 'PAID',
+        idempotencyKey: expect.stringMatching(/^order-partial-rest:REMAINING_PAYMENT:/),
+      }),
+    });
+    expect(tx.order.update).toHaveBeenCalledWith({
+      where: { id: 'order-partial-rest' },
+      data: expect.objectContaining({
+        paymentStatus: 'PARTIALLY_PAID',
+        amountPaid: '75.00',
+        amountDue: '25.00',
+        remainingPaymentStatus: 'PARTIAL',
+      }),
+    });
   });
 });

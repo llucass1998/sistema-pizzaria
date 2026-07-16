@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+git add -- \
+  '.devcontainer/devcontainer.json' \
+  'CLAUDE.md' \
+  'Dockerfile.dev' \
+  'README.md' \
+  'docker-compose.dev.yml' \
+  'docker-entrypoint.sh' \
+  'eslint.config.mjs' \
+  'scripts/compose-redeploy.sh' \
+  'scripts/dev.sh' \
+  'scripts/redeploy-wsl.sh' \
+  'tests/e2e/public-flow.spec.ts' \
+  'update.sh' \
+  'vite.config.js'

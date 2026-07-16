@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+git add -- \
+  'backend-src/routes/dispatch.routes.spec.ts' \
+  'backend-src/routes/dispatch.routes.ts' \
+  'backend-src/routes/driver.routes.spec.ts' \
+  'backend-src/routes/driver.routes.ts' \
+  'backend-src/services/driverDelivery.service.ts' \
+  'frontend-src/App.jsx' \
+  'frontend-src/pages/admin/LoginPage.jsx' \
+  'frontend-src/pages/driver/DriverHomePage.jsx' \
+  'frontend-src/pages/driver/DriverLayout.jsx' \
+  'frontend-src/pages/driver/DriverLoginPage.jsx' \
+  'frontend-src/pages/driver/DriverOrderDetailsPage.jsx' \
+  'frontend-src/pages/driver/driverApi.js' \
+  'prisma/schema.prisma' \
+  'public/manifest.json' \
+  'public/manifest.webmanifest'

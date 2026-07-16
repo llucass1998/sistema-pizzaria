@@ -20,10 +20,17 @@ function getJwtSecret() {
   return DEFAULT_DEV_SECRET;
 }
 
+export type IdentityType = 'CUSTOMER' | 'STAFF';
+
 export type JwtPayload = {
   id: string;
+  sub: string;
   email: string;
   role: string;
+  type: IdentityType;
+  tenantId: string;
+  customerId?: string;
+  userId?: string;
 };
 
 export function createToken(payload: JwtPayload): string {

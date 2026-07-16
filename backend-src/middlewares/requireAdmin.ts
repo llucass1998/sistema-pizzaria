@@ -8,8 +8,13 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   const token = req.cookies?.token || req.header('authorization')?.replace('Bearer ', '');
   const payload = verifyToken(token);
 
-  if (!payload || !payload.role) {
+  if (!payload) {
     res.status(401).json({ message: 'Entre como administrador para continuar.' });
+    return;
+  }
+
+  if (payload.type !== 'STAFF' || !payload.userId || payload.customerId) {
+    res.status(403).json({ message: 'Esta sessao nao possui acesso administrativo.' });
     return;
   }
 
@@ -19,6 +24,11 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     tenantId = getTenantId();
   } catch {
     res.status(400).json({ message: 'Tenant não identificado na requisição.' });
+    return;
+  }
+
+  if (payload.tenantId !== tenantId || payload.id !== payload.userId || payload.sub !== payload.id) {
+    res.status(403).json({ message: 'Sessao administrativa invalida para esta loja.' });
     return;
   }
 

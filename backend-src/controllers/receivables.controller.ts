@@ -152,6 +152,8 @@ export const ReceivablesController = {
     const payload = recordPaymentSchema.parse(req.body);
 
     const invoice = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId} AND "tenantId" = ${tenantId} FOR UPDATE`;
+
       const currentInvoice = await tx.invoice.findFirstOrThrow({
         where: { id: invoiceId, tenantId },
         include: { payments: true },
@@ -215,6 +217,8 @@ export const ReceivablesController = {
     const payload = updateInvoiceSchema.parse(req.body);
 
     const invoice = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${id} AND "tenantId" = ${tenantId} FOR UPDATE`;
+
       await tx.invoice.findFirstOrThrow({
         where: { id, tenantId },
       });
@@ -263,6 +267,8 @@ export const ReceivablesController = {
     const paymentId = req.params.paymentId as string;
 
     const invoice = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId} AND "tenantId" = ${tenantId} FOR UPDATE`;
+
       const currentInvoice = await tx.invoice.findFirstOrThrow({
         where: { id: invoiceId, tenantId },
         include: { payments: true },

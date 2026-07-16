@@ -124,8 +124,8 @@ function categoryAllowsSizes(category: { allowSizes?: boolean; slug?: string }) 
   );
 }
 
-function categoryDto(category: any) {
-  return {
+function categoryDto(category: any, scope: 'public' | 'admin' = 'admin') {
+  const dto: any = {
     id: category.id,
     slug: category.slug,
     path: category.slug,
@@ -139,11 +139,16 @@ function categoryDto(category: any) {
     allowSizes: category.allowSizes ?? false,
     allowHalfAndHalf: category.allowHalfAndHalf ?? false,
     halfAndHalfGroup: category.halfAndHalfGroup ?? '',
-    kdsStation: category.kdsStation ?? null,
-    prepTimeMinutes: category.prepTimeMinutes ?? null,
-    createdAt: category.createdAt,
-    updatedAt: category.updatedAt,
   };
+
+  if (scope === 'admin') {
+    dto.kdsStation = category.kdsStation ?? null;
+    dto.prepTimeMinutes = category.prepTimeMinutes ?? null;
+    dto.createdAt = category.createdAt;
+    dto.updatedAt = category.updatedAt;
+  }
+
+  return dto;
 }
 
 function variantDto(variant: any) {
@@ -158,30 +163,26 @@ function variantDto(variant: any) {
   };
 }
 
-function productDto(product: any) {
+function productDto(product: any, scope: 'public' | 'admin' = 'admin') {
   const categorySlug = product.menuCategory?.slug ?? product.category ?? defaultCategory;
   const categoryName = product.menuCategory?.name ?? categorySlug;
   const category = product.menuCategory ?? null;
-
-  return {
+  const dto: any = {
     id: product.id,
     productId: product.id,
     categoryId: product.categoryId ?? null,
     category: categorySlug,
     categoryName,
-    categoryMeta: category ? categoryDto(category) : null,
+    categoryMeta: category ? categoryDto(category, scope) : null,
     allowSizes: category?.allowSizes ?? categoryAllowsSizes({ slug: categorySlug }),
     allowHalfAndHalf: category?.allowHalfAndHalf ?? false,
     halfAndHalfGroup: category?.halfAndHalfGroup ?? '',
     name: product.name,
-    barcode: product.barcode ?? null,
     description: product.description ?? '',
     price: Number(product.price ?? 0),
     imageUrl: product.imageUrl ?? '',
     isAvailable: product.isAvailable ?? true,
-    kdsStation: product.kdsStation ?? null,
-    prepTimeMinutes: product.prepTimeMinutes ?? null,
-    calculatedAvailability: availabilityDto(product.calculatedAvailability),
+    calculatedAvailability: availabilityDto(product.calculatedAvailability, scope),
     variants: (product.variants ?? [])
       .slice()
       .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -189,13 +190,27 @@ function productDto(product: any) {
     optionGroups: (product.optionGroups ?? [])
       .slice()
       .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map(optionGroupDto),
-    createdAt: product.createdAt,
-    updatedAt: product.updatedAt,
+      .map((group: any) => optionGroupDto(group, scope)),
   };
+
+  if (scope === 'admin') {
+    dto.barcode = product.barcode ?? null;
+    dto.kdsStation = product.kdsStation ?? null;
+    dto.prepTimeMinutes = product.prepTimeMinutes ?? null;
+    dto.createdAt = product.createdAt;
+    dto.updatedAt = product.updatedAt;
+  }
+
+  return dto;
 }
 
-function optionGroupDto(group: any) {
+function optionGroupDto(group: any, scope: 'public' | 'admin' = 'admin') {
+  const options = (group.options ?? [])
+    .slice()
+    .filter((option: any) => scope === 'admin' || option.isAvailable !== false)
+    .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((option: any) => optionItemDto(option, scope));
+
   return {
     id: group.id,
     productId: group.productId,
@@ -205,33 +220,35 @@ function optionGroupDto(group: any) {
     minChoices: group.minChoices ?? 0,
     maxChoices: group.maxChoices ?? 1,
     sortOrder: group.sortOrder ?? 0,
-    options: (group.options ?? [])
-      .slice()
-      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map(optionItemDto),
+    options,
   };
 }
 
-function optionItemDto(option: any) {
-  return {
+function optionItemDto(option: any, scope: 'public' | 'admin' = 'admin') {
+  const dto: any = {
     id: option.id,
     groupId: option.groupId,
     name: option.name,
     price: Number(option.price ?? 0),
     isAvailable: option.isAvailable ?? true,
     sortOrder: option.sortOrder ?? 0,
-    stockImpactType: option.stockImpactType ?? 'NO_STOCK_IMPACT',
-    ingredientId: option.ingredientId ?? '',
-    ingredientQuantity:
+  };
+
+  if (scope === 'admin') {
+    dto.stockImpactType = option.stockImpactType ?? 'NO_STOCK_IMPACT';
+    dto.ingredientId = option.ingredientId ?? '';
+    dto.ingredientQuantity =
       option.ingredientQuantity === null || option.ingredientQuantity === undefined
         ? ''
-        : Number(option.ingredientQuantity),
-    replacementIngredientId: option.replacementIngredientId ?? '',
-  };
+        : Number(option.ingredientQuantity);
+    dto.replacementIngredientId = option.replacementIngredientId ?? '';
+  }
+
+  return dto;
 }
 
-function optionDto(option: any) {
-  return {
+function optionDto(option: any, scope: 'public' | 'admin' = 'admin') {
+  const dto: any = {
     id: option.id,
     type: option.type,
     name: option.name,
@@ -239,25 +256,35 @@ function optionDto(option: any) {
     price: Number(option.price ?? 0),
     sortOrder: option.sortOrder ?? 0,
     isAvailable: option.isAvailable ?? true,
-    stockImpactType: option.stockImpactType ?? 'NO_STOCK_IMPACT',
-    ingredientId: option.ingredientId ?? '',
-    ingredientQuantity:
+  };
+
+  if (scope === 'admin') {
+    dto.stockImpactType = option.stockImpactType ?? 'NO_STOCK_IMPACT';
+    dto.ingredientId = option.ingredientId ?? '';
+    dto.ingredientQuantity =
       option.ingredientQuantity === null || option.ingredientQuantity === undefined
         ? ''
-        : Number(option.ingredientQuantity),
-    replacementIngredientId: option.replacementIngredientId ?? '',
-  };
+        : Number(option.ingredientQuantity);
+    dto.replacementIngredientId = option.replacementIngredientId ?? '';
+  }
+
+  return dto;
 }
 
-function availabilityDto(availability: any) {
+function availabilityDto(availability: any, scope: 'public' | 'admin' = 'admin') {
   if (!availability) return null;
 
-  return {
+  const dto: any = {
     available: Boolean(availability.available),
     reasons: availability.reasons ?? [],
-    missingIngredients: availability.missingIngredients ?? [],
-    diagnostics: availability.diagnostics ?? [],
   };
+
+  if (scope === 'admin') {
+    dto.missingIngredients = availability.missingIngredients ?? [];
+    dto.diagnostics = availability.diagnostics ?? [];
+  }
+
+  return dto;
 }
 
 function parseStockImpactInput(body: any) {
@@ -529,14 +556,25 @@ async function createDefaultVariants(productId: string, basePrice: number) {
   }
 }
 
-async function listProducts() {
+async function listProducts(scope: 'public' | 'admin' = 'admin') {
   const tenantId = getTenantId();
   const products = await prisma.product.findMany({
-    where: { tenantId },
+    where: {
+      tenantId,
+      ...(scope === 'public'
+        ? {
+            isAvailable: true,
+            menuCategory: { isActive: true },
+          }
+        : {}),
+    },
     orderBy: { createdAt: 'desc' },
     include: {
       menuCategory: true,
-      variants: { orderBy: { sortOrder: 'asc' } },
+      variants: {
+        where: scope === 'public' ? { isAvailable: true } : undefined,
+        orderBy: { sortOrder: 'asc' },
+      },
       optionGroups: {
         include: { options: { orderBy: { sortOrder: 'asc' } } },
         orderBy: { sortOrder: 'asc' },
@@ -550,17 +588,21 @@ async function listProducts() {
   );
 
   return products.map((product) =>
-    productDto({ ...product, calculatedAvailability: availabilityMap.get(product.id) }),
+    productDto({ ...product, calculatedAvailability: availabilityMap.get(product.id) }, scope),
   );
 }
 
-async function listOptions(type: ProductOptionType) {
+async function listOptions(type: ProductOptionType, scope: 'public' | 'admin' = 'admin') {
   const options = await prisma.productOption.findMany({
-    where: { tenantId: getTenantId(), type },
+    where: {
+      tenantId: getTenantId(),
+      type,
+      ...(scope === 'public' ? { isAvailable: true } : {}),
+    },
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
   });
 
-  return options.map(optionDto);
+  return options.map((option) => optionDto(option, scope));
 }
 
 async function createOrUpdateOption(type: ProductOptionType, body: any, id?: string) {
@@ -626,19 +668,29 @@ async function createOrUpdateOption(type: ProductOptionType, body: any, id?: str
 // Categorias
 productRoutes.get(
   '/categorias',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     await ensureDefaultCategories();
 
-    const includeInactive = req.query.includeInactive === 'true';
     const categories = await prisma.menuCategory.findMany({
-      where: {
-        tenantId: getTenantId(),
-        ...(includeInactive ? {} : { isActive: true }),
-      },
+      where: { tenantId: getTenantId(), isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
-    res.json(categories.map(categoryDto));
+    res.json(categories.map((category) => categoryDto(category, 'public')));
+  }),
+);
+
+productRoutes.get(
+  '/admin/categorias',
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    await ensureDefaultCategories();
+    const categories = await prisma.menuCategory.findMany({
+      where: { tenantId: getTenantId() },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+
+    res.json(categories.map((category) => categoryDto(category, 'admin')));
   }),
 );
 
@@ -831,8 +883,23 @@ productRoutes.get(
     const id = getIdParam(req, res);
     if (!id) return;
 
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        tenantId: getTenantId(),
+        isAvailable: true,
+        menuCategory: { isActive: true },
+      },
+      select: { id: true },
+    });
+
+    if (!product) {
+      res.status(404).json({ message: 'Produto nao encontrado.' });
+      return;
+    }
+
     const variants = await prisma.productVariant.findMany({
-      where: { tenantId: getTenantId(), productId: id },
+      where: { tenantId: getTenantId(), productId: id, isAvailable: true },
       orderBy: { sortOrder: 'asc' },
     });
 
@@ -944,7 +1011,7 @@ productRoutes.get(
     await ensureDefaultCategories();
     const search = normalizeText(req.query.search);
     const barcodeQuery = normalizeBarcode(req.query.barcode);
-    let products = await listProducts();
+    let products = await listProducts('public');
 
     if (barcodeQuery) {
       const byBarcode = products.filter(
@@ -974,7 +1041,48 @@ productRoutes.get(
 );
 
 productRoutes.get(
+  '/admin/produtos',
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    res.json(await listProducts('admin'));
+  }),
+);
+
+productRoutes.get(
   ['/produtos/:id', '/pizzas/:id', '/products/:id'],
+  asyncHandler(async (req, res) => {
+    const id = getIdParam(req, res);
+    if (!id) return;
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        tenantId: getTenantId(),
+        isAvailable: true,
+        menuCategory: { isActive: true },
+      },
+      include: {
+        menuCategory: true,
+        variants: { where: { isAvailable: true }, orderBy: { sortOrder: 'asc' } },
+        optionGroups: {
+          include: { options: { orderBy: { sortOrder: 'asc' } } },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+    if (!product) {
+      res.status(404).json({ message: 'Produto nao encontrado.' });
+      return;
+    }
+
+    const availability = await ProductAvailabilityService.getProductAvailability(getTenantId(), product.id);
+    res.json(productDto({ ...product, calculatedAvailability: availability }, 'public'));
+  }),
+);
+
+productRoutes.get(
+  '/admin/produtos/:id',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = getIdParam(req, res);
     if (!id) return;
@@ -985,7 +1093,7 @@ productRoutes.get(
       return;
     }
 
-    res.json(productDto(product));
+    res.json(productDto(product, 'admin'));
   }),
 );
 
@@ -1180,7 +1288,7 @@ productRoutes.put(
     }
 
     const updated = await getProductForAdmin(product.id);
-    res.json(productDto(updated));
+    res.json(productDto(updated, 'admin'));
   }),
 );
 
@@ -1210,7 +1318,15 @@ productRoutes.delete(
 productRoutes.get(
   '/adicionais',
   asyncHandler(async (_req, res) => {
-    res.json(await listOptions(ProductOptionType.ADDON));
+    res.json(await listOptions(ProductOptionType.ADDON, 'public'));
+  }),
+);
+
+productRoutes.get(
+  '/admin/adicionais',
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    res.json(await listOptions(ProductOptionType.ADDON, 'admin'));
   }),
 );
 
@@ -1269,7 +1385,15 @@ productRoutes.delete(
 productRoutes.get(
   '/bordas',
   asyncHandler(async (_req, res) => {
-    res.json(await listOptions(ProductOptionType.CRUST));
+    res.json(await listOptions(ProductOptionType.CRUST, 'public'));
+  }),
+);
+
+productRoutes.get(
+  '/admin/bordas',
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    res.json(await listOptions(ProductOptionType.CRUST, 'admin'));
   }),
 );
 

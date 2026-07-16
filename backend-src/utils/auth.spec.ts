@@ -18,12 +18,23 @@ describe('auth token secret resolution', () => {
     process.env.NODE_ENV = 'production';
 
     const { createToken, verifyToken } = await importAuth();
-    const token = createToken({ id: 'admin-1', email: 'admin@teste.com', role: 'ADMIN' });
+    const token = createToken({
+      id: 'admin-1',
+      sub: 'admin-1',
+      userId: 'admin-1',
+      email: 'admin@teste.com',
+      role: 'ADMIN',
+      type: 'STAFF',
+      tenantId: 'tenant-1',
+    });
 
     expect(verifyToken(token)).toMatchObject({
       id: 'admin-1',
       email: 'admin@teste.com',
       role: 'ADMIN',
+      type: 'STAFF',
+      userId: 'admin-1',
+      tenantId: 'tenant-1',
     });
   });
 
@@ -34,8 +45,16 @@ describe('auth token secret resolution', () => {
 
     const { createToken } = await importAuth();
 
-    expect(() => createToken({ id: 'admin-1', email: 'admin@teste.com', role: 'ADMIN' })).toThrow(
-      'JWT_SECRET ou ADMIN_SESSION_SECRET obrigatorio em producao.',
-    );
+    expect(() =>
+      createToken({
+        id: 'admin-1',
+        sub: 'admin-1',
+        userId: 'admin-1',
+        email: 'admin@teste.com',
+        role: 'ADMIN',
+        type: 'STAFF',
+        tenantId: 'tenant-1',
+      }),
+    ).toThrow('JWT_SECRET ou ADMIN_SESSION_SECRET obrigatorio em producao.');
   });
 });

@@ -249,10 +249,23 @@ router.patch('/orders/:orderId/status', async (req: Request, res: Response) => {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      await tx.order.updateMany({
-        where: { id: orderId, tenantId, status: 'OUT_FOR_DELIVERY' },
+      await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} AND "tenantId" = ${tenantId} FOR UPDATE`;
+
+      const update = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          tenantId,
+          status: 'OUT_FOR_DELIVERY',
+          ...(driverId ? { driverId } : {}),
+        },
         data: { status: 'DELIVERED' },
       });
+
+      if (update.count !== 1) {
+        throw Object.assign(new Error('Pedido de entrega nao encontrado para este perfil.'), {
+          statusCode: 404,
+        });
+      }
 
       await tx.orderStatusEvent.create({
         data: {
@@ -283,9 +296,9 @@ router.patch('/orders/:orderId/status', async (req: Request, res: Response) => {
     }
 
     res.json(updated);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar entrega:', error);
-    res.status(500).json({ error: 'Erro interno.' });
+    res.status(error.statusCode ?? 500).json({ error: error.message || 'Erro interno.' });
   }
 });
 

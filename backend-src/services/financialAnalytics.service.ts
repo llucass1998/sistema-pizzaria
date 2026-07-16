@@ -20,6 +20,31 @@ export interface CmvAnalysis {
   reliablePercentage: number;
 }
 
+function getPaidAmount(order: {
+  total?: unknown;
+  amountPaid?: unknown;
+  depositAmount?: unknown;
+  paymentStatus?: string | null;
+}) {
+  if (order.paymentStatus === 'PAID') return Number(order.total || 0);
+  const paid = Number(order.amountPaid || 0) || Number(order.depositAmount || 0);
+  return Math.min(Number(order.total || 0), Math.max(0, paid));
+}
+
+function getPendingAmount(order: {
+  total?: unknown;
+  amountDue?: unknown;
+  amountPaid?: unknown;
+  depositAmount?: unknown;
+  paymentStatus?: string | null;
+}) {
+  if (order.paymentStatus === 'PAID') return 0;
+  if (order.amountDue !== undefined && order.amountDue !== null) {
+    return Math.max(0, Number(order.amountDue || 0));
+  }
+  return Math.max(0, Number(order.total || 0) - getPaidAmount(order));
+}
+
 export class FinancialAnalyticsService {
   /**
    * 1. Resumo Executivo Financeiro (Dashboard)
@@ -103,10 +128,6 @@ export class FinancialAnalyticsService {
         (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID'),
     );
     const canceledOrders = currentOrders.filter((o) => o.status === 'CANCELED');
-    const pendingOrders = currentOrders.filter(
-      (o) => o.status !== 'CANCELED' && (o.paymentStatus === 'PENDING' || !o.paymentStatus),
-    );
-
     const prevPaidOrders = prevOrders.filter(
       (o) =>
         o.status !== 'CANCELED' &&
@@ -114,17 +135,19 @@ export class FinancialAnalyticsService {
     );
 
     // Cálculos de Receita
-    const grossRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+    const grossRevenue = paidOrders.reduce((acc, o) => acc + getPaidAmount(o), 0);
     const canceledAmount = canceledOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
     const netRevenue = grossRevenue; // Receita líquida operacional (pedidos pagos confirmados)
 
-    const prevGrossRevenue = prevPaidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+    const prevGrossRevenue = prevPaidOrders.reduce((acc, o) => acc + getPaidAmount(o), 0);
     const revenueGrowth =
       prevGrossRevenue > 0 ? ((grossRevenue - prevGrossRevenue) / prevGrossRevenue) * 100 : 0;
 
     // Recebimentos (Entradas Realizadas) vs Previsão a Receber
     const totalReceived = grossRevenue;
-    const totalReceivable = pendingOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+    const totalReceivable = currentOrders
+      .filter((o) => o.status !== 'CANCELED' && o.paymentStatus !== 'PAID')
+      .reduce((acc, o) => acc + getPendingAmount(o), 0);
 
     // Despesas e Saídas Realizadas vs Previstas
     const paidExpenses = currentPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
@@ -157,8 +180,7 @@ export class FinancialAnalyticsService {
     const paymentMethodBreakdown: Record<string, number> = {};
     for (const order of paidOrders) {
       const method = order.paymentMethod || 'OTHER';
-      paymentMethodBreakdown[method] =
-        (paymentMethodBreakdown[method] || 0) + Number(order.total || 0);
+      paymentMethodBreakdown[method] = (paymentMethodBreakdown[method] || 0) + getPaidAmount(order);
     }
 
     return {
@@ -207,7 +229,15 @@ export class FinancialAnalyticsService {
         createdAt: { gte: range.startUtc, lte: range.endUtc },
         status: { not: 'CANCELED' },
       },
-      select: { id: true, total: true, paymentStatus: true, createdAt: true, paymentMethod: true },
+      select: {
+        id: true,
+        total: true,
+        amountPaid: true,
+        amountDue: true,
+        paymentStatus: true,
+        createdAt: true,
+        paymentMethod: true,
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -258,15 +288,28 @@ export class FinancialAnalyticsService {
     for (const o of orders) {
       const val = Number(o.total || 0);
       if (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID') {
-        realizedInflow += val;
+        const paid = getPaidAmount(o);
+        const pending = getPendingAmount(o);
+        realizedInflow += paid;
         entries.push({
           date: o.createdAt,
           type: 'INFLOW_REALIZED',
           category: 'Vendas',
           description: `Pedido #${o.id.slice(0, 8)} (${o.paymentMethod || 'Diversos'})`,
-          amount: val,
+          amount: paid,
           isRealized: true,
         });
+        if (pending > 0) {
+          predictedInflow += pending;
+          entries.push({
+            date: o.createdAt,
+            type: 'INFLOW_PREDICTED',
+            category: 'A Receber',
+            description: `Saldo pendente pedido #${o.id.slice(0, 8)}`,
+            amount: pending,
+            isRealized: false,
+          });
+        }
       } else {
         predictedInflow += val;
         entries.push({
@@ -405,7 +448,7 @@ export class FinancialAnalyticsService {
     );
     const canceledOrders = orders.filter((o) => o.status === 'CANCELED');
 
-    const grossRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+    const grossRevenue = paidOrders.reduce((acc, o) => acc + getPaidAmount(o), 0);
     const canceledAmount = canceledOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
     const netRevenue = grossRevenue;
 
@@ -511,7 +554,8 @@ export class FinancialAnalyticsService {
         breakdown[mKey].canceled += val;
       } else if (o.paymentStatus === 'PAID' || o.paymentStatus === 'PARTIALLY_PAID') {
         breakdown[mKey].sold += val;
-        breakdown[mKey].received += val;
+        breakdown[mKey].received += getPaidAmount(o);
+        breakdown[mKey].pending += getPendingAmount(o);
       } else {
         breakdown[mKey].sold += val;
         breakdown[mKey].pending += val;
@@ -749,6 +793,8 @@ export class FinancialAnalyticsService {
           { name: string; category: string; qty: number; revenue: number }
         > = {};
         for (const o of orders) {
+          const realizedRatio = Number(o.total || 0) > 0 ? getPaidAmount(o) / Number(o.total || 0) : 0;
+
           for (const item of o.items || []) {
             const pid = item.productId;
             const pName = item.product?.name || 'Produto Removido';
@@ -758,7 +804,7 @@ export class FinancialAnalyticsService {
 
             if (!map[pid]) map[pid] = { name: pName, category: pCat, qty: 0, revenue: 0 };
             map[pid].qty += qty;
-            map[pid].revenue += rev;
+            map[pid].revenue += rev * realizedRatio;
           }
         }
 
@@ -785,7 +831,7 @@ export class FinancialAnalyticsService {
           const m = o.paymentMethod || 'OTHER';
           if (!map[m]) map[m] = { count: 0, total: 0 };
           map[m].count += 1;
-          map[m].total += Number(o.total || 0);
+          map[m].total += getPaidAmount(o);
         }
 
         const rows = Object.entries(map).map(([method, data]) => [method, data.count, data.total]);

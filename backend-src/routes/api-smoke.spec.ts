@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   menuCategoryCount: vi.fn(),
   menuCategoryFindMany: vi.fn(),
   productFindMany: vi.fn(),
+  productFindFirst: vi.fn(),
+  productOptionFindMany: vi.fn(),
 }));
 
 vi.mock('../core/context/TenantContext.js', () => ({
@@ -35,6 +37,10 @@ vi.mock('../lib/prisma.js', () => ({
     },
     product: {
       findMany: mocks.productFindMany,
+      findFirst: mocks.productFindFirst,
+    },
+    productOption: {
+      findMany: mocks.productOptionFindMany,
     },
   },
   rlsContext: {
@@ -44,7 +50,24 @@ vi.mock('../lib/prisma.js', () => ({
 
 vi.mock('../services/ProductAvailabilityService.js', () => ({
   ProductAvailabilityService: {
-    getAvailabilityMap: async () => new Map(),
+    getAvailabilityMap: async () =>
+      new Map([
+        [
+          'product-1',
+          {
+            available: false,
+            reasons: ['Estoque insuficiente'],
+            missingIngredients: [{ id: 'ingredient-1', name: 'Bacon' }],
+            diagnostics: [{ code: 'LOW_STOCK' }],
+          },
+        ],
+      ]),
+    getProductAvailability: async () => ({
+      available: false,
+      reasons: ['Estoque insuficiente'],
+      missingIngredients: [{ id: 'ingredient-1', name: 'Bacon' }],
+      diagnostics: [{ code: 'LOW_STOCK' }],
+    }),
   },
 }));
 
@@ -104,7 +127,44 @@ const product = {
   imageUrl: null,
   isAvailable: true,
   variants: [],
-  optionGroups: [],
+  optionGroups: [
+    {
+      id: 'group-1',
+      productId: 'product-1',
+      name: 'Adicionais',
+      description: null,
+      isRequired: false,
+      minChoices: 0,
+      maxChoices: 2,
+      sortOrder: 0,
+      options: [
+        {
+          id: 'option-visible',
+          groupId: 'group-1',
+          name: 'Bacon',
+          price: '4.00',
+          isAvailable: true,
+          sortOrder: 0,
+          stockImpactType: 'ADD_INGREDIENT',
+          ingredientId: 'ingredient-1',
+          ingredientQuantity: '0.0500',
+          replacementIngredientId: null,
+        },
+        {
+          id: 'option-hidden',
+          groupId: 'group-1',
+          name: 'Item oculto',
+          price: '9.00',
+          isAvailable: false,
+          sortOrder: 1,
+          stockImpactType: 'ADD_INGREDIENT',
+          ingredientId: 'ingredient-2',
+          ingredientQuantity: '0.1000',
+          replacementIngredientId: null,
+        },
+      ],
+    },
+  ],
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -123,6 +183,22 @@ describe('API smoke contracts', () => {
     mocks.menuCategoryCount.mockResolvedValue(1);
     mocks.menuCategoryFindMany.mockResolvedValue([category]);
     mocks.productFindMany.mockResolvedValue([product]);
+    mocks.productFindFirst.mockResolvedValue(product);
+    mocks.productOptionFindMany.mockResolvedValue([
+      {
+        id: 'addon-visible',
+        type: 'ADDON',
+        name: 'Bacon',
+        description: null,
+        price: '4.00',
+        sortOrder: 0,
+        isAvailable: true,
+        stockImpactType: 'ADD_INGREDIENT',
+        ingredientId: 'ingredient-1',
+        ingredientQuantity: '0.0500',
+        replacementIngredientId: null,
+      },
+    ]);
   });
 
   it('responds to /api/status without tenant or authentication', async () => {
@@ -186,7 +262,11 @@ describe('API smoke contracts', () => {
     );
     expect(mocks.productFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { tenantId: 'tenant-e2e' },
+        where: {
+          tenantId: 'tenant-e2e',
+          isAvailable: true,
+          menuCategory: { isActive: true },
+        },
       }),
     );
   });
@@ -200,15 +280,33 @@ describe('API smoke contracts', () => {
     expect(response.body.message).toContain('administrador');
   });
 
-  it('searches products by barcode', async () => {
-    const response = await request(createApp())
-      .get('/api/produtos')
-      .query({ barcode: '7891234567890' });
+  it('does not expose operational product fields on public menu endpoints', async () => {
+    const app = createApp();
 
-    expect(response.status).toBe(200);
-    expect(response.body[0]).toMatchObject({
-      id: 'product-1',
-      barcode: '7891234567890',
+    const productsResponse = await request(app).get('/api/produtos');
+    const addonsResponse = await request(app).get('/api/adicionais');
+
+    expect(productsResponse.status, JSON.stringify(productsResponse.body)).toBe(200);
+    expect(addonsResponse.status, JSON.stringify(addonsResponse.body)).toBe(200);
+    expect(productsResponse.body[0]).not.toHaveProperty('barcode');
+    expect(productsResponse.body[0]).not.toHaveProperty('kdsStation');
+    expect(productsResponse.body[0]).not.toHaveProperty('prepTimeMinutes');
+    expect(productsResponse.body[0].calculatedAvailability).toEqual({
+      available: false,
+      reasons: ['Estoque insuficiente'],
     });
+    expect(productsResponse.body[0].calculatedAvailability).not.toHaveProperty(
+      'missingIngredients',
+    );
+    expect(productsResponse.body[0].calculatedAvailability).not.toHaveProperty('diagnostics');
+    expect(productsResponse.body[0].optionGroups[0].options).toHaveLength(1);
+    expect(productsResponse.body[0].optionGroups[0].options[0]).not.toHaveProperty(
+      'stockImpactType',
+    );
+    expect(productsResponse.body[0].optionGroups[0].options[0]).not.toHaveProperty(
+      'ingredientId',
+    );
+    expect(addonsResponse.body[0]).not.toHaveProperty('stockImpactType');
+    expect(addonsResponse.body[0]).not.toHaveProperty('ingredientId');
   });
 });

@@ -344,15 +344,26 @@ function getInitialDarkMode() {
 function getSavedAdminRole() {
   try {
     const session = JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
-    return session?.role || session?.admin?.role || 'ADMIN';
+    return isAdminSessionPayload(session) ? session.role || session.admin.role : null;
   } catch {
-    return 'ADMIN';
+    return null;
   }
 }
 
 function isAdminSessionPayload(session) {
   const role = session?.role || session?.admin?.role;
-  return Boolean(session?.admin || ADMIN_SESSION_ROLES.includes(role));
+  return Boolean(
+    session?.type === 'STAFF' &&
+    session?.token &&
+    session?.admin?.id &&
+    ADMIN_SESSION_ROLES.includes(role),
+  );
+}
+
+function isCustomerSessionPayload(session) {
+  return Boolean(
+    session?.type === 'CUSTOMER' && session?.role === 'CUSTOMER' && session?.token && session?.id,
+  );
 }
 
 function getSavedCustomerSession() {
@@ -368,6 +379,13 @@ function getSavedCustomerSession() {
       return null;
     }
 
+    // Sessões legadas sem `type` seguem até a API confirmar a expiração.
+    // Sessões novas incompletas ou de outro tipo nunca entram na área do cliente.
+    if (savedCustomer.type && !isCustomerSessionPayload(savedCustomer)) {
+      window.localStorage.removeItem(savedCustomerKey);
+      return null;
+    }
+
     return savedCustomer;
   } catch {
     window.localStorage.removeItem(savedCustomerKey);
@@ -377,7 +395,61 @@ function getSavedCustomerSession() {
 
 function AdminIndexRedirect() {
   const role = getSavedAdminRole();
+  if (!role) return <Navigate to="/admin/login" replace />;
   return <Navigate to={role === 'DRIVER' ? '/motoboy' : '/admin/dashboard'} replace />;
+}
+
+function AdminSessionGate({ children }) {
+  const [status, setStatus] = useState('checking');
+
+  useEffect(() => {
+    let active = true;
+    let session = null;
+
+    try {
+      session = JSON.parse(window.localStorage.getItem('pizzaria-admin') ?? 'null');
+    } catch {
+      window.localStorage.removeItem('pizzaria-admin');
+    }
+
+    if (!isAdminSessionPayload(session)) {
+      window.localStorage.removeItem('pizzaria-admin');
+      setStatus('denied');
+      return () => {
+        active = false;
+      };
+    }
+
+    fetch(`${API_BASE_URL}/admin/session`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.type !== 'STAFF' || !ADMIN_SESSION_ROLES.includes(data.role)) {
+          throw new Error('invalid_admin_session');
+        }
+        if (active) setStatus('allowed');
+      })
+      .catch(() => {
+        window.localStorage.removeItem('pizzaria-admin');
+        if (active) setStatus('denied');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (status === 'denied') return <Navigate to="/admin/login" replace />;
+  if (status !== 'allowed') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <p className="text-sm font-bold">Validando acesso administrativo...</p>
+      </main>
+    );
+  }
+
+  return children;
 }
 
 function AccessDenied() {
@@ -770,13 +842,20 @@ export default function PizzariaApp() {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.message ?? 'Nao foi possivel concluir a operacao.');
+      const error = new Error(data.message ?? 'Nao foi possivel concluir a operacao.');
+      error.status = response.status;
+      throw error;
     }
 
     return data;
   }
 
   function finishAuth(customer) {
+    if (!isCustomerSessionPayload(customer)) {
+      throw new Error('A resposta de login do cliente é inválida. Tente novamente.');
+    }
+    window.localStorage.removeItem('pizzaria-admin');
+    window.localStorage.removeItem('pizzaria-admin-token');
     setCurrentCustomer(customer);
     window.localStorage.setItem(savedCustomerKey, JSON.stringify(customer));
     setShowLoginModal(false);
@@ -792,7 +871,16 @@ export default function PizzariaApp() {
     try {
       setIsAuthLoading(true);
       setAuthError('');
-      const result = await submitAuthRequest('/login', { email, password });
+      let result;
+      try {
+        result = await submitAuthRequest('/login', { email, password });
+      } catch (customerLoginError) {
+        // Os domínios de autenticação continuam separados no backend. O modal
+        // público apenas encaminha credenciais não reconhecidas como cliente ao
+        // endpoint administrativo dedicado, sem misturar tokens ou sessões.
+        if (customerLoginError?.status !== 401) throw customerLoginError;
+        result = await submitAuthRequest('/admin/login', { email, password });
+      }
 
       if (isAdminSessionPayload(result)) {
         // Salva a sessao do administrador e redireciona para o painel admin.
@@ -802,6 +890,7 @@ export default function PizzariaApp() {
             admin: result.admin,
             token: result.token,
             role: result.role || result.admin?.role,
+            type: result.type,
           }),
         );
         window.localStorage.removeItem(savedCustomerKey);
@@ -847,11 +936,23 @@ export default function PizzariaApp() {
   function handleLogout() {
     setCurrentCustomer(null);
     window.localStorage.removeItem(savedCustomerKey);
+    window.localStorage.removeItem('pizzaria-admin');
+    window.localStorage.removeItem('pizzaria-admin-token');
     setIsAccountMenuOpen(false);
 
     if (getHashPath() === '/conta') {
       window.location.hash = '/';
     }
+  }
+
+  function handleCustomerSessionExpired() {
+    window.localStorage.removeItem(savedCustomerKey);
+    setCurrentCustomer(null);
+    setIsAccountMenuOpen(false);
+    setAuthMode('login');
+    setAuthError('Sua sessão foi atualizada. Entre novamente para acessar seus pedidos.');
+    setPassword('');
+    setShowLoginModal(true);
   }
 
   function addToCart(product) {
@@ -1114,7 +1215,11 @@ export default function PizzariaApp() {
               <Route path="/mock-payment" element={<MockPaymentPage />} />
               <Route
                 path="/admin"
-                element={<AdminLayout isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />}
+                element={
+                  <AdminSessionGate>
+                    <AdminLayout isDarkMode={isDarkMode} onToggleTheme={toggleDarkMode} />
+                  </AdminSessionGate>
+                }
               >
                 <Route index element={<AdminIndexRedirect />} />
                 <Route
@@ -1416,6 +1521,7 @@ export default function PizzariaApp() {
             onAddToCart={addToCart}
             onLoginClick={() => openAuthModal('login')}
             onLogout={handleLogout}
+            onSessionExpired={handleCustomerSessionExpired}
             onUpdateCartItemQuantity={updateCartItemQuantity}
             onRemoveCartItem={removeCartItem}
             onOrderCreated={handleOrderCreated}
